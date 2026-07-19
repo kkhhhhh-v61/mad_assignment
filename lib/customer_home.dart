@@ -1,44 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mad_assignment/config.dart';
 
+import 'config.dart';
 import 'customer_header.dart';
 
 class CustomerHome extends StatelessWidget {
   const CustomerHome({super.key});
-
-  // TODO: replace with dynamic data from DB
-  final List<Map<String, dynamic>> _categories = const [
-    {'name': 'Mains', 'icon': Icons.lunch_dining},
-    {'name': 'Sides', 'icon': Icons.tapas},
-    {'name': 'Drinks', 'icon': Icons.local_cafe},
-    {'name': 'Desserts', 'icon': Icons.icecream},
-    {'name': 'Healthy', 'icon': Icons.eco},
-  ];
-
-  // TODO: replace with dynamic data from DB
-  final List<Map<String, dynamic>> _trendingItems = const [
-    {
-      'name': 'Spicy Chicken Burger',
-      'rating': '4.8',
-      'price': 'RM 15.90',
-      'time': '15-20 min',
-      'icon': Icons.lunch_dining,
-    },
-    {
-      'name': 'Beef Pepperoni Pizza',
-      'rating': '4.5',
-      'price': 'RM 22.50',
-      'time': '25-30 min',
-      'icon': Icons.local_pizza,
-    },
-    {
-      'name': 'Iced Caramel Macchiato',
-      'rating': '4.9',
-      'price': 'RM 12.00',
-      'time': '5-10 min',
-      'icon': Icons.local_cafe,
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +72,7 @@ class CustomerHome extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20.0,
                     ),
-                    itemCount: _categories.length,
+                    itemCount: categories.length,
                     itemBuilder: (context, index) {
                       return Container(
                         margin: const EdgeInsets.only(
@@ -130,7 +96,7 @@ class CustomerHome extends StatelessWidget {
                                 ],
                               ),
                               child: Icon( // TODO: replace with image
-                                _categories[index]['icon'] as IconData,
+                                categories[index]['icon'] as IconData,
                                 color: brandColor,
                                 size: 28,
                               ),
@@ -139,7 +105,7 @@ class CustomerHome extends StatelessWidget {
                               height: 10,
                             ),
                             Text(
-                              _categories[index]['name'] as String,
+                              categories[index]['name'] as String,
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -199,9 +165,9 @@ class CustomerHome extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20.0,
                   ),
-                  itemCount: _trendingItems.length > 3 ? 3 : _trendingItems.length,
+                  itemCount: trendingItems.length > 3 ? 3 : trendingItems.length,
                   itemBuilder: (context, index) {
-                    final item = _trendingItems[index];
+                    final item = trendingItems[index];
                     return Container(
                       margin: const EdgeInsets.only(
                         bottom: 15.0
@@ -319,7 +285,7 @@ class CustomerHome extends StatelessWidget {
                                           size: 20,
                                         ),
                                         onPressed: () {
-                                          // TODO: Add to cart action
+                                          // TODO
                                         },
                                       ),
                                     ),

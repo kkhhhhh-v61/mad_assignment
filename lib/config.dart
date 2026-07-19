@@ -101,3 +101,21 @@ final List<Map<String, dynamic>> orderItems = const [
     'icon': Icons.cake,
   },
 ];
+
+List<Map<String, dynamic>> cartItems = [
+  {
+    'name': 'Spicy Chicken Burger',
+    'price': 15.90,
+    'quantity': 2,
+    'icon': Icons.lunch_dining,
+  },
+  {
+    'name': 'Iced Caramel Macchiato',
+    'price': 12.00,
+    'quantity': 1,
+    'icon': Icons.local_cafe,
+  },
+];
+
+const double deliveryFee = 5.00;
+const double activeDiscount = 3.00;

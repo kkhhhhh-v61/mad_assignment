@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'config.dart';
+import 'customer_cart.dart';
 
 class CustomerHeader extends StatelessWidget {
   final bool showFilter;
@@ -151,7 +152,12 @@ class CustomerHeader extends StatelessWidget {
                           size: 28,
                         ),
                         onPressed: () {
-                          // TODO
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CustomerCart(),
+                            ),
+                          );
                         },
                       ),
                       Positioned(

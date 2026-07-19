@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'config.dart';
+import '../config.dart';
 import 'customer_account.dart';
 import 'customer_home.dart';
 import 'customer_menu.dart';
@@ -16,36 +16,27 @@ class CustomerMainNavigation extends StatefulWidget {
 class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const CustomerHome(),
-    const CustomerMenu(),
-    const CustomerOrders(),
-    const CustomerAccount(),
+  final List<Widget> _screens = const [
+    CustomerHome(),
+    CustomerMenu(),
+    CustomerOrders(),
+    CustomerAccount(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(248, 255, 255, 255),
+      backgroundColor: scaffoldBgColor,
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(15.0),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Color.fromARGB(64, 0, 0, 0),
-              blurRadius: 15,
-              spreadRadius: 1,
-              offset: Offset(0, -2),
-            ),
-          ],
+          borderRadius: BorderRadius.vertical(top: Radius.circular(radiusLg)),
+          boxShadow: [shadowNavBar],
         ),
         height: 100,
         child: ClipRRect(
           borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(15.0),
+            top: Radius.circular(radiusLg),
           ),
           child: BottomNavigationBar(
             backgroundColor: Colors.white,
@@ -57,7 +48,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
             },
             type: BottomNavigationBarType.fixed,
             selectedItemColor: brandColor,
-            unselectedItemColor: Colors.grey,
+            unselectedItemColor: textHint,
             showUnselectedLabels: true,
             items: const [
               BottomNavigationBarItem(

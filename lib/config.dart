@@ -1,121 +1,91 @@
 import 'package:flutter/material.dart';
 
-// Global Configs
-final appLogo = 'assets/images/logo.webp';
-final brandColor = Color.fromARGB(255, 255, 160, 122);
+// ==================== App Constants ====================
 
-// Dummy Data
-// TODO: replace with dynamic data from DB
-final List<Map<String, dynamic>> categories = const [
-  {'name': 'Mains', 'icon': Icons.lunch_dining},
-  {'name': 'Sides', 'icon': Icons.tapas},
-  {'name': 'Drinks', 'icon': Icons.local_cafe},
-  {'name': 'Desserts', 'icon': Icons.icecream},
-  {'name': 'Healthy', 'icon': Icons.eco},
-];
+const appName = 'DoorDish';
+const appLogo = 'assets/images/logo.webp';
+const currencyPrefix = 'RM';
 
-final List<Map<String, dynamic>> trendingItems = const [
-  {
-    'name': 'Spicy Chicken Burger',
-    'rating': '4.8',
-    'price': 'RM 15.90',
-    'time': '15-20 min',
-    'icon': Icons.lunch_dining,
-  },
-  {
-    'name': 'Beef Pepperoni Pizza',
-    'rating': '4.5',
-    'price': 'RM 22.50',
-    'time': '25-30 min',
-    'icon': Icons.local_pizza,
-  },
-  {
-    'name': 'Iced Caramel Macchiato',
-    'rating': '4.9',
-    'price': 'RM 12.00',
-    'time': '5-10 min',
-    'icon': Icons.local_cafe,
-  },
-];
+String formatPrice(double price) =>
+    '$currencyPrefix ${price.toStringAsFixed(2)}';
 
-final List<Map<String, dynamic>> menuItems = const [
-  // Mains
-  {'name': 'Spicy Chicken Burger', 'category': 'Mains', 'rating': '4.8', 'price': 'RM 15.90', 'time': '15-20 min', 'icon': Icons.lunch_dining},
-  {'name': 'Beef Pepperoni Pizza', 'category': 'Mains', 'rating': '4.5', 'price': 'RM 22.50', 'time': '25-30 min', 'icon': Icons.local_pizza},
-  {'name': 'Grilled Salmon Set', 'category': 'Mains', 'rating': '4.7', 'price': 'RM 28.00', 'time': '20-25 min', 'icon': Icons.set_meal},
+// ==================== Color Palette ====================
 
-  // Sides
-  {'name': 'Cheesy Fries', 'category': 'Sides', 'rating': '4.6', 'price': 'RM 8.50', 'time': '10-15 min', 'icon': Icons.fastfood},
-  {'name': 'Garlic Bread', 'category': 'Sides', 'rating': '4.3', 'price': 'RM 6.00', 'time': '5-10 min', 'icon': Icons.bakery_dining},
+const brandColor = Color.fromARGB(255, 255, 160, 122);
+const scaffoldBgColor = Color(0xF8FFFFFF);
 
-  // Drinks
-  {'name': 'Iced Caramel Macchiato', 'category': 'Drinks', 'rating': '4.9', 'price': 'RM 12.00', 'time': '5-10 min', 'icon': Icons.local_cafe},
-  {'name': 'Mango Smoothie', 'category': 'Drinks', 'rating': '4.7', 'price': 'RM 10.50', 'time': '5-10 min', 'icon': Icons.local_drink},
+const textPrimary = Color(0xDD000000);
+const textSecondary = Color(0xFF757575);
+const textHint = Color(0xFF9E9E9E);
 
-  // Desserts
-  {'name': 'Chocolate Lava Cake', 'category': 'Desserts', 'rating': '4.9', 'price': 'RM 14.00', 'time': '10-15 min', 'icon': Icons.cake},
-  {'name': 'Vanilla Ice Cream', 'category': 'Desserts', 'rating': '4.5', 'price': 'RM 5.50', 'time': '5 min', 'icon': Icons.icecream},
+const surfaceLight = Color(0xFFF5F5F5);
+const surfaceMuted = Color(0xFFEEEEEE);
+const borderLight = Color(0xFFE0E0E0);
 
-  // Healthy
-  {'name': 'Avocado Salad', 'category': 'Healthy', 'rating': '4.8', 'price': 'RM 16.00', 'time': '10-15 min', 'icon': Icons.eco},
-  {'name': 'Quinoa Bowl', 'category': 'Healthy', 'rating': '4.6', 'price': 'RM 18.50', 'time': '15-20 min', 'icon': Icons.rice_bowl},
-];
+const starColor = Color(0xFFFFCA28);
+const infoColor = Color(0xFF2196F3);
+const dangerColor = Color(0xFFEF5350);
 
-final List<String> orderStatuses = const ['Active', 'Completed', 'Cancelled'];
+// ==================== Typography ====================
 
-final List<Map<String, dynamic>> orderItems = const [
-  {
-    'orderId': '#ORD-1001',
-    'status': 'Active',
-    'date': '19 Jul 2026, 12:30 PM',
-    'items': '2x Spicy Chicken Burger, 1x Iced Caramel Macchiato',
-    'total': 'RM 43.80',
-    'restaurant': 'Burger Joint',
-    'icon': Icons.lunch_dining,
-  },
-  {
-    'orderId': '#ORD-0998',
-    'status': 'Completed',
-    'date': '18 Jul 2026, 07:15 PM',
-    'items': '1x Beef Pepperoni Pizza, 2x Garlic Bread',
-    'total': 'RM 34.50',
-    'restaurant': 'Pizza Palace',
-    'icon': Icons.local_pizza,
-  },
-  {
-    'orderId': '#ORD-0985',
-    'status': 'Completed',
-    'date': '15 Jul 2026, 01:00 PM',
-    'items': '1x Grilled Salmon Set',
-    'total': 'RM 28.00',
-    'restaurant': 'Healthy Bites',
-    'icon': Icons.set_meal,
-  },
-  {
-    'orderId': '#ORD-0970',
-    'status': 'Cancelled',
-    'date': '10 Jul 2026, 08:45 PM',
-    'items': '1x Chocolate Lava Cake, 1x Vanilla Ice Cream',
-    'total': 'RM 19.50',
-    'restaurant': 'Sweet Treats',
-    'icon': Icons.cake,
-  },
-];
+const fontCaption = 12.0;
+const fontDetail = 13.0;
+const fontBody = 14.0;
+const fontBodyLarge = 15.0;
+const fontSubtitle = 16.0;
+const fontTitle = 18.0;
+const fontHeadline = 20.0;
+const fontDisplay = 22.0;
 
-List<Map<String, dynamic>> cartItems = [
-  {
-    'name': 'Spicy Chicken Burger',
-    'price': 15.90,
-    'quantity': 2,
-    'icon': Icons.lunch_dining,
-  },
-  {
-    'name': 'Iced Caramel Macchiato',
-    'price': 12.00,
-    'quantity': 1,
-    'icon': Icons.local_cafe,
-  },
-];
+// ==================== Spacing ====================
 
-const double deliveryFee = 5.00;
-const double activeDiscount = 3.00;
+const spacingXs = 4.0;
+const spacingSm = 8.0;
+const spacingMd = 12.0;
+const spacingLg = 16.0;
+const spacingXl = 20.0;
+const spacing2xl = 24.0;
+const spacing3xl = 32.0;
+
+// ==================== Border Radius ====================
+
+const radiusSm = 10.0;
+const radiusMd = 12.0;
+const radiusLg = 15.0;
+const radiusXl = 20.0;
+const radiusFull = 25.0;
+
+// ==================== Shadows ====================
+
+const shadowSm = BoxShadow(
+  color: Color.fromARGB(15, 0, 0, 0),
+  blurRadius: 5,
+  offset: Offset(0, 2),
+);
+
+const shadowMd = BoxShadow(
+  color: Color.fromARGB(20, 0, 0, 0),
+  blurRadius: 8,
+  spreadRadius: 1,
+  offset: Offset(0, 3),
+);
+
+const shadowLg = BoxShadow(
+  color: Color.fromARGB(40, 0, 0, 0),
+  blurRadius: 10,
+  spreadRadius: 1,
+  offset: Offset(0, 4),
+);
+
+const shadowNavBar = BoxShadow(
+  color: Color.fromARGB(64, 0, 0, 0),
+  blurRadius: 15,
+  spreadRadius: 1,
+  offset: Offset(0, -2),
+);
+
+const shadowBottomBar = BoxShadow(
+  color: Color.fromARGB(15, 0, 0, 0),
+  blurRadius: 15,
+  offset: Offset(0, -5),
+);

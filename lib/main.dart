@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mad_assignment/splash_screen.dart';
+
+import 'config.dart';
+import 'splash_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,7 +14,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'DoorDish',
+      title: appName,
       home: const SplashScreen(),
     );
   }

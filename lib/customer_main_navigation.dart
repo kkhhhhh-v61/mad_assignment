@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'config.dart';
+import 'customer_account.dart';
 import 'customer_home.dart';
 import 'customer_menu.dart';
+import 'customer_orders.dart';
 
 class CustomerMainNavigation extends StatefulWidget {
   const CustomerMainNavigation({super.key});
@@ -17,30 +19,8 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
   final List<Widget> _screens = [
     const CustomerHome(),
     const CustomerMenu(),
-    const Center(
-      child: Text(
-        'Orders Page',
-        style: TextStyle(
-          fontSize: 24,
-        ),
-      ),
-    ),
-    const Center(
-      child: Text(
-        'Favorites Page',
-        style: TextStyle(
-          fontSize: 24,
-        ),
-      ),
-    ),
-    const Center(
-      child: Text(
-        'Account Page',
-        style: TextStyle(
-          fontSize: 24,
-        ),
-      ),
-    ),
+    const CustomerOrders(),
+    const CustomerAccount(),
   ];
 
   @override
@@ -94,11 +74,6 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
                 icon: Icon(Icons.receipt_long_outlined),
                 activeIcon: Icon(Icons.receipt_long),
                 label: 'Orders',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.favorite_outline),
-                activeIcon: Icon(Icons.favorite),
-                label: 'Favorites',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.account_circle_outlined),

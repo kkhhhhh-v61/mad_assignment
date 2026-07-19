@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 final appLogo = 'assets/images/logo.webp';
 final brandColor = Color.fromARGB(255, 255, 160, 122);
 
+// Dummy Data
 // TODO: replace with dynamic data from DB
 final List<Map<String, dynamic>> categories = const [
   {'name': 'Mains', 'icon': Icons.lunch_dining},
@@ -13,7 +14,6 @@ final List<Map<String, dynamic>> categories = const [
   {'name': 'Healthy', 'icon': Icons.eco},
 ];
 
-// TODO: replace with dynamic data from DB
 final List<Map<String, dynamic>> trendingItems = const [
   {
     'name': 'Spicy Chicken Burger',
@@ -59,4 +59,45 @@ final List<Map<String, dynamic>> menuItems = const [
   // Healthy
   {'name': 'Avocado Salad', 'category': 'Healthy', 'rating': '4.8', 'price': 'RM 16.00', 'time': '10-15 min', 'icon': Icons.eco},
   {'name': 'Quinoa Bowl', 'category': 'Healthy', 'rating': '4.6', 'price': 'RM 18.50', 'time': '15-20 min', 'icon': Icons.rice_bowl},
+];
+
+final List<String> orderStatuses = const ['Active', 'Completed', 'Cancelled'];
+
+final List<Map<String, dynamic>> orderItems = const [
+  {
+    'orderId': '#ORD-1001',
+    'status': 'Active',
+    'date': '19 Jul 2026, 12:30 PM',
+    'items': '2x Spicy Chicken Burger, 1x Iced Caramel Macchiato',
+    'total': 'RM 43.80',
+    'restaurant': 'Burger Joint',
+    'icon': Icons.lunch_dining,
+  },
+  {
+    'orderId': '#ORD-0998',
+    'status': 'Completed',
+    'date': '18 Jul 2026, 07:15 PM',
+    'items': '1x Beef Pepperoni Pizza, 2x Garlic Bread',
+    'total': 'RM 34.50',
+    'restaurant': 'Pizza Palace',
+    'icon': Icons.local_pizza,
+  },
+  {
+    'orderId': '#ORD-0985',
+    'status': 'Completed',
+    'date': '15 Jul 2026, 01:00 PM',
+    'items': '1x Grilled Salmon Set',
+    'total': 'RM 28.00',
+    'restaurant': 'Healthy Bites',
+    'icon': Icons.set_meal,
+  },
+  {
+    'orderId': '#ORD-0970',
+    'status': 'Cancelled',
+    'date': '10 Jul 2026, 08:45 PM',
+    'items': '1x Chocolate Lava Cake, 1x Vanilla Ice Cream',
+    'total': 'RM 19.50',
+    'restaurant': 'Sweet Treats',
+    'icon': Icons.cake,
+  },
 ];

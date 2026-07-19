@@ -4,10 +4,18 @@ import 'config.dart';
 
 class CustomerHeader extends StatelessWidget {
   final bool showFilter;
+  final bool showSearch;
+  final bool showSettings;
+  final bool showTitle;
+  final String pageTitle;
 
   const CustomerHeader({
     super.key,
     this.showFilter = false,
+    this.showSearch = true,
+    this.showSettings = false,
+    this.showTitle = false,
+    this.pageTitle = 'DoorDish',
   });
 
   @override
@@ -34,12 +42,18 @@ class CustomerHeader extends StatelessWidget {
         ],
       ),
       child: Column(
-        spacing: 15,
         children: [
           Row(
             children: [
               Expanded(
-                child: InkWell(
+                child: showTitle ? Text(
+                  pageTitle,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ) : InkWell(
                   onTap: () {
                     // TODO
                   },
@@ -118,6 +132,20 @@ class CustomerHeader extends StatelessWidget {
                     children: [
                       IconButton(
                         icon: Icon(
+                          Icons.favorite_outline,
+                          color: Colors.grey[600],
+                          size: 28,
+                        ),
+                        onPressed: () {
+                          // TODO
+                        },
+                      ),
+                    ],
+                  ),
+                  Stack(
+                    children: [
+                      IconButton(
+                        icon: Icon(
                           Icons.shopping_cart_outlined,
                           color: Colors.grey[600],
                           size: 28,
@@ -151,11 +179,14 @@ class CustomerHeader extends StatelessWidget {
               ),
             ],
           ),
+          if (showSearch || showFilter)
+            const SizedBox(
+              height: 15,
+            ),
           Row(
-            spacing: 12,
             children: [
               Expanded(
-                child: Container(
+                child: showSearch ? Container(
                   height: 45,
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
@@ -181,8 +212,12 @@ class CustomerHeader extends StatelessWidget {
                       ),
                     ),
                   ),
-                ),
+                ) : Container(),
               ),
+              if (showFilter)
+                const SizedBox(
+                  width: 12,
+                ),
               if (showFilter)
                 Container(
                   height: 45,

@@ -1,7 +1,8 @@
-import 'config.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:mad_assignment/customer_main_navigation.dart';
+
+import 'config.dart';
+import 'customer_main_navigation.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,11 +16,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    // delay navigation by 3 seconds
     Timer(const Duration(seconds: 3), () {
-      // navigates to customer home page
-      // pushReplacement removes splash_screen.dart from the navigation history
-      // making customer_home.dart the first page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

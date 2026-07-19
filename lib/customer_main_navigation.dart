@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mad_assignment/config.dart';
-import 'package:mad_assignment/customer_home.dart';
+
+import 'config.dart';
+import 'customer_home.dart';
+import 'customer_menu.dart';
 
 class CustomerMainNavigation extends StatefulWidget {
   const CustomerMainNavigation({super.key});
@@ -14,17 +16,30 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
 
   final List<Widget> _screens = [
     const CustomerHome(),
+    const CustomerMenu(),
     const Center(
-      child: Text('Menu Page', style: TextStyle(fontSize: 24),),
+      child: Text(
+        'Orders Page',
+        style: TextStyle(
+          fontSize: 24,
+        ),
+      ),
     ),
     const Center(
-      child: Text('Orders Page', style: TextStyle(fontSize: 24),),
+      child: Text(
+        'Favorites Page',
+        style: TextStyle(
+          fontSize: 24,
+        ),
+      ),
     ),
     const Center(
-      child: Text('Favorites Page', style: TextStyle(fontSize: 24),),
-    ),
-    const Center(
-      child: Text('Account Page', style: TextStyle(fontSize: 24),),
+      child: Text(
+        'Account Page',
+        style: TextStyle(
+          fontSize: 24,
+        ),
+      ),
     ),
   ];
 
@@ -44,7 +59,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
               blurRadius: 15,
               spreadRadius: 1,
               offset: Offset(0, -2),
-            )
+            ),
           ],
         ),
         height: 100,

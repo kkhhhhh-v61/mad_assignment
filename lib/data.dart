@@ -34,33 +34,43 @@ class CartItem {
   final double price;
   int quantity;
   final IconData icon;
+  final String customizations;
 
   CartItem({
     required this.name,
     required this.price,
     required this.quantity,
     required this.icon,
+    this.customizations = '',
   });
 }
 
 class OrderItem {
   final String orderId;
-  final String status;
+  String status;
   final String date;
-  final String items;
+  final String firstItemName;
+  final int otherItemsCount;
   final double total;
-  final String restaurant;
   final IconData icon;
 
-  const OrderItem({
+  OrderItem({
     required this.orderId,
     required this.status,
     required this.date,
-    required this.items,
+    required this.firstItemName,
+    required this.otherItemsCount,
     required this.total,
-    required this.restaurant,
     required this.icon,
   });
+
+  String get displayTitle {
+    if (otherItemsCount <= 0) {
+      return firstItemName;
+    } else {
+      return '$firstItemName & $otherItemsCount other item(s)';
+    }
+  }
 }
 
 class NotificationItem {
@@ -190,43 +200,57 @@ final List<MenuItem> trendingItems = menuItems
     .where((item) => item.isTrending)
     .toList();
 
-const List<String> orderStatuses = ['Active', 'Completed', 'Cancelled'];
+const List<String> orderStatuses = [
+  'Preparing',
+  'Delivering',
+  'Completed',
+  'Cancelled',
+];
 
-const List<OrderItem> orderItems = [
+List<OrderItem> orderItems = [
   OrderItem(
     orderId: '#ORD-1001',
-    status: 'Active',
-    date: '19 Jul 2026, 12:30 PM',
-    items: '2x Spicy Chicken Burger, 1x Iced Caramel Macchiato',
+    status: 'Preparing',
+    date: 'Today, 12:30 PM',
+    firstItemName: 'Spicy Chicken Burger',
+    otherItemsCount: 1,
     total: 43.80,
-    restaurant: 'Burger Joint',
     icon: Icons.lunch_dining,
+  ),
+  OrderItem(
+    orderId: '#ORD-1002',
+    status: 'Delivering',
+    date: 'Today, 02:15 PM',
+    firstItemName: 'Sushi Bento Box',
+    otherItemsCount: 2,
+    total: 62.00,
+    icon: Icons.set_meal,
   ),
   OrderItem(
     orderId: '#ORD-0998',
     status: 'Completed',
     date: '18 Jul 2026, 07:15 PM',
-    items: '1x Beef Pepperoni Pizza, 2x Garlic Bread',
+    firstItemName: 'Beef Pepperoni Pizza',
+    otherItemsCount: 1,
     total: 34.50,
-    restaurant: 'Pizza Palace',
     icon: Icons.local_pizza,
   ),
   OrderItem(
     orderId: '#ORD-0985',
     status: 'Completed',
     date: '15 Jul 2026, 01:00 PM',
-    items: '1x Grilled Salmon Set',
+    firstItemName: 'Grilled Salmon Set',
+    otherItemsCount: 0,
     total: 28.00,
-    restaurant: 'Healthy Bites',
     icon: Icons.set_meal,
   ),
   OrderItem(
     orderId: '#ORD-0970',
     status: 'Cancelled',
     date: '10 Jul 2026, 08:45 PM',
-    items: '1x Chocolate Lava Cake, 1x Vanilla Ice Cream',
+    firstItemName: 'Chocolate Lava Cake',
+    otherItemsCount: 1,
     total: 19.50,
-    restaurant: 'Sweet Treats',
     icon: Icons.cake,
   ),
 ];
@@ -237,12 +261,14 @@ List<CartItem> cartItems = [
     price: 15.90,
     quantity: 2,
     icon: Icons.lunch_dining,
+    customizations: 'Size: Regular • Spice: Extra Spicy • Add-ons: Extra Cheese',
   ),
   CartItem(
     name: 'Iced Caramel Macchiato',
     price: 12.00,
     quantity: 1,
     icon: Icons.local_cafe,
+    customizations: 'Size: Large • Sugar: Less Sweet',
   ),
 ];
 

@@ -13,6 +13,7 @@ class CustomerCart extends StatefulWidget {
 class _CustomerCartState extends State<CustomerCart> {
   List<CartItem> _localCartItems = [];
   bool _isVoucherApplied = false;
+  final Set<int> _expandedCartIndices = {};
 
   @override
   void initState() {
@@ -24,6 +25,7 @@ class _CustomerCartState extends State<CustomerCart> {
             price: item.price,
             quantity: item.quantity,
             icon: item.icon,
+            customizations: item.customizations,
           ),
         )
         .toList();
@@ -77,7 +79,7 @@ class _CustomerCartState extends State<CustomerCart> {
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _localCartItems.length,
                     itemBuilder: (context, index) {
-                      return _buildCartItem(_localCartItems[index]);
+                      return _buildCartItem(_localCartItems[index], index);
                     },
                   ),
                   const SizedBox(height: spacingSm),
@@ -136,7 +138,12 @@ class _CustomerCartState extends State<CustomerCart> {
   }
 
   // --- Cart Item Card ---
-  Widget _buildCartItem(CartItem item) {
+  Widget _buildCartItem(CartItem item, int index) {
+    final isExpanded = _expandedCartIndices.contains(index);
+    final customList = item.customizations.isEmpty
+        ? <String>[]
+        : item.customizations.split(' • ');
+
     return Container(
       margin: const EdgeInsets.only(bottom: spacingLg),
       padding: const EdgeInsets.all(spacingMd),
@@ -146,6 +153,7 @@ class _CustomerCartState extends State<CustomerCart> {
         boxShadow: const [shadowMd],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             height: 70,
@@ -170,6 +178,92 @@ class _CustomerCartState extends State<CustomerCart> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (customList.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (isExpanded) {
+                          _expandedCartIndices.remove(index);
+                        } else {
+                          _expandedCartIndices.add(index);
+                        }
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: spacingSm,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: surfaceLight,
+                        borderRadius: BorderRadius.circular(radiusMd),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isExpanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            size: 16,
+                            color: brandColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${customList.length} ${customList.length == 1 ? 'Customization' : 'Customizations'}',
+                            style: const TextStyle(
+                              fontSize: fontDetail,
+                              color: brandColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (isExpanded) ...[
+                    const SizedBox(height: spacingXs),
+                    Container(
+                      padding: const EdgeInsets.all(spacingSm),
+                      decoration: BoxDecoration(
+                        color: surfaceMuted,
+                        borderRadius: BorderRadius.circular(radiusMd),
+                        border: Border.all(color: borderLight),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: customList.map((custom) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  '• ',
+                                  style: TextStyle(
+                                    color: textSecondary,
+                                    fontSize: fontDetail,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    custom,
+                                    style: const TextStyle(
+                                      fontSize: fontDetail,
+                                      color: textSecondary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ],
                 const SizedBox(height: spacingSm),
                 Text(
                   formatPrice(item.price),

@@ -46,7 +46,7 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: spacingMd),
+                    padding: const EdgeInsets.symmetric(vertical: spacingSm),
                     decoration: BoxDecoration(
                       color: isSelected ? Colors.white : Colors.transparent,
                       borderRadius: BorderRadius.circular(radiusXl),
@@ -59,8 +59,10 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                           color: isSelected ? brandColor : textSecondary,
                           fontWeight:
                               isSelected ? FontWeight.bold : FontWeight.w600,
-                          fontSize: fontBody,
+                          fontSize: fontDetail,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
@@ -103,61 +105,66 @@ class _CustomerOrdersState extends State<CustomerOrders> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(radiusLg),
         boxShadow: const [shadowMd],
+        border: Border.all(color: borderLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- Restaurant + Order ID ---
+          // --- Order Title & Date/ID ---
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                order.restaurant,
-                style: const TextStyle(
-                  fontSize: fontSubtitle,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                order.orderId,
-                style: const TextStyle(
-                  color: brandColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: spacingSm),
-          // --- Order Details ---
-          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                height: 60,
-                width: 60,
+                height: 48,
+                width: 48,
                 decoration: BoxDecoration(
                   color: surfaceLight,
-                  borderRadius: BorderRadius.circular(radiusSm),
+                  borderRadius: BorderRadius.circular(radiusMd),
                 ),
-                child: Icon(order.icon, color: textHint, size: 30),
+                child: Icon(order.icon, color: brandColor, size: 26),
               ),
-              const SizedBox(width: spacingLg),
+              const SizedBox(width: spacingMd),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      order.items,
-                      style: const TextStyle(color: textPrimary, height: 1.3),
+                      order.displayTitle,
+                      style: const TextStyle(
+                        fontSize: fontSubtitle,
+                        fontWeight: FontWeight.bold,
+                        color: textPrimary,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: spacingXs),
-                    Text(
-                      order.date,
-                      style: const TextStyle(
-                        fontSize: fontCaption,
-                        color: textHint,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          order.orderId,
+                          style: const TextStyle(
+                            fontSize: fontDetail,
+                            color: brandColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Text(
+                          ' • ',
+                          style: TextStyle(
+                            fontSize: fontDetail,
+                            color: textHint,
+                          ),
+                        ),
+                        Text(
+                          order.date,
+                          style: const TextStyle(
+                            fontSize: fontCaption,
+                            color: textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -165,37 +172,105 @@ class _CustomerOrdersState extends State<CustomerOrders> {
             ],
           ),
           const SizedBox(height: spacingLg),
-          const Divider(height: 1),
-          const SizedBox(height: spacingLg),
-          // --- Total + Action Button ---
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Total: ${formatPrice(order.total)}',
-                style: const TextStyle(
-                  fontSize: fontBodyLarge,
-                  fontWeight: FontWeight.bold,
+          // --- Total & Action Buttons ---
+          Container(
+            padding: const EdgeInsets.only(top: spacingMd),
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: borderLight)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Total Amount',
+                      style: TextStyle(
+                        fontSize: fontCaption,
+                        color: textHint,
+                      ),
+                    ),
+                    Text(
+                      formatPrice(order.total),
+                      style: const TextStyle(
+                        fontSize: fontTitle,
+                        fontWeight: FontWeight.bold,
+                        color: brandColor,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              OutlinedButton(
-                onPressed: () {
-                  // TODO
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: brandColor,
-                  side: const BorderSide(color: brandColor),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(radiusXl),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: spacingXl),
+                Row(
+                  children: [
+                    if (order.status == 'Preparing')
+                      OutlinedButton(
+                        onPressed: () {
+                          setState(() {
+                            order.status = 'Cancelled';
+                          });
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFC62828),
+                          side: const BorderSide(color: Color(0xFFC62828)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(radiusFull),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: spacingLg,
+                          ),
+                        ),
+                        child: const Text(
+                          'Cancel Order',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      )
+                    else if (order.status == 'Delivering')
+                      ElevatedButton(
+                        onPressed: () {
+                          // TODO: handle tracking order
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: brandColor,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(radiusFull),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: spacingLg,
+                          ),
+                        ),
+                        child: const Text(
+                          'Track Order',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      )
+                    else
+                      ElevatedButton(
+                        onPressed: () {
+                          // TODO: handle reordering action
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: surfaceLight,
+                          foregroundColor: textPrimary,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(radiusFull),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: spacingLg,
+                          ),
+                        ),
+                        child: const Text(
+                          'Reorder',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
                 ),
-                child: Text(
-                  _selectedStatus == 'Active' ? 'Track Order' : 'Reorder',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

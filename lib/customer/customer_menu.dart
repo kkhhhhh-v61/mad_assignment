@@ -14,12 +14,13 @@ class CustomerMenu extends StatefulWidget {
 }
 
 class _CustomerMenuState extends State<CustomerMenu> {
-  String _selectedCategory = categories.first.name;
+  String _selectedCategory = '';
 
   @override
   Widget build(BuildContext context) {
-    final filteredItems =
-        menuItems.where((item) => item.category == _selectedCategory).toList();
+    final filteredItems = _selectedCategory.isEmpty
+        ? menuItems
+        : menuItems.where((item) => item.category == _selectedCategory).toList();
 
     return Column(
       children: [
@@ -57,7 +58,11 @@ class _CustomerMenuState extends State<CustomerMenu> {
                   selected: isSelected,
                   onSelected: (bool selected) {
                     setState(() {
-                      _selectedCategory = category.name;
+                      if (selected) {
+                        _selectedCategory = category.name;
+                      } else {
+                        _selectedCategory = '';
+                      }
                     });
                   },
                   selectedColor: brandColor,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 
 void showFilterOverlay(BuildContext context) {
   showModalBottomSheet(
@@ -49,26 +48,33 @@ class _FilterOverlayState extends State<FilterOverlay> {
       child: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(radiusXl)),
-          boxShadow: [shadowLg],
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+          boxShadow: [
+            BoxShadow(
+              color: Color.fromARGB(25, 0, 0, 0),
+              blurRadius: 15,
+              spreadRadius: 2,
+              offset: Offset(0, 5),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // --- Drag Handle & Header ---
             _buildHeader(context),
-            const Divider(height: 1, color: borderLight),
+            const Divider(height: 1, color: Color(0xFFE0E0E0)),
             // --- Filter Sections ---
             Padding(
-              padding: const EdgeInsets.all(spacingXl),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSortSection(),
-                  const SizedBox(height: spacing2xl),
+                  const SizedBox(height: 24.0),
                   _buildPriceSection(),
-                  const SizedBox(height: spacing2xl),
+                  const SizedBox(height: 24.0),
                   _buildRatingSection(),
                 ],
               ),
@@ -85,8 +91,8 @@ class _FilterOverlayState extends State<FilterOverlay> {
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: spacingXl,
-        vertical: spacingLg,
+        horizontal: 20.0,
+        vertical: 16.0,
       ),
       child: Column(
         children: [
@@ -94,26 +100,26 @@ class _FilterOverlayState extends State<FilterOverlay> {
             width: 45,
             height: 5,
             decoration: BoxDecoration(
-              color: borderLight,
-              borderRadius: BorderRadius.circular(radiusFull),
+              color: const Color(0xFFE0E0E0),
+              borderRadius: BorderRadius.circular(25.0),
             ),
           ),
-          const SizedBox(height: spacingMd),
+          const SizedBox(height: 12.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Filter & Sort',
                 style: TextStyle(
-                  fontSize: fontHeadline,
+                  fontSize: 22.0,
                   fontWeight: FontWeight.bold,
-                  color: textPrimary,
+                  color: Color(0xDD000000),
                 ),
               ),
               IconButton(
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                icon: const Icon(Icons.close, color: textSecondary, size: 24),
+                icon: const Icon(Icons.close, color: Color(0xFF757575), size: 24),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -131,28 +137,28 @@ class _FilterOverlayState extends State<FilterOverlay> {
         const Text(
           'Sort By',
           style: TextStyle(
-            fontSize: fontSubtitle,
+            fontSize: 16.0,
             fontWeight: FontWeight.bold,
-            color: textPrimary,
+            color: Color(0xDD000000),
           ),
         ),
-        const SizedBox(height: spacingXs),
+        const SizedBox(height: 4.0),
         const Text(
           'Choose how menu items are ordered',
-          style: TextStyle(fontSize: fontDetail, color: textSecondary),
+          style: TextStyle(fontSize: 13.0, color: Color(0xFF757575)),
         ),
-        const SizedBox(height: spacingMd),
+        const SizedBox(height: 12.0),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: spacingLg),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           decoration: BoxDecoration(
-            color: surfaceLight,
-            borderRadius: BorderRadius.circular(radiusLg),
-            border: Border.all(color: borderLight),
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(15.0),
+            border: Border.all(color: const Color(0xFFE0E0E0)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.sort, color: brandColor, size: 22),
-              const SizedBox(width: spacingMd),
+              const Icon(Icons.sort, color: Color.fromARGB(255, 255, 160, 122), size: 22),
+              const SizedBox(width: 12.0),
               Expanded(
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
@@ -160,16 +166,16 @@ class _FilterOverlayState extends State<FilterOverlay> {
                     isExpanded: true,
                     icon: const Icon(
                       Icons.keyboard_arrow_down,
-                      color: textSecondary,
+                      color: Color(0xFF757575),
                       size: 24,
                     ),
                     style: const TextStyle(
-                      color: textPrimary,
-                      fontSize: fontBodyLarge,
+                      color: Color(0xDD000000),
+                      fontSize: 15.0,
                       fontWeight: FontWeight.w600,
                     ),
                     dropdownColor: Colors.white,
-                    borderRadius: BorderRadius.circular(radiusLg),
+                    borderRadius: BorderRadius.circular(15.0),
                     items: _sortOptions.map((option) {
                       return DropdownMenuItem<String>(
                         value: option,
@@ -199,17 +205,17 @@ class _FilterOverlayState extends State<FilterOverlay> {
         const Text(
           'Price Range',
           style: TextStyle(
-            fontSize: fontSubtitle,
+            fontSize: 16.0,
             fontWeight: FontWeight.bold,
-            color: textPrimary,
+            color: Color(0xDD000000),
           ),
         ),
-        const SizedBox(height: spacingXs),
+        const SizedBox(height: 4.0),
         const Text(
           'Set your minimum and maximum budget',
-          style: TextStyle(fontSize: fontDetail, color: textSecondary),
+          style: TextStyle(fontSize: 13.0, color: Color(0xFF757575)),
         ),
-        const SizedBox(height: spacingMd),
+        const SizedBox(height: 12.0),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -222,16 +228,16 @@ class _FilterOverlayState extends State<FilterOverlay> {
             ),
             const Padding(
               padding: EdgeInsets.only(
-                left: spacingMd,
-                right: spacingMd,
+                left: 12.0,
+                right: 12.0,
                 top: 32,
               ),
               child: Text(
                 '—',
                 style: TextStyle(
-                  color: textSecondary,
+                  color: Color(0xFF757575),
                   fontWeight: FontWeight.bold,
-                  fontSize: fontTitle,
+                  fontSize: 18.0,
                 ),
               ),
             ),
@@ -260,50 +266,50 @@ class _FilterOverlayState extends State<FilterOverlay> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: fontCaption,
+            fontSize: 12.0,
             fontWeight: FontWeight.w600,
-            color: textSecondary,
+            color: Color(0xFF757575),
           ),
         ),
-        const SizedBox(height: spacingXs),
+        const SizedBox(height: 4.0),
         TextField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           style: const TextStyle(
-            fontSize: fontBodyLarge,
+            fontSize: 15.0,
             fontWeight: FontWeight.w600,
-            color: textPrimary,
+            color: Color(0xDD000000),
           ),
           decoration: InputDecoration(
             isDense: true,
             prefixText: 'RM ',
             prefixStyle: const TextStyle(
-              color: brandColor,
+              color: Color.fromARGB(255, 255, 160, 122),
               fontWeight: FontWeight.bold,
-              fontSize: fontBodyLarge,
+              fontSize: 15.0,
             ),
             hintText: hint,
             hintStyle: const TextStyle(
-              color: textHint,
+              color: Color(0xFF9E9E9E),
               fontWeight: FontWeight.normal,
             ),
             filled: true,
-            fillColor: surfaceLight,
+            fillColor: const Color(0xFFF5F5F5),
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: spacingMd,
-              vertical: spacingMd,
+              horizontal: 12.0,
+              vertical: 12.0,
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(radiusLg),
-              borderSide: const BorderSide(color: borderLight),
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(radiusLg),
-              borderSide: const BorderSide(color: borderLight),
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(radiusLg),
-              borderSide: const BorderSide(color: brandColor, width: 1.5),
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 1.5),
             ),
           ),
         ),
@@ -334,46 +340,46 @@ class _FilterOverlayState extends State<FilterOverlay> {
                 Text(
                   'Minimum Rating',
                   style: TextStyle(
-                    fontSize: fontSubtitle,
+                    fontSize: 16.0,
                     fontWeight: FontWeight.bold,
-                    color: textPrimary,
+                    color: Color(0xDD000000),
                   ),
                 ),
-                SizedBox(height: spacingXs),
+                SizedBox(height: 4.0),
                 Text(
                   'Filter by customer satisfaction',
-                  style: TextStyle(fontSize: fontDetail, color: textSecondary),
+                  style: TextStyle(fontSize: 13.0, color: Color(0xFF757575)),
                 ),
               ],
             ),
             Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: spacingMd,
-                vertical: spacingXs,
+                horizontal: 12.0,
+                vertical: 4.0,
               ),
               decoration: BoxDecoration(
-                color: brandColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(radiusFull),
+                color: const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(25.0),
               ),
               child: Text(
                 ratingLabel,
                 style: const TextStyle(
-                  color: brandColor,
+                  color: Color.fromARGB(255, 255, 160, 122),
                   fontWeight: FontWeight.bold,
-                  fontSize: fontBody,
+                  fontSize: 14.0,
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: spacingLg),
+        const SizedBox(height: 16.0),
         Slider(
           value: _minRating,
           min: 0.0,
           max: 5.0,
           divisions: 10,
-          activeColor: brandColor,
-          inactiveColor: surfaceMuted,
+          activeColor: const Color.fromARGB(255, 255, 160, 122),
+          inactiveColor: const Color(0xFFEEEEEE),
           onChanged: (value) {
             setState(() => _minRating = value);
           },
@@ -385,10 +391,16 @@ class _FilterOverlayState extends State<FilterOverlay> {
   // --- Bottom Action Buttons ---
   Widget _buildBottomActions(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(spacingXl),
+      padding: const EdgeInsets.all(20.0),
       decoration: const BoxDecoration(
         color: Colors.white,
-        boxShadow: [shadowBottomBar],
+        boxShadow: [
+          BoxShadow(
+            color: Color.fromARGB(15, 0, 0, 0),
+            blurRadius: 10,
+            offset: Offset(0, -4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -406,23 +418,23 @@ class _FilterOverlayState extends State<FilterOverlay> {
                   });
                 },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: textPrimary,
-                  side: const BorderSide(color: borderLight),
+                  foregroundColor: const Color(0xDD000000),
+                  side: const BorderSide(color: Color(0xFFE0E0E0)),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(radiusFull),
+                    borderRadius: BorderRadius.circular(25.0),
                   ),
                 ),
                 child: const Text(
                   'Reset',
                   style: TextStyle(
-                    fontSize: fontSubtitle,
+                    fontSize: 16.0,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: spacingMd),
+          const SizedBox(width: 12.0),
           Expanded(
             flex: 3,
             child: SizedBox(
@@ -433,17 +445,17 @@ class _FilterOverlayState extends State<FilterOverlay> {
                   Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: brandColor,
+                  backgroundColor: const Color.fromARGB(255, 255, 160, 122),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(radiusFull),
+                    borderRadius: BorderRadius.circular(25.0),
                   ),
                 ),
                 child: const Text(
                   'Apply Filters',
                   style: TextStyle(
-                    fontSize: fontSubtitle,
+                    fontSize: 16.0,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

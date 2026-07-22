@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import '../data.dart';
 
 class CustomerCart extends StatefulWidget {
@@ -43,33 +42,33 @@ class _CustomerCartState extends State<CustomerCart> {
     if (total < 0) total = 0;
 
     return Scaffold(
-      backgroundColor: scaffoldBgColor,
+      backgroundColor: const Color(0xF8FFFFFF),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: textPrimary, size: 20),
+          icon: const Icon(Icons.arrow_back_ios, color: Color(0xDD000000), size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'My Cart',
           style: TextStyle(
-            color: textPrimary,
+            color: Color(0xDD000000),
             fontWeight: FontWeight.bold,
-            fontSize: fontTitle,
+            fontSize: 18.0,
           ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: surfaceMuted, height: 1.0),
+          child: Container(color: const Color(0xFFEEEEEE), height: 1.0),
         ),
       ),
       body: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(spacingXl),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -82,49 +81,49 @@ class _CustomerCartState extends State<CustomerCart> {
                       return _buildCartItem(_localCartItems[index], index);
                     },
                   ),
-                  const SizedBox(height: spacingSm),
+                  const SizedBox(height: 8.0),
                   // --- Special Instructions ---
                   const Text(
                     'Special Instructions',
                     style: TextStyle(
-                      fontSize: fontSubtitle,
+                      fontSize: 16.0,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: spacingSm),
+                  const SizedBox(height: 8.0),
                   TextField(
                     maxLines: 2,
                     decoration: InputDecoration(
                       hintText: 'E.g. No onions, extra spicy...',
                       hintStyle: const TextStyle(
-                        color: textHint,
-                        fontSize: fontBody,
+                        color: Color(0xFF9E9E9E),
+                        fontSize: 14.0,
                       ),
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.all(spacingLg),
+                      contentPadding: const EdgeInsets.all(16.0),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(radiusLg),
+                        borderRadius: BorderRadius.circular(15.0),
                         borderSide: BorderSide.none,
                       ),
                     ),
                   ),
-                  const SizedBox(height: spacing2xl),
+                  const SizedBox(height: 24.0),
                   // --- Voucher ---
                   _buildVoucherTile(),
-                  const SizedBox(height: spacingLg),
+                  const SizedBox(height: 16.0),
                   // --- Payment Method ---
                   _buildPaymentTile(),
-                  const SizedBox(height: spacing2xl),
+                  const SizedBox(height: 24.0),
                   // --- Order Summary ---
                   const Text(
                     'Order Summary',
                     style: TextStyle(
-                      fontSize: fontSubtitle,
+                      fontSize: 16.0,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: spacingLg),
+                  const SizedBox(height: 16.0),
                   _buildOrderSummary(subtotal, discount, total),
                 ],
               ),
@@ -145,12 +144,19 @@ class _CustomerCartState extends State<CustomerCart> {
         : item.customizations.split(' • ');
 
     return Container(
-      margin: const EdgeInsets.only(bottom: spacingLg),
-      padding: const EdgeInsets.all(spacingMd),
+      margin: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(radiusLg),
-        boxShadow: const [shadowMd],
+        borderRadius: BorderRadius.circular(15.0),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromARGB(20, 0, 0, 0),
+            blurRadius: 8,
+            spreadRadius: 1,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,12 +165,12 @@ class _CustomerCartState extends State<CustomerCart> {
             height: 70,
             width: 70,
             decoration: BoxDecoration(
-              color: surfaceLight,
-              borderRadius: BorderRadius.circular(radiusMd),
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(12.0),
             ),
-            child: Icon(item.icon, color: textHint, size: 35),
+            child: Icon(item.icon, color: const Color(0xFF9E9E9E), size: 35),
           ),
-          const SizedBox(width: spacingLg),
+          const SizedBox(width: 16.0),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,7 +178,7 @@ class _CustomerCartState extends State<CustomerCart> {
                 Text(
                   item.name,
                   style: const TextStyle(
-                    fontSize: fontBodyLarge,
+                    fontSize: 15.0,
                     fontWeight: FontWeight.bold,
                   ),
                   maxLines: 1,
@@ -192,12 +198,12 @@ class _CustomerCartState extends State<CustomerCart> {
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: spacingSm,
+                        horizontal: 8.0,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: surfaceLight,
-                        borderRadius: BorderRadius.circular(radiusMd),
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(12.0),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -207,14 +213,14 @@ class _CustomerCartState extends State<CustomerCart> {
                                 ? Icons.keyboard_arrow_up
                                 : Icons.keyboard_arrow_down,
                             size: 16,
-                            color: brandColor,
+                            color: const Color.fromARGB(255, 255, 160, 122),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 4.0),
                           Text(
                             '${customList.length} ${customList.length == 1 ? 'Customization' : 'Customizations'}',
                             style: const TextStyle(
-                              fontSize: fontDetail,
-                              color: brandColor,
+                              fontSize: 13.0,
+                              color: Color.fromARGB(255, 255, 160, 122),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -223,13 +229,13 @@ class _CustomerCartState extends State<CustomerCart> {
                     ),
                   ),
                   if (isExpanded) ...[
-                    const SizedBox(height: spacingXs),
+                    const SizedBox(height: 4.0),
                     Container(
-                      padding: const EdgeInsets.all(spacingSm),
+                      padding: const EdgeInsets.all(8.0),
                       decoration: BoxDecoration(
-                        color: surfaceMuted,
-                        borderRadius: BorderRadius.circular(radiusMd),
-                        border: Border.all(color: borderLight),
+                        color: const Color(0xFFEEEEEE),
+                        borderRadius: BorderRadius.circular(12.0),
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,8 +248,8 @@ class _CustomerCartState extends State<CustomerCart> {
                                 const Text(
                                   '• ',
                                   style: TextStyle(
-                                    color: textSecondary,
-                                    fontSize: fontDetail,
+                                    color: Color(0xFF757575),
+                                    fontSize: 13.0,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -251,8 +257,8 @@ class _CustomerCartState extends State<CustomerCart> {
                                   child: Text(
                                     custom,
                                     style: const TextStyle(
-                                      fontSize: fontDetail,
-                                      color: textSecondary,
+                                      fontSize: 13.0,
+                                      color: Color(0xFF757575),
                                     ),
                                   ),
                                 ),
@@ -264,13 +270,13 @@ class _CustomerCartState extends State<CustomerCart> {
                     ),
                   ],
                 ],
-                const SizedBox(height: spacingSm),
+                const SizedBox(height: 8.0),
                 Text(
-                  formatPrice(item.price),
+                  'RM ${item.price.toStringAsFixed(2)}',
                   style: const TextStyle(
-                    fontSize: fontBodyLarge,
+                    fontSize: 15.0,
                     fontWeight: FontWeight.bold,
-                    color: brandColor,
+                    color: Color.fromARGB(255, 255, 160, 122),
                   ),
                 ),
               ],
@@ -278,8 +284,8 @@ class _CustomerCartState extends State<CustomerCart> {
           ),
           Container(
             decoration: BoxDecoration(
-              color: surfaceLight,
-              borderRadius: BorderRadius.circular(radiusXl),
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(20.0),
             ),
             child: Row(
               children: [
@@ -297,14 +303,14 @@ class _CustomerCartState extends State<CustomerCart> {
                   child: Text(
                     '${item.quantity}',
                     style: const TextStyle(
-                      fontSize: fontBody,
+                      fontSize: 14.0,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
                 _buildQuantityButton(
                   icon: Icons.add,
-                  iconColor: brandColor,
+                  iconColor: const Color.fromARGB(255, 255, 160, 122),
                   onPressed: () {
                     setState(() => item.quantity++);
                   },
@@ -321,13 +327,13 @@ class _CustomerCartState extends State<CustomerCart> {
   Widget _buildQuantityButton({
     required IconData icon,
     required VoidCallback onPressed,
-    Color iconColor = textPrimary,
+    Color iconColor = const Color(0xDD000000),
   }) {
     return InkWell(
       onTap: onPressed,
-      borderRadius: BorderRadius.circular(radiusXl),
+      borderRadius: BorderRadius.circular(20.0),
       child: Padding(
-        padding: const EdgeInsets.all(spacingSm),
+        padding: const EdgeInsets.all(8.0),
         child: Icon(icon, size: 16, color: iconColor),
       ),
     );
@@ -338,36 +344,42 @@ class _CustomerCartState extends State<CustomerCart> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(radiusLg),
-        boxShadow: const [shadowSm],
+        borderRadius: BorderRadius.circular(15.0),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromARGB(15, 0, 0, 0),
+            blurRadius: 5,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: spacingLg,
+          horizontal: 16.0,
           vertical: 2.0,
         ),
         leading: Container(
-          padding: const EdgeInsets.all(spacingSm),
+          padding: const EdgeInsets.all(8.0),
           decoration: BoxDecoration(
-            color: brandColor.withValues(alpha: 0.15),
+            color: const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.local_offer, color: brandColor, size: 20),
+          child: const Icon(Icons.local_offer, color: Color.fromARGB(255, 255, 160, 122), size: 20),
         ),
         title: Text(
           _isVoucherApplied ? 'DISCOUNT30 Applied' : 'Add Voucher / Promo Code',
           style: TextStyle(
-            fontSize: fontBody,
+            fontSize: 14.0,
             fontWeight: FontWeight.bold,
-            color: _isVoucherApplied ? brandColor : textPrimary,
+            color: _isVoucherApplied ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xDD000000),
           ),
         ),
         trailing: _isVoucherApplied
             ? IconButton(
-                icon: const Icon(Icons.close, size: 20, color: textHint),
+                icon: const Icon(Icons.close, size: 20, color: Color(0xFF9E9E9E)),
                 onPressed: () => setState(() => _isVoucherApplied = false),
               )
-            : const Icon(Icons.arrow_forward_ios, size: 16, color: textHint),
+            : const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFF9E9E9E)),
         onTap: () {
           if (!_isVoucherApplied) {
             setState(() => _isVoucherApplied = true);
@@ -382,38 +394,44 @@ class _CustomerCartState extends State<CustomerCart> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(radiusLg),
-        boxShadow: const [shadowSm],
+        borderRadius: BorderRadius.circular(15.0),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromARGB(15, 0, 0, 0),
+            blurRadius: 5,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: spacingLg,
+          horizontal: 16.0,
           vertical: 2.0,
         ),
         leading: Container(
-          padding: const EdgeInsets.all(spacingSm),
+          padding: const EdgeInsets.all(8.0),
           decoration: BoxDecoration(
-            color: infoColor.withValues(alpha: 0.15),
+            color: const Color(0xFF2196F3).withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.credit_card, color: infoColor, size: 20),
+          child: const Icon(Icons.credit_card, color: Color(0xFF2196F3), size: 20),
         ),
         title: const Text(
           'Payment Method',
-          style: TextStyle(fontSize: fontBody, color: textHint),
+          style: TextStyle(fontSize: 14.0, color: Color(0xFF9E9E9E)),
         ),
         subtitle: const Text(
           'Credit Card ending in 1234',
           style: TextStyle(
-            fontSize: fontBody,
+            fontSize: 14.0,
             fontWeight: FontWeight.bold,
-            color: textPrimary,
+            color: Color(0xDD000000),
           ),
         ),
         trailing: const Icon(
           Icons.arrow_forward_ios,
           size: 16,
-          color: textHint,
+          color: Color(0xFF9E9E9E),
         ),
         onTap: () {
           // TODO
@@ -425,30 +443,37 @@ class _CustomerCartState extends State<CustomerCart> {
   // --- Order Summary ---
   Widget _buildOrderSummary(double subtotal, double discount, double total) {
     return Container(
-      padding: const EdgeInsets.all(spacingLg),
+      padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(radiusLg),
-        boxShadow: const [shadowMd],
+        borderRadius: BorderRadius.circular(15.0),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromARGB(20, 0, 0, 0),
+            blurRadius: 8,
+            spreadRadius: 1,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          _buildSummaryRow('Subtotal', formatPrice(subtotal)),
-          const SizedBox(height: spacingSm),
-          _buildSummaryRow('Delivery Fee', formatPrice(deliveryFee)),
+          _buildSummaryRow('Subtotal', 'RM ${subtotal.toStringAsFixed(2)}'),
+          const SizedBox(height: 8.0),
+          _buildSummaryRow('Delivery Fee', 'RM ${deliveryFee.toStringAsFixed(2)}'),
           if (_isVoucherApplied) ...[
-            const SizedBox(height: spacingSm),
+            const SizedBox(height: 8.0),
             _buildSummaryRow(
               'Discount',
-              '-${formatPrice(discount)}',
-              textColor: brandColor,
+              '-RM ${discount.toStringAsFixed(2)}',
+              textColor: const Color.fromARGB(255, 255, 160, 122),
             ),
           ],
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: spacingSm),
+            padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Divider(height: 1),
           ),
-          _buildSummaryRow('Total', formatPrice(total), isTotal: true),
+          _buildSummaryRow('Total', 'RM ${total.toStringAsFixed(2)}', isTotal: true),
         ],
       ),
     );
@@ -467,17 +492,17 @@ class _CustomerCartState extends State<CustomerCart> {
         Text(
           title,
           style: TextStyle(
-            fontSize: isTotal ? fontSubtitle : fontBody,
+            fontSize: isTotal ? 16.0 : 14.0,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-            color: isTotal ? textPrimary : textSecondary,
+            color: isTotal ? const Color(0xDD000000) : const Color(0xFF757575),
           ),
         ),
         Text(
           amount,
           style: TextStyle(
-            fontSize: isTotal ? fontSubtitle : fontBody,
+            fontSize: isTotal ? 16.0 : 14.0,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-            color: textColor ?? (isTotal ? brandColor : textPrimary),
+            color: textColor ?? (isTotal ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xDD000000)),
           ),
         ),
       ],
@@ -487,11 +512,17 @@ class _CustomerCartState extends State<CustomerCart> {
   // --- Checkout Bar ---
   Widget _buildCheckoutBar(double total) {
     return Container(
-      padding: const EdgeInsets.all(spacingXl),
+      padding: const EdgeInsets.all(20.0),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(radiusFull)),
-        boxShadow: [shadowBottomBar],
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
+        boxShadow: [
+          BoxShadow(
+            color: Color.fromARGB(15, 0, 0, 0),
+            blurRadius: 15,
+            offset: Offset(0, -5),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -501,13 +532,13 @@ class _CustomerCartState extends State<CustomerCart> {
               children: [
                 const Text(
                   'Total Price',
-                  style: TextStyle(color: textSecondary, fontSize: fontDetail),
+                  style: TextStyle(color: Color(0xFF757575), fontSize: 13.0),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 2.0),
                 Text(
-                  formatPrice(total),
+                  'RM ${total.toStringAsFixed(2)}',
                   style: const TextStyle(
-                    fontSize: fontDisplay,
+                    fontSize: 22.0,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -522,17 +553,17 @@ class _CustomerCartState extends State<CustomerCart> {
                   // TODO
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: brandColor,
+                  backgroundColor: const Color.fromARGB(255, 255, 160, 122),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(radiusFull),
+                    borderRadius: BorderRadius.circular(25.0),
                   ),
                 ),
                 child: const Text(
                   'Place Order',
                   style: TextStyle(
-                    fontSize: fontSubtitle,
+                    fontSize: 16.0,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

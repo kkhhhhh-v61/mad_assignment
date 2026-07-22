@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import '../data.dart';
 import 'customer_header.dart';
 import 'filter_overlay.dart';
@@ -28,32 +27,32 @@ class _CustomerMenuState extends State<CustomerMenu> {
           showFilter: true,
           onFilterTap: () => showFilterOverlay(context),
         ),
-        const SizedBox(height: spacingLg),
+        const SizedBox(height: 16.0),
         // --- Category Chips ---
         SizedBox(
           height: 45,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: spacingXl),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
             itemCount: categories.length,
             itemBuilder: (context, index) {
               final category = categories[index];
               final isSelected = category.name == _selectedCategory;
 
               return Container(
-                margin: const EdgeInsets.only(right: spacingMd),
+                margin: const EdgeInsets.only(right: 12.0),
                 child: ChoiceChip(
                   label: Text(
                     category.name,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : textPrimary,
+                      color: isSelected ? Colors.white : const Color(0xDD000000),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   avatar: Icon(
                     category.icon,
                     size: 18,
-                    color: isSelected ? Colors.white : brandColor,
+                    color: isSelected ? Colors.white : const Color.fromARGB(255, 255, 160, 122),
                   ),
                   selected: isSelected,
                   onSelected: (bool selected) {
@@ -65,12 +64,12 @@ class _CustomerMenuState extends State<CustomerMenu> {
                       }
                     });
                   },
-                  selectedColor: brandColor,
+                  selectedColor: const Color.fromARGB(255, 255, 160, 122),
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(radiusXl),
+                    borderRadius: BorderRadius.circular(20.0),
                     side: BorderSide(
-                      color: isSelected ? brandColor : borderLight,
+                      color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFFE0E0E0),
                     ),
                   ),
                 ),
@@ -78,13 +77,13 @@ class _CustomerMenuState extends State<CustomerMenu> {
             },
           ),
         ),
-        const SizedBox(height: spacingSm),
+        const SizedBox(height: 8.0),
         // --- Menu Items ---
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(
-              horizontal: spacingXl,
-              vertical: spacingSm,
+              horizontal: 20.0,
+              vertical: 8.0,
             ),
             itemCount: filteredItems.length,
             itemBuilder: (context, index) {

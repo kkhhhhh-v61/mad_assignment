@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import 'customer_cart.dart';
 import 'customer_notifications.dart';
 
@@ -16,7 +15,7 @@ class CustomerHeader extends StatelessWidget {
     this.showFilter = false,
     this.showSearch = true,
     this.showTitle = false,
-    this.pageTitle = appName,
+    this.pageTitle = 'DoorDish',
     this.onFilterTap,
   });
 
@@ -25,14 +24,21 @@ class CustomerHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.only(
         top: 60.0,
-        bottom: spacingXl,
-        left: spacingXl,
-        right: spacingXl,
+        bottom: 20.0,
+        left: 20.0,
+        right: 20.0,
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(radiusXl)),
-        boxShadow: [shadowLg],
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(20.0)),
+        boxShadow: [
+          BoxShadow(
+            color: Color.fromARGB(25, 0, 0, 0),
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -44,9 +50,9 @@ class CustomerHeader extends StatelessWidget {
                     ? Text(
                         pageTitle,
                         style: const TextStyle(
-                          fontSize: fontDisplay,
+                          fontSize: 22.0,
                           fontWeight: FontWeight.bold,
-                          color: textPrimary,
+                          color: Color(0xDD000000),
                         ),
                       )
                     : _buildLocationSelector(),
@@ -56,7 +62,7 @@ class CustomerHeader extends StatelessWidget {
           ),
           // --- Search Bar + Filter ---
           if (showSearch || showFilter) ...[
-            const SizedBox(height: spacingLg),
+            const SizedBox(height: 16.0),
             Row(
               children: [
                 Expanded(
@@ -64,7 +70,7 @@ class CustomerHeader extends StatelessWidget {
                       ? _buildSearchBar()
                       : const SizedBox.shrink(),
                 ),
-                if (showFilter) const SizedBox(width: spacingMd),
+                if (showFilter) const SizedBox(width: 12.0),
                 if (showFilter) _buildFilterButton(),
               ],
             ),
@@ -86,28 +92,28 @@ class CustomerHeader extends StatelessWidget {
           const Text(
             'Your location',
             style: TextStyle(
-              color: textSecondary,
-              fontSize: fontCaption,
+              color: Color(0xFF757575),
+              fontSize: 12.0,
               fontWeight: FontWeight.w500,
             ),
           ),
           Row(
             mainAxisSize: MainAxisSize.min,
-            spacing: spacingXs,
+            spacing: 4.0,
             children: [
               const Flexible(
                 child: Text(
                   'Home - 123 Street Name, City',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: fontBodyLarge,
+                    fontSize: 15.0,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               const Icon(
                 Icons.keyboard_arrow_down,
-                color: brandColor,
+                color: Color.fromARGB(255, 255, 160, 122),
                 size: 20,
               ),
             ],
@@ -156,7 +162,7 @@ class CustomerHeader extends StatelessWidget {
     return Stack(
       children: [
         IconButton(
-          icon: Icon(icon, color: textSecondary, size: 28),
+          icon: Icon(icon, color: const Color(0xFF757575), size: 28),
           onPressed: onPressed,
         ),
         if (showBadge)
@@ -164,9 +170,9 @@ class CustomerHeader extends StatelessWidget {
             top: 8,
             right: 8,
             child: Container(
-              padding: const EdgeInsets.all(spacingXs),
+              padding: const EdgeInsets.all(4.0),
               decoration: BoxDecoration(
-                color: brandColor,
+                color: const Color.fromARGB(255, 255, 160, 122),
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 1.5),
               ),
@@ -182,18 +188,18 @@ class CustomerHeader extends StatelessWidget {
     return Container(
       height: 45,
       decoration: BoxDecoration(
-        color: surfaceLight,
-        borderRadius: BorderRadius.circular(radiusFull),
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(25.0),
       ),
       child: const TextField(
         textAlignVertical: TextAlignVertical.center,
         decoration: InputDecoration(
           isDense: true,
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: spacingMd),
+          contentPadding: EdgeInsets.symmetric(vertical: 12.0),
           hintText: 'Search...',
-          hintStyle: TextStyle(color: textHint, fontSize: fontSubtitle),
-          prefixIcon: Icon(Icons.search, color: textHint, size: 20),
+          hintStyle: TextStyle(color: Color(0xFF9E9E9E), fontSize: 16.0),
+          prefixIcon: Icon(Icons.search, color: Color(0xFF9E9E9E), size: 20),
         ),
       ),
     );
@@ -205,11 +211,11 @@ class CustomerHeader extends StatelessWidget {
       height: 45,
       width: 45,
       decoration: BoxDecoration(
-        border: Border.all(color: borderLight),
-        borderRadius: BorderRadius.circular(radiusFull),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+        borderRadius: BorderRadius.circular(25.0),
       ),
       child: IconButton(
-        icon: const Icon(Icons.tune, color: brandColor, size: 20),
+        icon: const Icon(Icons.tune, color: Color.fromARGB(255, 255, 160, 122), size: 20),
         onPressed: onFilterTap ?? () {},
       ),
     );

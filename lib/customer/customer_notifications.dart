@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import '../data.dart';
 
 class CustomerNotifications extends StatefulWidget {
@@ -31,28 +30,28 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
     final hasUnread = notificationItems.any((item) => item.isUnread);
 
     return Scaffold(
-      backgroundColor: scaffoldBgColor,
+      backgroundColor: const Color(0xF8FFFFFF),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: textPrimary, size: 20),
+          icon: const Icon(Icons.arrow_back_ios, color: Color(0xDD000000), size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Notifications',
           style: TextStyle(
-            color: textPrimary,
+            color: Color(0xDD000000),
             fontWeight: FontWeight.bold,
-            fontSize: fontTitle,
+            fontSize: 18.0,
           ),
         ),
         actions: [
           if (hasUnread)
             IconButton(
               tooltip: 'Mark all as read',
-              icon: const Icon(Icons.done_all, color: brandColor, size: 24),
+              icon: const Icon(Icons.done_all, color: Color.fromARGB(255, 255, 160, 122), size: 24),
               onPressed: () {
                 setState(() {
                   for (var item in notificationItems) {
@@ -64,7 +63,7 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: surfaceMuted, height: 1.0),
+          child: Container(color: const Color(0xFFEEEEEE), height: 1.0),
         ),
       ),
       body: Column(
@@ -73,8 +72,8 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
           Container(
             color: Colors.white,
             padding: const EdgeInsets.symmetric(
-              horizontal: spacingXl,
-              vertical: spacingMd,
+              horizontal: 20.0,
+              vertical: 12.0,
             ),
             child: SizedBox(
               height: 40,
@@ -86,15 +85,15 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
                   final isSelected = category == _selectedCategory;
 
                   return Container(
-                    margin: const EdgeInsets.only(right: spacingSm),
+                    margin: const EdgeInsets.only(right: 8.0),
                     child: ChoiceChip(
                       label: Text(
                         category,
                         style: TextStyle(
-                          color: isSelected ? Colors.white : textPrimary,
+                          color: isSelected ? Colors.white : const Color(0xDD000000),
                           fontWeight:
                               isSelected ? FontWeight.bold : FontWeight.w500,
-                          fontSize: fontBody,
+                          fontSize: 14.0,
                         ),
                       ),
                       selected: isSelected,
@@ -103,12 +102,12 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
                           setState(() => _selectedCategory = category);
                         }
                       },
-                      selectedColor: brandColor,
-                      backgroundColor: surfaceLight,
+                      selectedColor: const Color.fromARGB(255, 255, 160, 122),
+                      backgroundColor: const Color(0xFFF5F5F5),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(radiusFull),
+                        borderRadius: BorderRadius.circular(25.0),
                         side: BorderSide(
-                          color: isSelected ? brandColor : borderLight,
+                          color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFFE0E0E0),
                         ),
                       ),
                     ),
@@ -122,7 +121,7 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
             child: filteredNotifications.isEmpty
                 ? _buildEmptyState()
                 : ListView.builder(
-                    padding: const EdgeInsets.all(spacingXl),
+                    padding: const EdgeInsets.all(20.0),
                     itemCount: filteredNotifications.length,
                     itemBuilder: (context, index) {
                       return _buildNotificationCard(filteredNotifications[index]);
@@ -140,14 +139,14 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
 
     switch (item.category) {
       case 'Orders':
-        iconBgColor = brandColor;
+        iconBgColor = const Color.fromARGB(255, 255, 160, 122);
         break;
       case 'Promos':
-        iconBgColor = starColor;
+        iconBgColor = const Color(0xFFFFC107);
         break;
       case 'System':
       default:
-        iconBgColor = infoColor;
+        iconBgColor = const Color(0xFF2196F3);
         break;
     }
 
@@ -161,18 +160,25 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
         // TODO: navigate to relevant order/promo screen if applicable
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: spacingLg),
-        padding: const EdgeInsets.all(spacingLg),
+        margin: const EdgeInsets.only(bottom: 16.0),
+        padding: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
-          color: item.isUnread ? surfaceLight : Colors.white,
-          borderRadius: BorderRadius.circular(radiusLg),
+          color: item.isUnread ? const Color(0xFFF5F5F5) : Colors.white,
+          borderRadius: BorderRadius.circular(15.0),
           border: Border.all(
             color: item.isUnread
-                ? brandColor.withValues(alpha: 0.4)
+                ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.4)
                 : Colors.transparent,
             width: 1.5,
           ),
-          boxShadow: const [shadowMd],
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromARGB(20, 0, 0, 0),
+              blurRadius: 8,
+              spreadRadius: 1,
+              offset: Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,7 +191,7 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
                   width: 54,
                   decoration: BoxDecoration(
                     color: iconBgColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(radiusMd),
+                    borderRadius: BorderRadius.circular(12.0),
                   ),
                   child: Icon(item.icon, color: iconBgColor, size: 28),
                 ),
@@ -197,14 +203,14 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
                       height: 10,
                       width: 10,
                       decoration: const BoxDecoration(
-                        color: brandColor,
+                        color: Color.fromARGB(255, 255, 160, 122),
                         shape: BoxShape.circle,
                       ),
                     ),
                   ),
               ],
             ),
-            const SizedBox(width: spacingLg),
+            const SizedBox(width: 16.0),
             // --- Content ---
             Expanded(
               child: Column(
@@ -217,30 +223,30 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
                         child: Text(
                           item.title,
                           style: TextStyle(
-                            fontSize: fontSubtitle,
+                            fontSize: 16.0,
                             fontWeight: item.isUnread
                                 ? FontWeight.bold
                                 : FontWeight.w600,
-                            color: textPrimary,
+                            color: const Color(0xDD000000),
                           ),
                         ),
                       ),
-                      const SizedBox(width: spacingSm),
+                      const SizedBox(width: 8.0),
                       Text(
                         item.time,
                         style: const TextStyle(
-                          fontSize: fontCaption,
-                          color: textHint,
+                          fontSize: 12.0,
+                          color: Color(0xFF9E9E9E),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: spacingXs),
+                  const SizedBox(height: 4.0),
                   Text(
                     item.description,
                     style: const TextStyle(
-                      fontSize: fontBody,
-                      color: textSecondary,
+                      fontSize: 14.0,
+                      color: Color(0xFF757575),
                       height: 1.4,
                     ),
                   ),
@@ -263,30 +269,30 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
             height: 90,
             width: 90,
             decoration: const BoxDecoration(
-              color: surfaceLight,
+              color: Color(0xFFF5F5F5),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.notifications_off_outlined,
-              color: textHint,
+              color: Color(0xFF9E9E9E),
               size: 45,
             ),
           ),
-          const SizedBox(height: spacingLg),
+          const SizedBox(height: 16.0),
           const Text(
             'No notifications here',
             style: TextStyle(
-              fontSize: fontTitle,
+              fontSize: 18.0,
               fontWeight: FontWeight.bold,
-              color: textPrimary,
+              color: Color(0xDD000000),
             ),
           ),
-          const SizedBox(height: spacingXs),
+          const SizedBox(height: 4.0),
           const Text(
             'You are all caught up for this category.',
             style: TextStyle(
-              fontSize: fontBody,
-              color: textSecondary,
+              fontSize: 14.0,
+              color: Color(0xFF757575),
             ),
           ),
         ],

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import '../data.dart';
 import 'customer_header.dart';
 
@@ -26,14 +25,14 @@ class _CustomerOrdersState extends State<CustomerOrders> {
           showTitle: true,
           pageTitle: 'My Orders',
         ),
-        const SizedBox(height: spacingLg),
+        const SizedBox(height: 16.0),
         // --- Status Tabs ---
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: spacingXl),
-          padding: const EdgeInsets.all(spacingXs),
+          margin: const EdgeInsets.symmetric(horizontal: 20.0),
+          padding: const EdgeInsets.all(4.0),
           decoration: BoxDecoration(
-            color: surfaceMuted,
-            borderRadius: BorderRadius.circular(radiusFull),
+            color: const Color(0xFFEEEEEE),
+            borderRadius: BorderRadius.circular(25.0),
           ),
           child: Row(
             children: orderStatuses.map((status) {
@@ -46,20 +45,30 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: spacingSm),
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
                     decoration: BoxDecoration(
                       color: isSelected ? Colors.white : Colors.transparent,
-                      borderRadius: BorderRadius.circular(radiusXl),
-                      boxShadow: isSelected ? const [shadowSm] : [],
+                      borderRadius: BorderRadius.circular(20.0),
+                      boxShadow: isSelected
+                          ? const [
+                              BoxShadow(
+                                color: Color.fromARGB(15, 0, 0, 0),
+                                blurRadius: 5,
+                                offset: Offset(0, 2),
+                              ),
+                            ]
+                          : [],
                     ),
                     child: Center(
                       child: Text(
                         status,
                         style: TextStyle(
-                          color: isSelected ? brandColor : textSecondary,
+                          color: isSelected
+                              ? const Color.fromARGB(255, 255, 160, 122)
+                              : const Color(0xFF757575),
                           fontWeight:
                               isSelected ? FontWeight.bold : FontWeight.w600,
-                          fontSize: fontDetail,
+                          fontSize: 13.0,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -71,20 +80,20 @@ class _CustomerOrdersState extends State<CustomerOrders> {
             }).toList(),
           ),
         ),
-        const SizedBox(height: spacingSm),
+        const SizedBox(height: 8.0),
         // --- Order List ---
         Expanded(
           child: filteredOrders.isEmpty
               ? const Center(
                   child: Text(
                     'No orders found.',
-                    style: TextStyle(color: textHint, fontSize: fontSubtitle),
+                    style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 16.0),
                   ),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: spacingXl,
-                    vertical: spacingSm,
+                    horizontal: 20.0,
+                    vertical: 8.0,
                   ),
                   itemCount: filteredOrders.length,
                   itemBuilder: (context, index) {
@@ -99,13 +108,20 @@ class _CustomerOrdersState extends State<CustomerOrders> {
   // --- Order Card ---
   Widget _buildOrderCard(OrderItem order) {
     return Container(
-      margin: const EdgeInsets.only(bottom: spacingLg),
-      padding: const EdgeInsets.all(spacingLg),
+      margin: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(radiusLg),
-        boxShadow: const [shadowMd],
-        border: Border.all(color: borderLight),
+        borderRadius: BorderRadius.circular(15.0),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromARGB(20, 0, 0, 0),
+            blurRadius: 8,
+            spreadRadius: 1,
+            offset: Offset(0, 3),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFE0E0E0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,12 +134,12 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                 height: 48,
                 width: 48,
                 decoration: BoxDecoration(
-                  color: surfaceLight,
-                  borderRadius: BorderRadius.circular(radiusMd),
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(12.0),
                 ),
-                child: Icon(order.icon, color: brandColor, size: 26),
+                child: Icon(order.icon, color: const Color.fromARGB(255, 255, 160, 122), size: 26),
               ),
-              const SizedBox(width: spacingMd),
+              const SizedBox(width: 12.0),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,36 +147,36 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                     Text(
                       order.displayTitle,
                       style: const TextStyle(
-                        fontSize: fontSubtitle,
+                        fontSize: 16.0,
                         fontWeight: FontWeight.bold,
-                        color: textPrimary,
+                        color: Color(0xDD000000),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: spacingXs),
+                    const SizedBox(height: 4.0),
                     Row(
                       children: [
                         Text(
                           order.orderId,
                           style: const TextStyle(
-                            fontSize: fontDetail,
-                            color: brandColor,
+                            fontSize: 13.0,
+                            color: Color.fromARGB(255, 255, 160, 122),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const Text(
                           ' • ',
                           style: TextStyle(
-                            fontSize: fontDetail,
-                            color: textHint,
+                            fontSize: 13.0,
+                            color: Color(0xFF9E9E9E),
                           ),
                         ),
                         Text(
                           order.date,
                           style: const TextStyle(
-                            fontSize: fontCaption,
-                            color: textSecondary,
+                            fontSize: 12.0,
+                            color: Color(0xFF757575),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -171,12 +187,12 @@ class _CustomerOrdersState extends State<CustomerOrders> {
               ),
             ],
           ),
-          const SizedBox(height: spacingLg),
+          const SizedBox(height: 16.0),
           // --- Total & Action Buttons ---
           Container(
-            padding: const EdgeInsets.only(top: spacingMd),
+            padding: const EdgeInsets.only(top: 12.0),
             decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: borderLight)),
+              border: Border(top: BorderSide(color: Color(0xFFE0E0E0))),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -187,16 +203,16 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                     const Text(
                       'Total Amount',
                       style: TextStyle(
-                        fontSize: fontCaption,
-                        color: textHint,
+                        fontSize: 12.0,
+                        color: Color(0xFF9E9E9E),
                       ),
                     ),
                     Text(
-                      formatPrice(order.total),
+                      'RM ${order.total.toStringAsFixed(2)}',
                       style: const TextStyle(
-                        fontSize: fontTitle,
+                        fontSize: 18.0,
                         fontWeight: FontWeight.bold,
-                        color: brandColor,
+                        color: Color.fromARGB(255, 255, 160, 122),
                       ),
                     ),
                   ],
@@ -211,13 +227,13 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                           });
                         },
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFC62828),
-                          side: const BorderSide(color: Color(0xFFC62828)),
+                          foregroundColor: const Color(0xFFEF5350),
+                          side: const BorderSide(color: Color(0xFFEF5350)),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(radiusFull),
+                            borderRadius: BorderRadius.circular(25.0),
                           ),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: spacingLg,
+                            horizontal: 16.0,
                           ),
                         ),
                         child: const Text(
@@ -231,14 +247,14 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                           // TODO: handle tracking order
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: brandColor,
+                          backgroundColor: const Color.fromARGB(255, 255, 160, 122),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(radiusFull),
+                            borderRadius: BorderRadius.circular(25.0),
                           ),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: spacingLg,
+                            horizontal: 16.0,
                           ),
                         ),
                         child: const Text(
@@ -252,14 +268,14 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                           // TODO: handle reordering action
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: surfaceLight,
-                          foregroundColor: textPrimary,
+                          backgroundColor: const Color(0xFFF5F5F5),
+                          foregroundColor: const Color(0xDD000000),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(radiusFull),
+                            borderRadius: BorderRadius.circular(25.0),
                           ),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: spacingLg,
+                            horizontal: 16.0,
                           ),
                         ),
                         child: const Text(

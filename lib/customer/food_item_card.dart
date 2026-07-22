@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import '../data.dart';
 import 'food_item_detail.dart';
 
@@ -21,12 +20,19 @@ class FoodItemCard extends StatelessWidget {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: spacingLg),
-        padding: const EdgeInsets.all(spacingMd),
+        margin: const EdgeInsets.only(bottom: 16.0),
+        padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(radiusLg),
-          boxShadow: const [shadowMd],
+          borderRadius: BorderRadius.circular(15.0),
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromARGB(20, 0, 0, 0),
+              blurRadius: 8,
+              spreadRadius: 1,
+              offset: Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -35,17 +41,17 @@ class FoodItemCard extends StatelessWidget {
               height: 80,
               width: 80,
               decoration: BoxDecoration(
-                color: surfaceLight,
-                borderRadius: BorderRadius.circular(radiusMd),
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(12.0),
               ),
               child: Icon(
                 // TODO: replace with image
                 item.icon,
-                color: textHint,
+                color: const Color(0xFF9E9E9E),
                 size: 40,
               ),
             ),
-            const SizedBox(width: spacingLg),
+            const SizedBox(width: 16.0),
             // --- Item Details ---
             Expanded(
               child: Column(
@@ -54,54 +60,54 @@ class FoodItemCard extends StatelessWidget {
                   Text(
                     item.name,
                     style: const TextStyle(
-                      fontSize: fontSubtitle,
+                      fontSize: 16.0,
                       fontWeight: FontWeight.bold,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: spacingXs),
+                  const SizedBox(height: 4.0),
                   Row(
                     children: [
-                      const Icon(Icons.star, color: starColor, size: 16),
-                      const SizedBox(width: spacingXs),
+                      const Icon(Icons.star, color: Color(0xFFFFC107), size: 16),
+                      const SizedBox(width: 4.0),
                       Text(
                         item.rating,
                         style: const TextStyle(
-                          fontSize: fontDetail,
-                          color: textSecondary,
+                          fontSize: 13.0,
+                          color: Color(0xFF757575),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: spacingLg),
-                      const Icon(Icons.access_time, color: textHint, size: 16),
-                      const SizedBox(width: spacingXs),
+                      const SizedBox(width: 16.0),
+                      const Icon(Icons.access_time, color: Color(0xFF9E9E9E), size: 16),
+                      const SizedBox(width: 4.0),
                       Text(
                         item.prepTime,
                         style: const TextStyle(
-                          fontSize: fontDetail,
-                          color: textSecondary,
+                          fontSize: 13.0,
+                          color: Color(0xFF757575),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: spacingSm),
+                  const SizedBox(height: 8.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        formatPrice(item.price),
+                        'RM ${item.price.toStringAsFixed(2)}',
                         style: const TextStyle(
-                          fontSize: fontBodyLarge,
+                          fontSize: 15.0,
                           fontWeight: FontWeight.bold,
-                          color: brandColor,
+                          color: Color.fromARGB(255, 255, 160, 122),
                         ),
                       ),
                       Container(
                         height: 30,
                         width: 30,
                         decoration: const BoxDecoration(
-                          color: brandColor,
+                          color: Color.fromARGB(255, 255, 160, 122),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(

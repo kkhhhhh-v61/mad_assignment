@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import 'customer_account.dart';
 import 'customer_home.dart';
 import 'customer_menu.dart';
@@ -26,17 +25,23 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: scaffoldBgColor,
+      backgroundColor: const Color(0xF8FFFFFF),
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(radiusLg)),
-          boxShadow: [shadowNavBar],
+          borderRadius: BorderRadius.vertical(top: Radius.circular(15.0)),
+          boxShadow: [
+            BoxShadow(
+              color: Color.fromARGB(15, 0, 0, 0),
+              blurRadius: 10,
+              offset: Offset(0, -2),
+            ),
+          ],
         ),
         height: 100,
         child: ClipRRect(
           borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(radiusLg),
+            top: Radius.circular(15.0),
           ),
           child: BottomNavigationBar(
             backgroundColor: Colors.white,
@@ -47,8 +52,8 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
               });
             },
             type: BottomNavigationBarType.fixed,
-            selectedItemColor: brandColor,
-            unselectedItemColor: textHint,
+            selectedItemColor: const Color.fromARGB(255, 255, 160, 122),
+            unselectedItemColor: const Color(0xFF9E9E9E),
             showUnselectedLabels: true,
             items: const [
               BottomNavigationBarItem(

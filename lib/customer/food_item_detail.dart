@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import '../data.dart';
 
 class FoodItemDetail extends StatefulWidget {
@@ -41,7 +40,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: scaffoldBgColor,
+      backgroundColor: const Color(0xF8FFFFFF),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -49,7 +48,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios,
-            color: textPrimary,
+            color: Color(0xDD000000),
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
@@ -57,9 +56,9 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
         title: Text(
           widget.item.name,
           style: const TextStyle(
-            color: textPrimary,
+            color: Color(0xDD000000),
             fontWeight: FontWeight.bold,
-            fontSize: fontTitle,
+            fontSize: 18.0,
           ),
         ),
       ),
@@ -70,8 +69,8 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(
-                  top: spacingLg,
-                  bottom: spacingXl,
+                  top: 16.0,
+                  bottom: 20.0,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,25 +79,25 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                     Container(
                       height: 230,
                       width: double.infinity,
-                      margin: const EdgeInsets.symmetric(horizontal: spacingXl),
+                      margin: const EdgeInsets.symmetric(horizontal: 20.0),
                       decoration: BoxDecoration(
-                        color: surfaceLight,
-                        borderRadius: BorderRadius.circular(radiusXl),
-                        border: Border.all(color: borderLight),
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(20.0),
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
                       ),
                       child: Center(
                         // TODO: replace with high-resolution image
                         child: Icon(
                           widget.item.icon,
                           size: 96,
-                          color: brandColor,
+                          color: const Color.fromARGB(255, 255, 160, 122),
                         ),
                       ),
                     ),
-                    const SizedBox(height: spacingLg),
+                    const SizedBox(height: 16.0),
                     // --- Title & Metadata Section ---
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: spacingXl),
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -110,124 +109,124 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                                 child: Text(
                                   widget.item.name,
                                   style: const TextStyle(
-                                    fontSize: fontHeadline,
+                                    fontSize: 22.0,
                                     fontWeight: FontWeight.bold,
-                                    color: textPrimary,
+                                    color: Color(0xDD000000),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: spacingMd),
+                              const SizedBox(width: 12.0),
                               Text(
-                                formatPrice(widget.item.price),
+                                'RM ${widget.item.price.toStringAsFixed(2)}',
                                 style: const TextStyle(
-                                  fontSize: fontHeadline,
+                                  fontSize: 22.0,
                                   fontWeight: FontWeight.bold,
-                                  color: brandColor,
+                                  color: Color.fromARGB(255, 255, 160, 122),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: spacingMd),
+                          const SizedBox(height: 12.0),
                           Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: spacingMd,
-                                  vertical: spacingXs,
+                                  horizontal: 12.0,
+                                  vertical: 4.0,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: brandColor.withValues(alpha: 0.1),
+                                  color: const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.1),
                                   borderRadius:
-                                      BorderRadius.circular(radiusFull),
+                                      BorderRadius.circular(25.0),
                                 ),
                                 child: Text(
                                   widget.item.category,
                                   style: const TextStyle(
-                                    color: brandColor,
+                                    color: Color.fromARGB(255, 255, 160, 122),
                                     fontWeight: FontWeight.bold,
-                                    fontSize: fontDetail,
+                                    fontSize: 13.0,
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: spacingMd),
+                              const SizedBox(width: 12.0),
                               const Icon(
                                 Icons.star,
-                                color: starColor,
+                                color: Color(0xFFFFC107),
                                 size: 18,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 4.0),
                               Text(
                                 widget.item.rating,
                                 style: const TextStyle(
-                                  fontSize: fontBodyLarge,
+                                  fontSize: 15.0,
                                   fontWeight: FontWeight.bold,
-                                  color: textPrimary,
+                                  color: Color(0xDD000000),
                                 ),
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 4.0),
                               const Text(
                                 '(120+ reviews)',
                                 style: TextStyle(
-                                  fontSize: fontDetail,
-                                  color: textSecondary,
+                                  fontSize: 13.0,
+                                  color: Color(0xFF757575),
                                 ),
                               ),
-                              const SizedBox(width: spacingLg),
+                              const SizedBox(width: 16.0),
                               const Icon(
                                 Icons.access_time,
-                                color: textHint,
+                                color: Color(0xFF9E9E9E),
                                 size: 18,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 4.0),
                               Text(
                                 widget.item.prepTime,
                                 style: const TextStyle(
-                                  fontSize: fontDetail,
-                                  color: textSecondary,
+                                  fontSize: 13.0,
+                                  color: Color(0xFF757575),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: spacingLg),
-                          const Divider(height: 1, color: borderLight),
-                          const SizedBox(height: spacingLg),
+                          const SizedBox(height: 16.0),
+                          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                          const SizedBox(height: 16.0),
                           // --- Description Section ---
                           const Text(
                             'Description',
                             style: TextStyle(
-                              fontSize: fontSubtitle,
+                              fontSize: 16.0,
                               fontWeight: FontWeight.bold,
-                              color: textPrimary,
+                              color: Color(0xDD000000),
                             ),
                           ),
-                          const SizedBox(height: spacingXs),
+                          const SizedBox(height: 4.0),
                           const Text(
                             'Prepared fresh daily using authentic recipes and signature ingredients. Carefully crafted to provide a delightful balance of rich flavors and perfect textures with every serving.',
                             style: TextStyle(
-                              fontSize: fontBodyLarge,
-                              color: textSecondary,
+                              fontSize: 15.0,
+                              color: Color(0xFF757575),
                               height: 1.5,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: spacingXl),
+                    const SizedBox(height: 20.0),
                     // --- Size Section ---
                     _buildSectionHeader('Choice of Size', true),
-                    const SizedBox(height: spacingSm),
+                    const SizedBox(height: 8.0),
                     _buildSizeOption('Regular', '+ RM 0.00'),
                     _buildSizeOption('Large', '+ RM 3.50'),
                     _buildSizeOption('Extra Large', '+ RM 6.00'),
-                    const SizedBox(height: spacingLg),
+                    const SizedBox(height: 16.0),
                     // --- Spice Level Section ---
                     _buildSectionHeader('Spice Level', false),
-                    const SizedBox(height: spacingSm),
+                    const SizedBox(height: 8.0),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: spacingXl),
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: Wrap(
-                        spacing: spacingMd,
+                        spacing: 12.0,
                         children: [
                           'No Spice',
                           'Mild',
@@ -245,56 +244,56 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                                 });
                               }
                             },
-                            selectedColor: brandColor,
-                            backgroundColor: surfaceLight,
+                            selectedColor: const Color.fromARGB(255, 255, 160, 122),
+                            backgroundColor: const Color(0xFFF5F5F5),
                             labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : textPrimary,
+                              color: isSelected ? Colors.white : const Color(0xDD000000),
                               fontWeight: FontWeight.w600,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(radiusFull),
+                              borderRadius: BorderRadius.circular(25.0),
                               side: BorderSide(
-                                color: isSelected ? brandColor : borderLight,
+                                color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFFE0E0E0),
                               ),
                             ),
                           );
                         }).toList(),
                       ),
                     ),
-                    const SizedBox(height: spacingLg),
+                    const SizedBox(height: 16.0),
                     // --- Add-ons Section ---
                     _buildSectionHeader('Add-ons & Extras', false),
-                    const SizedBox(height: spacingSm),
+                    const SizedBox(height: 8.0),
                     _buildAddonOption('Extra Cheese', '+ RM 2.50'),
                     _buildAddonOption('Add Egg', '+ RM 2.00'),
                     _buildAddonOption('Extra Sauce', '+ RM 1.50'),
-                    const SizedBox(height: spacingLg),
+                    const SizedBox(height: 16.0),
                     // --- Special Instructions Section ---
                     _buildSectionHeader('Special Instructions', false),
-                    const SizedBox(height: spacingSm),
+                    const SizedBox(height: 8.0),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: spacingXl),
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: TextField(
                         controller: _specialInstructionsController,
                         maxLines: 3,
                         decoration: InputDecoration(
                           hintText:
                               'e.g., No onions, extra napkins, separate sauce...',
-                          hintStyle: const TextStyle(color: textHint),
+                          hintStyle: const TextStyle(color: Color(0xFF9E9E9E)),
                           filled: true,
-                          fillColor: surfaceLight,
-                          contentPadding: const EdgeInsets.all(spacingMd),
+                          fillColor: const Color(0xFFF5F5F5),
+                          contentPadding: const EdgeInsets.all(12.0),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(radiusLg),
-                            borderSide: const BorderSide(color: borderLight),
+                            borderRadius: BorderRadius.circular(15.0),
+                            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(radiusLg),
-                            borderSide: const BorderSide(color: borderLight),
+                            borderRadius: BorderRadius.circular(15.0),
+                            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(radiusLg),
-                            borderSide: const BorderSide(color: brandColor),
+                            borderRadius: BorderRadius.circular(15.0),
+                            borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122)),
                           ),
                         ),
                       ),
@@ -306,21 +305,27 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
             // --- Bottom Action Bar ---
             Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: spacingXl,
-                vertical: spacingLg,
+                horizontal: 20.0,
+                vertical: 16.0,
               ),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                boxShadow: [shadowBottomBar],
-                border: Border(top: BorderSide(color: borderLight)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color.fromARGB(15, 0, 0, 0),
+                    blurRadius: 10,
+                    offset: Offset(0, -4),
+                  ),
+                ],
+                border: Border(top: BorderSide(color: Color(0xFFE0E0E0))),
               ),
               child: Row(
                 children: [
                   Container(
                     decoration: BoxDecoration(
-                      color: surfaceLight,
-                      borderRadius: BorderRadius.circular(radiusFull),
-                      border: Border.all(color: borderLight),
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(25.0),
+                      border: Border.all(color: const Color(0xFFE0E0E0)),
                     ),
                     child: Row(
                       children: [
@@ -333,18 +338,18 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                                 }
                               : null,
                           icon: const Icon(Icons.remove, size: 20),
-                          color: textPrimary,
+                          color: const Color(0xDD000000),
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: spacingSm,
+                            horizontal: 8.0,
                           ),
                           child: Text(
                             '$_quantity',
                             style: const TextStyle(
-                              fontSize: fontTitle,
+                              fontSize: 18.0,
                               fontWeight: FontWeight.bold,
-                              color: textPrimary,
+                              color: Color(0xDD000000),
                             ),
                           ),
                         ),
@@ -355,12 +360,12 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                             });
                           },
                           icon: const Icon(Icons.add, size: 20),
-                          color: textPrimary,
+                          color: const Color(0xDD000000),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: spacingLg),
+                  const SizedBox(width: 16.0),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
@@ -399,7 +404,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            backgroundColor: brandColor,
+                            backgroundColor: const Color.fromARGB(255, 255, 160, 122),
                             behavior: SnackBarBehavior.floating,
                             duration: const Duration(seconds: 2),
                           ),
@@ -407,18 +412,18 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: brandColor,
+                        backgroundColor: const Color.fromARGB(255, 255, 160, 122),
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: spacingLg),
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(radiusFull),
+                          borderRadius: BorderRadius.circular(25.0),
                         ),
                       ),
                       child: Text(
-                        'Add to Cart - ${formatPrice(_calculatedTotal)}',
+                        'Add to Cart - RM ${_calculatedTotal.toStringAsFixed(2)}',
                         style: const TextStyle(
-                          fontSize: fontSubtitle,
+                          fontSize: 16.0,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -436,33 +441,33 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
   // --- Helper Widgets ---
   Widget _buildSectionHeader(String title, bool isRequired) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: spacingXl),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
             style: const TextStyle(
-              fontSize: fontSubtitle,
+              fontSize: 16.0,
               fontWeight: FontWeight.bold,
-              color: textPrimary,
+              color: Color(0xDD000000),
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(
-              horizontal: spacingMd,
+              horizontal: 12.0,
               vertical: 2,
             ),
             decoration: BoxDecoration(
-              color: isRequired ? brandColor.withValues(alpha: 0.1) : surfaceLight,
-              borderRadius: BorderRadius.circular(radiusFull),
+              color: isRequired ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.1) : const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(25.0),
             ),
             child: Text(
               isRequired ? 'Required' : 'Optional',
               style: TextStyle(
-                fontSize: fontDetail,
+                fontSize: 13.0,
                 fontWeight: FontWeight.bold,
-                color: isRequired ? brandColor : textSecondary,
+                color: isRequired ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFF757575),
               ),
             ),
           ),
@@ -481,16 +486,16 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
       },
       child: Container(
         margin: const EdgeInsets.only(
-          left: spacingXl,
-          right: spacingXl,
-          bottom: spacingSm,
+          left: 20.0,
+          right: 20.0,
+          bottom: 8.0,
         ),
-        padding: const EdgeInsets.all(spacingMd),
+        padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
-          color: isSelected ? brandColor.withValues(alpha: 0.05) : Colors.white,
-          borderRadius: BorderRadius.circular(radiusLg),
+          color: isSelected ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(15.0),
           border: Border.all(
-            color: isSelected ? brandColor : borderLight,
+            color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFFE0E0E0),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -503,16 +508,16 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                   isSelected
                       ? Icons.radio_button_checked
                       : Icons.radio_button_off,
-                  color: isSelected ? brandColor : textHint,
+                  color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFF9E9E9E),
                   size: 20,
                 ),
-                const SizedBox(width: spacingMd),
+                const SizedBox(width: 12.0),
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: fontBodyLarge,
+                    fontSize: 15.0,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    color: textPrimary,
+                    color: const Color(0xDD000000),
                   ),
                 ),
               ],
@@ -520,9 +525,9 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
             Text(
               priceText,
               style: TextStyle(
-                fontSize: fontBodyLarge,
+                fontSize: 15.0,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? brandColor : textSecondary,
+                color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFF757575),
               ),
             ),
           ],
@@ -545,16 +550,16 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
       },
       child: Container(
         margin: const EdgeInsets.only(
-          left: spacingXl,
-          right: spacingXl,
-          bottom: spacingSm,
+          left: 20.0,
+          right: 20.0,
+          bottom: 8.0,
         ),
-        padding: const EdgeInsets.all(spacingMd),
+        padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
-          color: isSelected ? brandColor.withValues(alpha: 0.05) : Colors.white,
-          borderRadius: BorderRadius.circular(radiusLg),
+          color: isSelected ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(15.0),
           border: Border.all(
-            color: isSelected ? brandColor : borderLight,
+            color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFFE0E0E0),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -565,16 +570,16 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
               children: [
                 Icon(
                   isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                  color: isSelected ? brandColor : textHint,
+                  color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFF9E9E9E),
                   size: 20,
                 ),
-                const SizedBox(width: spacingMd),
+                const SizedBox(width: 12.0),
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: fontBodyLarge,
+                    fontSize: 15.0,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    color: textPrimary,
+                    color: const Color(0xDD000000),
                   ),
                 ),
               ],
@@ -582,9 +587,9 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
             Text(
               priceText,
               style: TextStyle(
-                fontSize: fontBodyLarge,
+                fontSize: 15.0,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? brandColor : textSecondary,
+                color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFF757575),
               ),
             ),
           ],

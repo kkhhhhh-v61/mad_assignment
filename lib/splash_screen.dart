@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import 'config.dart';
 import 'customer/customer_main_navigation.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -42,7 +41,7 @@ class _SplashScreenState extends State<SplashScreen> {
         child: SizedBox(
           height: 300,
           width: 300,
-          child: Image.asset(appLogo),
+          child: Image.asset('assets/images/logo.webp'),
         ),
       ),
     );

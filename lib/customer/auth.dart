@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data.dart';
 import 'header.dart';
 
 class CustomerAuth extends StatefulWidget {
@@ -219,10 +218,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
                 const SizedBox(width: 8.0),
                 const Text(
                   'Remember me',
-                  style: TextStyle(
-                    fontSize: 13.0,
-                    color: Color(0xFF757575),
-                  ),
+                  style: TextStyle(fontSize: 13.0, color: Color(0xFF757575)),
                 ),
               ],
             ),
@@ -290,7 +286,8 @@ class _CustomerAuthState extends State<CustomerAuth> {
           isPassword: true,
           obscureText: _obscureConfirmPassword,
           onTogglePassword: () => setState(
-              () => _obscureConfirmPassword = !_obscureConfirmPassword),
+            () => _obscureConfirmPassword = !_obscureConfirmPassword,
+          ),
         ),
         const SizedBox(height: 12.0),
         Row(
@@ -313,10 +310,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
             const Expanded(
               child: Text(
                 'I agree to the Terms of Service & Privacy Policy',
-                style: TextStyle(
-                  fontSize: 13.0,
-                  color: Color(0xFF757575),
-                ),
+                style: TextStyle(fontSize: 13.0, color: Color(0xFF757575)),
               ),
             ),
           ],
@@ -352,10 +346,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
           controller: controller,
           keyboardType: keyboardType,
           obscureText: obscureText,
-          style: const TextStyle(
-            fontSize: 15.0,
-            color: Color(0xDD000000),
-          ),
+          style: const TextStyle(fontSize: 15.0, color: Color(0xDD000000)),
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: const TextStyle(color: Color(0xFF9E9E9E)),
@@ -422,7 +413,6 @@ class _CustomerAuthState extends State<CustomerAuth> {
           }
 
           // TODO: replace mock authentication logic with backend call
-          isLoggedIn = true;
           widget.onAuthSuccess?.call();
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -449,10 +439,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
         ),
         child: Text(
           _isLogin ? 'Log In' : 'Create Account',
-          style: const TextStyle(
-            fontSize: 16.0,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -470,10 +457,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
           ),
           title: const Text(
             'Reset Password',
-            style: TextStyle(
-              fontSize: 18.0,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -481,10 +465,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
             children: [
               const Text(
                 'Enter your email address and we will send you instructions to reset your password.',
-                style: TextStyle(
-                  fontSize: 14.0,
-                  color: Color(0xFF757575),
-                ),
+                style: TextStyle(fontSize: 14.0, color: Color(0xFF757575)),
               ),
               const SizedBox(height: 16.0),
               TextField(

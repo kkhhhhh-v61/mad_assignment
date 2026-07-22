@@ -104,10 +104,7 @@ class CustomerHeader extends StatelessWidget {
               const Flexible(
                 child: Text(
                   'Home - 123 Street Name, City',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15.0,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -215,7 +212,11 @@ class CustomerHeader extends StatelessWidget {
         borderRadius: BorderRadius.circular(25.0),
       ),
       child: IconButton(
-        icon: const Icon(Icons.tune, color: Color.fromARGB(255, 255, 160, 122), size: 20),
+        icon: const Icon(
+          Icons.tune,
+          color: Color.fromARGB(255, 255, 160, 122),
+          size: 20,
+        ),
         onPressed: onFilterTap ?? () {},
       ),
     );

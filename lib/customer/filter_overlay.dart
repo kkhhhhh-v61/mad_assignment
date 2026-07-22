@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 void showFilterOverlay(BuildContext context) {
   showModalBottomSheet(
     context: context,
@@ -90,10 +89,7 @@ class _FilterOverlayState extends State<FilterOverlay> {
   // --- Header Section ---
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20.0,
-        vertical: 16.0,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
       child: Column(
         children: [
           Container(
@@ -119,7 +115,11 @@ class _FilterOverlayState extends State<FilterOverlay> {
               IconButton(
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                icon: const Icon(Icons.close, color: Color(0xFF757575), size: 24),
+                icon: const Icon(
+                  Icons.close,
+                  color: Color(0xFF757575),
+                  size: 24,
+                ),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -157,7 +157,11 @@ class _FilterOverlayState extends State<FilterOverlay> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.sort, color: Color.fromARGB(255, 255, 160, 122), size: 22),
+              const Icon(
+                Icons.sort,
+                color: Color.fromARGB(255, 255, 160, 122),
+                size: 22,
+              ),
               const SizedBox(width: 12.0),
               Expanded(
                 child: DropdownButtonHideUnderline(
@@ -227,11 +231,7 @@ class _FilterOverlayState extends State<FilterOverlay> {
               ),
             ),
             const Padding(
-              padding: EdgeInsets.only(
-                left: 12.0,
-                right: 12.0,
-                top: 32,
-              ),
+              padding: EdgeInsets.only(left: 12.0, right: 12.0, top: 32),
               child: Text(
                 '—',
                 style: TextStyle(
@@ -309,7 +309,10 @@ class _FilterOverlayState extends State<FilterOverlay> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 1.5),
+              borderSide: const BorderSide(
+                color: Color.fromARGB(255, 255, 160, 122),
+                width: 1.5,
+              ),
             ),
           ),
         ),
@@ -358,7 +361,12 @@ class _FilterOverlayState extends State<FilterOverlay> {
                 vertical: 4.0,
               ),
               decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.15),
+                color: const Color.fromARGB(
+                  255,
+                  255,
+                  160,
+                  122,
+                ).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(25.0),
               ),
               child: Text(
@@ -426,10 +434,7 @@ class _FilterOverlayState extends State<FilterOverlay> {
                 ),
                 child: const Text(
                   'Reset',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -454,10 +459,7 @@ class _FilterOverlayState extends State<FilterOverlay> {
                 ),
                 child: const Text(
                   'Apply Filters',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                 ),
               ),
             ),

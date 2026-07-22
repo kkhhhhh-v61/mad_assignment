@@ -1,0 +1,80 @@
+import 'package:flutter/material.dart';
+
+// ==================== Default Fallback Message Widget ====================
+class DefaultFallbackMessage extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+
+  const DefaultFallbackMessage({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 24.0),
+      margin: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.0),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(
+                255,
+                255,
+                160,
+                122,
+              ).withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 36.0,
+              color: const Color.fromARGB(255, 255, 160, 122),
+            ),
+          ),
+          const SizedBox(height: 16.0),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16.0,
+              fontWeight: FontWeight.bold,
+              color: Color(0xDD000000),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4.0),
+          Text(
+            description,
+            style: const TextStyle(fontSize: 14.0, color: Color(0xFF757575)),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==================== Helper Function ====================
+Widget buildDefaultFallbackMessage({
+  required IconData icon,
+  required String title,
+  required String description,
+}) {
+  return DefaultFallbackMessage(
+    icon: icon,
+    title: title,
+    description: description,
+  );
+}

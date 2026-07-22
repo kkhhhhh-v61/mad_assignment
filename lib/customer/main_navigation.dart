@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data.dart';
 import 'account.dart';
 import 'auth.dart';
 import 'home.dart';
@@ -16,15 +15,29 @@ class CustomerMainNavigation extends StatefulWidget {
 
 class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
   int _currentIndex = 0;
+  bool _isLoggedIn = false;
+  String _selectedMenuCategory = '';
 
   List<Widget> get _screens => [
-        const CustomerHome(),
-        const CustomerMenu(),
-        const CustomerOrders(),
-        isLoggedIn
-            ? CustomerAccount(onLogout: () => setState(() {}))
-            : CustomerAuth(onAuthSuccess: () => setState(() {})),
-      ];
+    CustomerHome(
+      onCategorySelected: (categoryName) {
+        setState(() {
+          _selectedMenuCategory = categoryName;
+          _currentIndex = 1;
+        });
+      },
+    ),
+    CustomerMenu(
+      initialCategory: _selectedMenuCategory,
+      onCategoryChanged: (categoryName) {
+        _selectedMenuCategory = categoryName;
+      },
+    ),
+    const CustomerOrders(),
+    _isLoggedIn
+        ? CustomerAccount(onLogout: () => setState(() => _isLoggedIn = false))
+        : CustomerAuth(onAuthSuccess: () => setState(() => _isLoggedIn = true)),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -44,9 +57,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
         ),
         height: 100,
         child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(15.0),
-          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(15.0)),
           child: BottomNavigationBar(
             backgroundColor: Colors.white,
             currentIndex: _currentIndex,

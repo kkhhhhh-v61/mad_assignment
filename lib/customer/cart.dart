@@ -1,6 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../data.dart';
+import '../global.dart';
+
+class CartItem {
+  final String name;
+  final double price;
+  int quantity;
+  final IconData icon;
+  final String customizations;
+
+  CartItem({
+    required this.name,
+    required this.price,
+    required this.quantity,
+    required this.icon,
+    this.customizations = '',
+  });
+}
 
 class CustomerCart extends StatefulWidget {
   const CustomerCart({super.key});
@@ -10,6 +26,9 @@ class CustomerCart extends StatefulWidget {
 }
 
 class _CustomerCartState extends State<CustomerCart> {
+  static const double _deliveryFee = 5.00;
+  static const double _activeDiscount = 3.00;
+
   List<CartItem> _localCartItems = [];
   bool _isVoucherApplied = false;
   final Set<int> _expandedCartIndices = {};
@@ -17,17 +36,8 @@ class _CustomerCartState extends State<CustomerCart> {
   @override
   void initState() {
     super.initState();
-    _localCartItems = cartItems
-        .map(
-          (item) => CartItem(
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            icon: item.icon,
-            customizations: item.customizations,
-          ),
-        )
-        .toList();
+    // TODO: Fetch user cart items dynamically from database
+    _localCartItems = [];
   }
 
   @override
@@ -37,8 +47,8 @@ class _CustomerCartState extends State<CustomerCart> {
       subtotal += item.price * item.quantity;
     }
 
-    double discount = _isVoucherApplied ? activeDiscount : 0.0;
-    double total = subtotal + deliveryFee - discount;
+    double discount = _isVoucherApplied ? _activeDiscount : 0.0;
+    double total = subtotal + _deliveryFee - discount;
     if (total < 0) total = 0;
 
     return Scaffold(
@@ -48,7 +58,11 @@ class _CustomerCartState extends State<CustomerCart> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xDD000000), size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            color: Color(0xDD000000),
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -64,75 +78,87 @@ class _CustomerCartState extends State<CustomerCart> {
           child: Container(color: const Color(0xFFEEEEEE), height: 1.0),
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // --- Cart Items ---
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _localCartItems.length,
-                    itemBuilder: (context, index) {
-                      return _buildCartItem(_localCartItems[index], index);
-                    },
-                  ),
-                  const SizedBox(height: 8.0),
-                  // --- Special Instructions ---
-                  const Text(
-                    'Special Instructions',
-                    style: TextStyle(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8.0),
-                  TextField(
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      hintText: 'E.g. No onions, extra spicy...',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFF9E9E9E),
-                        fontSize: 14.0,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.all(16.0),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15.0),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24.0),
-                  // --- Voucher ---
-                  _buildVoucherTile(),
-                  const SizedBox(height: 16.0),
-                  // --- Payment Method ---
-                  _buildPaymentTile(),
-                  const SizedBox(height: 24.0),
-                  // --- Order Summary ---
-                  const Text(
-                    'Order Summary',
-                    style: TextStyle(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16.0),
-                  _buildOrderSummary(subtotal, discount, total),
-                ],
+      body: _localCartItems.isEmpty
+          ? Center(
+              child: buildDefaultFallbackMessage(
+                icon: Icons.shopping_cart_outlined,
+                title: 'Your Cart is Empty',
+                description:
+                    'Add some delicious items from our menu to get started!',
               ),
+            )
+          : Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // --- Cart Items ---
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _localCartItems.length,
+                          itemBuilder: (context, index) {
+                            return _buildCartItem(
+                              _localCartItems[index],
+                              index,
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 8.0),
+                        // --- Special Instructions ---
+                        const Text(
+                          'Special Instructions',
+                          style: TextStyle(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8.0),
+                        TextField(
+                          maxLines: 2,
+                          decoration: InputDecoration(
+                            hintText: 'E.g. No onions, extra spicy...',
+                            hintStyle: const TextStyle(
+                              color: Color(0xFF9E9E9E),
+                              fontSize: 14.0,
+                            ),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.all(16.0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15.0),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24.0),
+                        // --- Voucher ---
+                        _buildVoucherTile(),
+                        const SizedBox(height: 16.0),
+                        // --- Payment Method ---
+                        _buildPaymentTile(),
+                        const SizedBox(height: 24.0),
+                        // --- Order Summary ---
+                        const Text(
+                          'Order Summary',
+                          style: TextStyle(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16.0),
+                        _buildOrderSummary(subtotal, discount, total),
+                      ],
+                    ),
+                  ),
+                ),
+                // --- Bottom Checkout Bar ---
+                if (_localCartItems.isNotEmpty) _buildCheckoutBar(total),
+              ],
             ),
-          ),
-          // --- Bottom Checkout Bar ---
-          _buildCheckoutBar(total),
-        ],
-      ),
     );
   }
 
@@ -361,25 +387,44 @@ class _CustomerCartState extends State<CustomerCart> {
         leading: Container(
           padding: const EdgeInsets.all(8.0),
           decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.15),
+            color: const Color.fromARGB(
+              255,
+              255,
+              160,
+              122,
+            ).withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.local_offer, color: Color.fromARGB(255, 255, 160, 122), size: 20),
+          child: const Icon(
+            Icons.local_offer,
+            color: Color.fromARGB(255, 255, 160, 122),
+            size: 20,
+          ),
         ),
         title: Text(
           _isVoucherApplied ? 'DISCOUNT30 Applied' : 'Add Voucher / Promo Code',
           style: TextStyle(
             fontSize: 14.0,
             fontWeight: FontWeight.bold,
-            color: _isVoucherApplied ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xDD000000),
+            color: _isVoucherApplied
+                ? const Color.fromARGB(255, 255, 160, 122)
+                : const Color(0xDD000000),
           ),
         ),
         trailing: _isVoucherApplied
             ? IconButton(
-                icon: const Icon(Icons.close, size: 20, color: Color(0xFF9E9E9E)),
+                icon: const Icon(
+                  Icons.close,
+                  size: 20,
+                  color: Color(0xFF9E9E9E),
+                ),
                 onPressed: () => setState(() => _isVoucherApplied = false),
               )
-            : const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFF9E9E9E)),
+            : const Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Color(0xFF9E9E9E),
+              ),
         onTap: () {
           if (!_isVoucherApplied) {
             setState(() => _isVoucherApplied = true);
@@ -414,7 +459,11 @@ class _CustomerCartState extends State<CustomerCart> {
             color: const Color(0xFF2196F3).withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.credit_card, color: Color(0xFF2196F3), size: 20),
+          child: const Icon(
+            Icons.credit_card,
+            color: Color(0xFF2196F3),
+            size: 20,
+          ),
         ),
         title: const Text(
           'Payment Method',
@@ -460,7 +509,10 @@ class _CustomerCartState extends State<CustomerCart> {
         children: [
           _buildSummaryRow('Subtotal', 'RM ${subtotal.toStringAsFixed(2)}'),
           const SizedBox(height: 8.0),
-          _buildSummaryRow('Delivery Fee', 'RM ${deliveryFee.toStringAsFixed(2)}'),
+          _buildSummaryRow(
+            'Delivery Fee',
+            'RM ${_deliveryFee.toStringAsFixed(2)}',
+          ),
           if (_isVoucherApplied) ...[
             const SizedBox(height: 8.0),
             _buildSummaryRow(
@@ -473,7 +525,11 @@ class _CustomerCartState extends State<CustomerCart> {
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Divider(height: 1),
           ),
-          _buildSummaryRow('Total', 'RM ${total.toStringAsFixed(2)}', isTotal: true),
+          _buildSummaryRow(
+            'Total',
+            'RM ${total.toStringAsFixed(2)}',
+            isTotal: true,
+          ),
         ],
       ),
     );
@@ -502,7 +558,11 @@ class _CustomerCartState extends State<CustomerCart> {
           style: TextStyle(
             fontSize: isTotal ? 16.0 : 14.0,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-            color: textColor ?? (isTotal ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xDD000000)),
+            color:
+                textColor ??
+                (isTotal
+                    ? const Color.fromARGB(255, 255, 160, 122)
+                    : const Color(0xDD000000)),
           ),
         ),
       ],
@@ -562,10 +622,7 @@ class _CustomerCartState extends State<CustomerCart> {
                 ),
                 child: const Text(
                   'Place Order',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                 ),
               ),
             ),

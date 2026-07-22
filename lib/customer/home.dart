@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+// ignore: unused_import
+import '../global.dart';
+// TODELETE
 import '../data.dart';
 import 'header.dart';
-import 'food_item_card.dart';
 
 class CustomerHome extends StatelessWidget {
-  const CustomerHome({super.key});
+  final ValueChanged<String>? onCategorySelected;
+
+  const CustomerHome({super.key, this.onCategorySelected});
 
   @override
   Widget build(BuildContext context) {
@@ -25,9 +29,7 @@ class CustomerHome extends StatelessWidget {
                     itemCount: 1,
                     itemBuilder: (context, index) {
                       return Container(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 20.0,
-                        ),
+                        margin: const EdgeInsets.symmetric(horizontal: 20.0),
                         decoration: BoxDecoration(
                           image: const DecorationImage(
                             image: AssetImage('assets/images/banner_1.webp'),
@@ -60,54 +62,9 @@ class CustomerHome extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16.0),
-                SizedBox(
-                  height: 100,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    itemCount: categories.length,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        margin: const EdgeInsets.only(right: 20.0),
-                        child: Column(
-                          children: [
-                            Container(
-                              height: 65,
-                              width: 65,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Color.fromARGB(20, 0, 0, 0),
-                                    blurRadius: 8,
-                                    spreadRadius: 1,
-                                    offset: Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                // TODO: replace with image
-                                categories[index].icon,
-                                color: Color.fromARGB(255, 255, 160, 122),
-                                size: 28,
-                              ),
-                            ),
-                            const SizedBox(height: 8.0),
-                            Text(
-                              categories[index].name,
-                              style: const TextStyle(
-                                fontSize: 13.0,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xDD000000),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                // TODO: Replace with dynamic categories data fetched from database
+                // TODELETE
+                buildDummyCategories(onSelected: onCategorySelected),
                 const SizedBox(height: 16.0),
                 // --- Trending Now ---
                 Padding(
@@ -127,7 +84,12 @@ class CustomerHome extends StatelessWidget {
                           // TODO
                         },
                         style: TextButton.styleFrom(
-                          foregroundColor: const Color.fromARGB(255, 255, 160, 122),
+                          foregroundColor: const Color.fromARGB(
+                            255,
+                            255,
+                            160,
+                            122,
+                          ),
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -143,18 +105,10 @@ class CustomerHome extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16.0),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  itemCount: trendingItems.length > 3
-                      ? 3
-                      : trendingItems.length,
-                  itemBuilder: (context, index) {
-                    return FoodItemCard(item: trendingItems[index]);
-                  },
-                ),
+                const SizedBox(height: 12.0),
+                // TODO: Replace with dynamic trending menu items fetched from database
+                // TODELETE
+                buildDummyMenuItems(onlyTrending: true),
                 const SizedBox(height: 20.0),
               ],
             ),
@@ -163,4 +117,53 @@ class CustomerHome extends StatelessWidget {
       ],
     );
   }
+}
+
+// ==================== Category Item UI ====================
+Widget buildCategoryItem({
+  required IconData icon,
+  required String name,
+  VoidCallback? onTap,
+}) {
+  return GestureDetector(
+    onTap: onTap,
+    behavior: HitTestBehavior.opaque,
+    child: Container(
+      margin: const EdgeInsets.only(right: 20.0),
+      child: Column(
+        children: [
+          Container(
+            height: 65,
+            width: 65,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Color.fromARGB(20, 0, 0, 0),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Icon(
+              icon,
+              color: Color.fromARGB(255, 255, 160, 122),
+              size: 28,
+            ),
+          ),
+          const SizedBox(height: 8.0),
+          Text(
+            name,
+            style: const TextStyle(
+              fontSize: 13.0,
+              fontWeight: FontWeight.w600,
+              color: Color(0xDD000000),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

@@ -1,328 +1,257 @@
 import 'package:flutter/material.dart';
 
-// ==================== Model Classes ====================
+import 'customer/home.dart';
+import 'customer/menu.dart';
+import 'customer/orders.dart';
 
-class Category {
-  final String name;
-  final IconData icon;
+// ==================== Dummy Categories Function ====================
+Widget buildDummyCategories({
+  bool isChoiceChip = false,
+  String selectedCategory = '',
+  ValueChanged<String>? onSelected,
+}) {
+  const List<Map<String, Object>> categories = [
+    {'name': 'Burgers', 'icon': Icons.lunch_dining},
+    {'name': 'Pizza', 'icon': Icons.local_pizza},
+    {'name': 'Noodles', 'icon': Icons.ramen_dining},
+    {'name': 'Sides', 'icon': Icons.tapas},
+    {'name': 'Desserts', 'icon': Icons.icecream},
+    {'name': 'Beverages', 'icon': Icons.local_drink},
+  ];
 
-  const Category({required this.name, required this.icon});
-}
+  if (isChoiceChip) {
+    final List<Map<String, Object>> chipCategories = [
+      {'name': 'All', 'icon': Icons.restaurant_menu},
+      ...categories,
+    ];
 
-class MenuItem {
-  final String name;
-  final String category;
-  final String rating;
-  final double price;
-  final String prepTime;
-  final IconData icon;
-  final bool isTrending;
+    return SizedBox(
+      height: 45,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        itemCount: chipCategories.length,
+        itemBuilder: (context, index) {
+          final category = chipCategories[index];
+          final String name = category['name'] as String;
+          final IconData icon = category['icon'] as IconData;
+          final bool isSelected =
+              selectedCategory == name ||
+              (selectedCategory.isEmpty && name == 'All');
 
-  const MenuItem({
-    required this.name,
-    required this.category,
-    required this.rating,
-    required this.price,
-    required this.prepTime,
-    required this.icon,
-    this.isTrending = false,
-  });
-}
-
-class CartItem {
-  final String name;
-  final double price;
-  int quantity;
-  final IconData icon;
-  final String customizations;
-
-  CartItem({
-    required this.name,
-    required this.price,
-    required this.quantity,
-    required this.icon,
-    this.customizations = '',
-  });
-}
-
-class OrderItem {
-  final String orderId;
-  String status;
-  final String date;
-  final String firstItemName;
-  final int otherItemsCount;
-  final double total;
-  final IconData icon;
-
-  OrderItem({
-    required this.orderId,
-    required this.status,
-    required this.date,
-    required this.firstItemName,
-    required this.otherItemsCount,
-    required this.total,
-    required this.icon,
-  });
-
-  String get displayTitle {
-    if (otherItemsCount <= 0) {
-      return firstItemName;
-    } else {
-      return '$firstItemName & $otherItemsCount other item(s)';
-    }
+          return buildCategoryChip(
+            name: name,
+            icon: icon,
+            isSelected: isSelected,
+            onSelected: (bool selected) {
+              if (onSelected != null) {
+                if (selected) {
+                  onSelected(name == 'All' ? '' : name);
+                } else if (name != 'All') {
+                  onSelected('');
+                }
+              }
+            },
+          );
+        },
+      ),
+    );
   }
+
+  return SizedBox(
+    height: 105,
+    child: ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 4.0),
+      itemCount: categories.length,
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        final String name = category['name'] as String;
+        return buildCategoryItem(
+          icon: category['icon'] as IconData,
+          name: name,
+          onTap: () {
+            if (onSelected != null) {
+              onSelected(name);
+            }
+          },
+        );
+      },
+    ),
+  );
 }
 
-class NotificationItem {
-  final String title;
-  final String description;
-  final String time;
-  final String category;
-  final IconData icon;
-  bool isUnread;
+// ==================== Dummy Menu Items Function ====================
+Widget buildDummyMenuItems({bool onlyTrending = false}) {
+  const List<Map<String, Object>> menuItems = [
+    // Burgers (2 items)
+    {
+      'name': 'Classic Beef Burger',
+      'category': 'Burgers',
+      'rating': '4.8 (120+)',
+      'price': 16.90,
+      'prepTime': '15-20 min',
+      'icon': Icons.lunch_dining,
+      'isTrending': true,
+    },
+    {
+      'name': 'Crispy Chicken Burger',
+      'category': 'Burgers',
+      'rating': '4.7 (95+)',
+      'price': 14.90,
+      'prepTime': '12-18 min',
+      'icon': Icons.lunch_dining,
+      'isTrending': false,
+    },
+    // Pizza (2 items)
+    {
+      'name': 'Pepperoni Feast Pizza',
+      'category': 'Pizza',
+      'rating': '4.9 (210+)',
+      'price': 28.90,
+      'prepTime': '20-25 min',
+      'icon': Icons.local_pizza,
+      'isTrending': true,
+    },
+    {
+      'name': 'Margherita Cheese Pizza',
+      'category': 'Pizza',
+      'rating': '4.6 (80+)',
+      'price': 24.90,
+      'prepTime': '18-22 min',
+      'icon': Icons.local_pizza,
+      'isTrending': false,
+    },
+    // Noodles (2 items)
+    {
+      'name': 'Spicy Beef Ramen',
+      'category': 'Noodles',
+      'rating': '4.8 (150+)',
+      'price': 18.90,
+      'prepTime': '15-20 min',
+      'icon': Icons.ramen_dining,
+      'isTrending': true,
+    },
+    {
+      'name': 'Seafood Fried Noodles',
+      'category': 'Noodles',
+      'rating': '4.5 (60+)',
+      'price': 17.90,
+      'prepTime': '15-20 min',
+      'icon': Icons.ramen_dining,
+      'isTrending': false,
+    },
+    // Sides (2 items)
+    {
+      'name': 'Golden French Fries',
+      'category': 'Sides',
+      'rating': '4.7 (180+)',
+      'price': 8.90,
+      'prepTime': '8-12 min',
+      'icon': Icons.tapas,
+      'isTrending': false,
+    },
+    {
+      'name': 'Crispy Mozzarella Sticks',
+      'category': 'Sides',
+      'rating': '4.8 (110+)',
+      'price': 12.90,
+      'prepTime': '10-15 min',
+      'icon': Icons.tapas,
+      'isTrending': false,
+    },
+    // Desserts (2 items)
+    {
+      'name': 'Belgian Chocolate Sundae',
+      'category': 'Desserts',
+      'rating': '4.9 (140+)',
+      'price': 10.90,
+      'prepTime': '5-8 min',
+      'icon': Icons.icecream,
+      'isTrending': true,
+    },
+    {
+      'name': 'Strawberry Cheesecake',
+      'category': 'Desserts',
+      'rating': '4.7 (75+)',
+      'price': 13.90,
+      'prepTime': '5-10 min',
+      'icon': Icons.icecream,
+      'isTrending': false,
+    },
+    // Beverages (2 items)
+    {
+      'name': 'Iced Lemon Tea',
+      'category': 'Beverages',
+      'rating': '4.6 (130+)',
+      'price': 6.90,
+      'prepTime': '3-5 min',
+      'icon': Icons.local_drink,
+      'isTrending': false,
+    },
+    {
+      'name': 'Matcha Green Tea Latte',
+      'category': 'Beverages',
+      'rating': '4.8 (90+)',
+      'price': 11.90,
+      'prepTime': '5-8 min',
+      'icon': Icons.local_drink,
+      'isTrending': false,
+    },
+  ];
 
-  NotificationItem({
-    required this.title,
-    required this.description,
-    required this.time,
-    required this.category,
-    required this.icon,
-    this.isUnread = false,
-  });
+  final List<Map<String, Object>> displayedItems = onlyTrending
+      ? menuItems.where((item) => (item['isTrending'] as bool)).toList()
+      : menuItems;
+
+  return ListView.builder(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+    itemCount: displayedItems.length,
+    itemBuilder: (context, index) {
+      return buildFoodItemCard(context, displayedItems[index]);
+    },
+  );
 }
 
-// ==================== Dummy Data ====================
-// TODO: replace all dummy data with dynamic data from DB
+// ==================== Dummy Orders Function ====================
+Widget buildDummyOrders() {
+  const List<Map<String, Object>> dummyOrders = [
+    {
+      'orderId': '#ORD-8492',
+      'date': 'Today, 12:45 PM',
+      'status': 'Preparing',
+      'items':
+          '2x Classic Beef Burger, 1x Golden French Fries, 2x Iced Lemon Tea',
+      'totalPrice': 'RM 49.60',
+      'info': 'Estimated Delivery: 15-20 mins',
+    },
+    {
+      'orderId': '#ORD-8485',
+      'date': 'Today, 11:30 AM',
+      'status': 'Preparing',
+      'items': '1x Pepperoni Feast Pizza, 1x Crispy Mozzarella Sticks',
+      'totalPrice': 'RM 41.80',
+      'info': 'Estimated Delivery: 25-30 mins',
+    },
+    {
+      'orderId': '#ORD-8470',
+      'date': 'Today, 10:15 AM',
+      'status': 'Preparing',
+      'items': '1x Spicy Beef Ramen, 1x Belgian Chocolate Sundae',
+      'totalPrice': 'RM 29.80',
+      'info': 'Estimated Delivery: 10-15 mins',
+    },
+  ];
 
-const List<Category> categories = [
-  Category(name: 'Mains', icon: Icons.lunch_dining),
-  Category(name: 'Sides', icon: Icons.tapas),
-  Category(name: 'Drinks', icon: Icons.local_cafe),
-  Category(name: 'Desserts', icon: Icons.icecream),
-  Category(name: 'Healthy', icon: Icons.eco),
-];
-
-const List<MenuItem> menuItems = [
-  MenuItem(
-    name: 'Spicy Chicken Burger',
-    category: 'Mains',
-    rating: '4.8',
-    price: 15.90,
-    prepTime: '15-20 min',
-    icon: Icons.lunch_dining,
-    isTrending: true,
-  ),
-  MenuItem(
-    name: 'Beef Pepperoni Pizza',
-    category: 'Mains',
-    rating: '4.5',
-    price: 22.50,
-    prepTime: '25-30 min',
-    icon: Icons.local_pizza,
-    isTrending: true,
-  ),
-  MenuItem(
-    name: 'Grilled Salmon Set',
-    category: 'Mains',
-    rating: '4.7',
-    price: 28.00,
-    prepTime: '20-25 min',
-    icon: Icons.set_meal,
-  ),
-  MenuItem(
-    name: 'Cheesy Fries',
-    category: 'Sides',
-    rating: '4.6',
-    price: 8.50,
-    prepTime: '10-15 min',
-    icon: Icons.fastfood,
-  ),
-  MenuItem(
-    name: 'Garlic Bread',
-    category: 'Sides',
-    rating: '4.3',
-    price: 6.00,
-    prepTime: '5-10 min',
-    icon: Icons.bakery_dining,
-  ),
-  MenuItem(
-    name: 'Iced Caramel Macchiato',
-    category: 'Drinks',
-    rating: '4.9',
-    price: 12.00,
-    prepTime: '5-10 min',
-    icon: Icons.local_cafe,
-    isTrending: true,
-  ),
-  MenuItem(
-    name: 'Mango Smoothie',
-    category: 'Drinks',
-    rating: '4.7',
-    price: 10.50,
-    prepTime: '5-10 min',
-    icon: Icons.local_drink,
-  ),
-  MenuItem(
-    name: 'Chocolate Lava Cake',
-    category: 'Desserts',
-    rating: '4.9',
-    price: 14.00,
-    prepTime: '10-15 min',
-    icon: Icons.cake,
-  ),
-  MenuItem(
-    name: 'Vanilla Ice Cream',
-    category: 'Desserts',
-    rating: '4.5',
-    price: 5.50,
-    prepTime: '5 min',
-    icon: Icons.icecream,
-  ),
-  MenuItem(
-    name: 'Avocado Salad',
-    category: 'Healthy',
-    rating: '4.8',
-    price: 16.00,
-    prepTime: '10-15 min',
-    icon: Icons.eco,
-  ),
-  MenuItem(
-    name: 'Quinoa Bowl',
-    category: 'Healthy',
-    rating: '4.6',
-    price: 18.50,
-    prepTime: '15-20 min',
-    icon: Icons.rice_bowl,
-  ),
-];
-
-final List<MenuItem> trendingItems = menuItems
-    .where((item) => item.isTrending)
-    .toList();
-
-const List<String> orderStatuses = [
-  'Preparing',
-  'Delivering',
-  'Completed',
-  'Cancelled',
-];
-
-List<OrderItem> orderItems = [
-  OrderItem(
-    orderId: '#ORD-1001',
-    status: 'Preparing',
-    date: 'Today, 12:30 PM',
-    firstItemName: 'Spicy Chicken Burger',
-    otherItemsCount: 1,
-    total: 43.80,
-    icon: Icons.lunch_dining,
-  ),
-  OrderItem(
-    orderId: '#ORD-1002',
-    status: 'Delivering',
-    date: 'Today, 02:15 PM',
-    firstItemName: 'Sushi Bento Box',
-    otherItemsCount: 2,
-    total: 62.00,
-    icon: Icons.set_meal,
-  ),
-  OrderItem(
-    orderId: '#ORD-0998',
-    status: 'Completed',
-    date: '18 Jul 2026, 07:15 PM',
-    firstItemName: 'Beef Pepperoni Pizza',
-    otherItemsCount: 1,
-    total: 34.50,
-    icon: Icons.local_pizza,
-  ),
-  OrderItem(
-    orderId: '#ORD-0985',
-    status: 'Completed',
-    date: '15 Jul 2026, 01:00 PM',
-    firstItemName: 'Grilled Salmon Set',
-    otherItemsCount: 0,
-    total: 28.00,
-    icon: Icons.set_meal,
-  ),
-  OrderItem(
-    orderId: '#ORD-0970',
-    status: 'Cancelled',
-    date: '10 Jul 2026, 08:45 PM',
-    firstItemName: 'Chocolate Lava Cake',
-    otherItemsCount: 1,
-    total: 19.50,
-    icon: Icons.cake,
-  ),
-];
-
-List<CartItem> cartItems = [
-  CartItem(
-    name: 'Spicy Chicken Burger',
-    price: 15.90,
-    quantity: 2,
-    icon: Icons.lunch_dining,
-    customizations: 'Size: Regular • Spice: Extra Spicy • Add-ons: Extra Cheese',
-  ),
-  CartItem(
-    name: 'Iced Caramel Macchiato',
-    price: 12.00,
-    quantity: 1,
-    icon: Icons.local_cafe,
-    customizations: 'Size: Large • Sugar: Less Sweet',
-  ),
-];
-
-const double deliveryFee = 5.00;
-const double activeDiscount = 3.00;
-
-List<NotificationItem> notificationItems = [
-  NotificationItem(
-    title: 'Order #ORD-1001 is on the way!',
-    description:
-        'Your delivery driver is heading to your location. Estimated arrival in 12 mins.',
-    time: '2 mins ago',
-    category: 'Orders',
-    icon: Icons.delivery_dining,
-    isUnread: true,
-  ),
-  NotificationItem(
-    title: '30% OFF Your Next Meal!',
-    description:
-        'Use code DISH30 at checkout to save up to RM 15 on selected restaurants today.',
-    time: '1 hour ago',
-    category: 'Promos',
-    icon: Icons.local_offer,
-    isUnread: true,
-  ),
-  NotificationItem(
-    title: 'Payment Method Verified',
-    description:
-        'Your credit card ending in 1234 has been successfully added to your account.',
-    time: '3 hours ago',
-    category: 'System',
-    icon: Icons.credit_card,
-    isUnread: false,
-  ),
-  NotificationItem(
-    title: 'Order #ORD-0998 Delivered',
-    description:
-        'Enjoy your Beef Pepperoni Pizza! Let us know how it was by rating your meal.',
-    time: 'Yesterday, 07:45 PM',
-    category: 'Orders',
-    icon: Icons.check_circle_outline,
-    isUnread: false,
-  ),
-  NotificationItem(
-    title: 'Account Security Update',
-    description:
-        'Your account password was successfully updated from a new device.',
-    time: '5 days ago',
-    category: 'System',
-    icon: Icons.security,
-    isUnread: false,
-  ),
-];
-
-// ==================== Session State ====================
-bool isLoggedIn = false;
-
+  return ListView.builder(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+    itemCount: dummyOrders.length,
+    itemBuilder: (context, index) {
+      return buildOrderCard(dummyOrders[index]);
+    },
+  );
+}

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data.dart';
 import 'header.dart';
 
 class CustomerAccount extends StatelessWidget {
@@ -62,7 +61,12 @@ class CustomerAccount extends StatelessWidget {
             height: 70,
             width: 70,
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.2),
+              color: const Color.fromARGB(
+                255,
+                255,
+                160,
+                122,
+              ).withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -78,26 +82,17 @@ class CustomerAccount extends StatelessWidget {
               children: [
                 Text(
                   'Kai Hao',
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 4.0),
                 Text(
                   '+60 16-356 1651',
-                  style: TextStyle(
-                    fontSize: 14.0,
-                    color: Color(0xFF757575),
-                  ),
+                  style: TextStyle(fontSize: 14.0, color: Color(0xFF757575)),
                 ),
                 SizedBox(height: 2),
                 Text(
                   'kaihao0303@gmail.com',
-                  style: TextStyle(
-                    fontSize: 14.0,
-                    color: Color(0xFF757575),
-                  ),
+                  style: TextStyle(fontSize: 14.0, color: Color(0xFF757575)),
                 ),
               ],
             ),
@@ -162,10 +157,7 @@ class CustomerAccount extends StatelessWidget {
       ),
       title: Text(
         title,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 15.0,
-        ),
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15.0),
       ),
       trailing: const Icon(
         Icons.arrow_forward_ios,
@@ -187,7 +179,6 @@ class CustomerAccount extends StatelessWidget {
         height: 50,
         child: OutlinedButton(
           onPressed: () {
-            isLoggedIn = false;
             onLogout?.call();
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -210,10 +201,7 @@ class CustomerAccount extends StatelessWidget {
           ),
           child: const Text(
             'Log Out',
-            style: TextStyle(
-              fontSize: 16.0,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
           ),
         ),
       ),

@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../data.dart';
-
 class FoodItemDetail extends StatefulWidget {
-  final MenuItem item;
+  final Map<String, Object> item;
 
   const FoodItemDetail({super.key, required this.item});
+
+  String get name => item['name'] as String;
+  double get price => item['price'] as double;
+  IconData get icon => item['icon'] as IconData;
+  String get category => item['category'] as String;
+  String get rating => item['rating'] as String;
+  String get prepTime => item['prepTime'] as String;
 
   @override
   State<FoodItemDetail> createState() => _FoodItemDetailState();
@@ -20,7 +25,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
       TextEditingController();
 
   double get _calculatedTotal {
-    double total = widget.item.price;
+    double total = widget.price;
     if (_selectedSize == 'Large') total += 3.50;
     if (_selectedSize == 'Extra Large') total += 6.00;
     for (final addon in _selectedAddons) {
@@ -54,7 +59,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.item.name,
+          widget.name,
           style: const TextStyle(
             color: Color(0xDD000000),
             fontWeight: FontWeight.bold,
@@ -68,10 +73,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
             // --- Scrollable Details & Customization ---
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.only(
-                  top: 16.0,
-                  bottom: 20.0,
-                ),
+                padding: const EdgeInsets.only(top: 16.0, bottom: 20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -88,7 +90,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                       child: Center(
                         // TODO: replace with high-resolution image
                         child: Icon(
-                          widget.item.icon,
+                          widget.icon,
                           size: 96,
                           color: const Color.fromARGB(255, 255, 160, 122),
                         ),
@@ -107,7 +109,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  widget.item.name,
+                                  widget.name,
                                   style: const TextStyle(
                                     fontSize: 22.0,
                                     fontWeight: FontWeight.bold,
@@ -117,7 +119,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                               ),
                               const SizedBox(width: 12.0),
                               Text(
-                                'RM ${widget.item.price.toStringAsFixed(2)}',
+                                'RM ${widget.price.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 22.0,
                                   fontWeight: FontWeight.bold,
@@ -135,12 +137,16 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                                   vertical: 4.0,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.1),
-                                  borderRadius:
-                                      BorderRadius.circular(25.0),
+                                  color: const Color.fromARGB(
+                                    255,
+                                    255,
+                                    160,
+                                    122,
+                                  ).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(25.0),
                                 ),
                                 child: Text(
-                                  widget.item.category,
+                                  widget.category,
                                   style: const TextStyle(
                                     color: Color.fromARGB(255, 255, 160, 122),
                                     fontWeight: FontWeight.bold,
@@ -156,7 +162,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                               ),
                               const SizedBox(width: 4.0),
                               Text(
-                                widget.item.rating,
+                                widget.rating,
                                 style: const TextStyle(
                                   fontSize: 15.0,
                                   fontWeight: FontWeight.bold,
@@ -179,7 +185,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                               ),
                               const SizedBox(width: 4.0),
                               Text(
-                                widget.item.prepTime,
+                                widget.prepTime,
                                 style: const TextStyle(
                                   fontSize: 13.0,
                                   color: Color(0xFF757575),
@@ -227,37 +233,48 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: Wrap(
                         spacing: 12.0,
-                        children: [
-                          'No Spice',
-                          'Mild',
-                          'Normal',
-                          'Extra Spicy',
-                        ].map((level) {
-                          final isSelected = _selectedSpice == level;
-                          return ChoiceChip(
-                            label: Text(level),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() {
-                                  _selectedSpice = level;
-                                });
-                              }
-                            },
-                            selectedColor: const Color.fromARGB(255, 255, 160, 122),
-                            backgroundColor: const Color(0xFFF5F5F5),
-                            labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : const Color(0xDD000000),
-                              fontWeight: FontWeight.w600,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25.0),
-                              side: BorderSide(
-                                color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFFE0E0E0),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                        children: ['No Spice', 'Mild', 'Normal', 'Extra Spicy']
+                            .map((level) {
+                              final isSelected = _selectedSpice == level;
+                              return ChoiceChip(
+                                label: Text(level),
+                                selected: isSelected,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setState(() {
+                                      _selectedSpice = level;
+                                    });
+                                  }
+                                },
+                                selectedColor: const Color.fromARGB(
+                                  255,
+                                  255,
+                                  160,
+                                  122,
+                                ),
+                                backgroundColor: const Color(0xFFF5F5F5),
+                                labelStyle: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : const Color(0xDD000000),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(25.0),
+                                  side: BorderSide(
+                                    color: isSelected
+                                        ? const Color.fromARGB(
+                                            255,
+                                            255,
+                                            160,
+                                            122,
+                                          )
+                                        : const Color(0xFFE0E0E0),
+                                  ),
+                                ),
+                              );
+                            })
+                            .toList(),
                       ),
                     ),
                     const SizedBox(height: 16.0),
@@ -285,15 +302,21 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                           contentPadding: const EdgeInsets.all(12.0),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15.0),
-                            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE0E0E0),
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15.0),
-                            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE0E0E0),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15.0),
-                            borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122)),
+                            borderSide: const BorderSide(
+                              color: Color.fromARGB(255, 255, 160, 122),
+                            ),
                           ),
                         ),
                       ),
@@ -341,9 +364,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                           color: const Color(0xDD000000),
                         ),
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8.0,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
                           child: Text(
                             '$_quantity',
                             style: const TextStyle(
@@ -379,32 +400,29 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                             'Add-ons: ${_selectedAddons.join(', ')}',
                           );
                         }
-                        if (_specialInstructionsController.text.trim().isNotEmpty) {
+                        if (_specialInstructionsController.text
+                            .trim()
+                            .isNotEmpty) {
                           customParts.add(
                             'Note: ${_specialInstructionsController.text.trim()}',
                           );
                         }
-                        final customString = customParts.join(' • ');
-
-                        cartItems.add(
-                          CartItem(
-                            name: widget.item.name,
-                            price: _calculatedTotal / _quantity,
-                            quantity: _quantity,
-                            icon: widget.item.icon,
-                            customizations: customString,
-                          ),
-                        );
+                        // TODO: Send item and customizations (${customParts.join(' • ')}) to backend database cart API
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              '${widget.item.name} added to cart!',
+                              '${widget.name} added to cart!',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            backgroundColor: const Color.fromARGB(255, 255, 160, 122),
+                            backgroundColor: const Color.fromARGB(
+                              255,
+                              255,
+                              160,
+                              122,
+                            ),
                             behavior: SnackBarBehavior.floating,
                             duration: const Duration(seconds: 2),
                           ),
@@ -412,7 +430,12 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 255, 160, 122),
+                        backgroundColor: const Color.fromARGB(
+                          255,
+                          255,
+                          160,
+                          122,
+                        ),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -454,12 +477,16 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12.0,
-              vertical: 2,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2),
             decoration: BoxDecoration(
-              color: isRequired ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.1) : const Color(0xFFF5F5F5),
+              color: isRequired
+                  ? const Color.fromARGB(
+                      255,
+                      255,
+                      160,
+                      122,
+                    ).withValues(alpha: 0.1)
+                  : const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(25.0),
             ),
             child: Text(
@@ -467,7 +494,9 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
               style: TextStyle(
                 fontSize: 13.0,
                 fontWeight: FontWeight.bold,
-                color: isRequired ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFF757575),
+                color: isRequired
+                    ? const Color.fromARGB(255, 255, 160, 122)
+                    : const Color(0xFF757575),
               ),
             ),
           ),
@@ -485,17 +514,17 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
         });
       },
       child: Container(
-        margin: const EdgeInsets.only(
-          left: 20.0,
-          right: 20.0,
-          bottom: 8.0,
-        ),
+        margin: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 8.0),
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
-          color: isSelected ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.05) : Colors.white,
+          color: isSelected
+              ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.05)
+              : Colors.white,
           borderRadius: BorderRadius.circular(15.0),
           border: Border.all(
-            color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFFE0E0E0),
+            color: isSelected
+                ? const Color.fromARGB(255, 255, 160, 122)
+                : const Color(0xFFE0E0E0),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -508,7 +537,9 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                   isSelected
                       ? Icons.radio_button_checked
                       : Icons.radio_button_off,
-                  color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFF9E9E9E),
+                  color: isSelected
+                      ? const Color.fromARGB(255, 255, 160, 122)
+                      : const Color(0xFF9E9E9E),
                   size: 20,
                 ),
                 const SizedBox(width: 12.0),
@@ -527,7 +558,9 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
               style: TextStyle(
                 fontSize: 15.0,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFF757575),
+                color: isSelected
+                    ? const Color.fromARGB(255, 255, 160, 122)
+                    : const Color(0xFF757575),
               ),
             ),
           ],
@@ -549,17 +582,17 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
         });
       },
       child: Container(
-        margin: const EdgeInsets.only(
-          left: 20.0,
-          right: 20.0,
-          bottom: 8.0,
-        ),
+        margin: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 8.0),
         padding: const EdgeInsets.all(12.0),
         decoration: BoxDecoration(
-          color: isSelected ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.05) : Colors.white,
+          color: isSelected
+              ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.05)
+              : Colors.white,
           borderRadius: BorderRadius.circular(15.0),
           border: Border.all(
-            color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFFE0E0E0),
+            color: isSelected
+                ? const Color.fromARGB(255, 255, 160, 122)
+                : const Color(0xFFE0E0E0),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -570,7 +603,9 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
               children: [
                 Icon(
                   isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                  color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFF9E9E9E),
+                  color: isSelected
+                      ? const Color.fromARGB(255, 255, 160, 122)
+                      : const Color(0xFF9E9E9E),
                   size: 20,
                 ),
                 const SizedBox(width: 12.0),
@@ -589,7 +624,9 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
               style: TextStyle(
                 fontSize: 15.0,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFF757575),
+                color: isSelected
+                    ? const Color.fromARGB(255, 255, 160, 122)
+                    : const Color(0xFF757575),
               ),
             ),
           ],

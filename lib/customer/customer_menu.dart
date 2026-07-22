@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../config.dart';
 import '../data.dart';
 import 'customer_header.dart';
+import 'filter_overlay.dart';
 import 'food_item_card.dart';
 
 class CustomerMenu extends StatefulWidget {
@@ -22,7 +23,10 @@ class _CustomerMenuState extends State<CustomerMenu> {
 
     return Column(
       children: [
-        const CustomerHeader(showFilter: true),
+        CustomerHeader(
+          showFilter: true,
+          onFilterTap: () => showFilterOverlay(context),
+        ),
         const SizedBox(height: spacingLg),
         // --- Category Chips ---
         SizedBox(

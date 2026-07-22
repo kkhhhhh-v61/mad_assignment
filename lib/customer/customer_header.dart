@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../config.dart';
 import 'customer_cart.dart';
+import 'customer_notifications.dart';
 
 class CustomerHeader extends StatelessWidget {
   final bool showFilter;
   final bool showSearch;
   final bool showTitle;
   final String pageTitle;
+  final VoidCallback? onFilterTap;
 
   const CustomerHeader({
     super.key,
@@ -15,6 +17,7 @@ class CustomerHeader extends StatelessWidget {
     this.showSearch = true,
     this.showTitle = false,
     this.pageTitle = appName,
+    this.onFilterTap,
   });
 
   @override
@@ -122,17 +125,12 @@ class CustomerHeader extends StatelessWidget {
           icon: Icons.notifications_outlined,
           showBadge: true,
           onPressed: () {
-            // TODO
-          },
-        ),
-        IconButton(
-          icon: const Icon(
-            Icons.favorite_outline,
-            color: textSecondary,
-            size: 28,
-          ),
-          onPressed: () {
-            // TODO
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CustomerNotifications(),
+              ),
+            );
           },
         ),
         _buildIconWithBadge(
@@ -212,9 +210,7 @@ class CustomerHeader extends StatelessWidget {
       ),
       child: IconButton(
         icon: const Icon(Icons.tune, color: brandColor, size: 20),
-        onPressed: () {
-          // TODO
-        },
+        onPressed: onFilterTap ?? () {},
       ),
     );
   }

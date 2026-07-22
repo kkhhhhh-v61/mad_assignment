@@ -26,7 +26,9 @@ class CustomerHome extends StatelessWidget {
                     itemCount: 1,
                     itemBuilder: (context, index) {
                       return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: spacingXl),
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: spacingXl,
+                        ),
                         decoration: BoxDecoration(
                           image: const DecorationImage(
                             image: AssetImage('assets/images/banner_1.webp'),
@@ -133,8 +135,9 @@ class CustomerHome extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: spacingXl),
-                  itemCount:
-                      trendingItems.length > 3 ? 3 : trendingItems.length,
+                  itemCount: trendingItems.length > 3
+                      ? 3
+                      : trendingItems.length,
                   itemBuilder: (context, index) {
                     return FoodItemCard(item: trendingItems[index]);
                   },

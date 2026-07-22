@@ -64,7 +64,7 @@ class CustomerAccount extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'John Doe',
+                  'Kai Hao',
                   style: TextStyle(
                     fontSize: fontHeadline,
                     fontWeight: FontWeight.bold,
@@ -72,12 +72,12 @@ class CustomerAccount extends StatelessWidget {
                 ),
                 SizedBox(height: spacingXs),
                 Text(
-                  '+60 12-345 6789',
+                  '+60 16-356 1651',
                   style: TextStyle(fontSize: fontBody, color: textSecondary),
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'johndoe@email.com',
+                  'kaihao0303@gmail.com',
                   style: TextStyle(fontSize: fontBody, color: textSecondary),
                 ),
               ],

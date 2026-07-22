@@ -14,7 +14,7 @@ class MenuItem {
   final String category;
   final String rating;
   final double price;
-  final String time;
+  final String prepTime;
   final IconData icon;
   final bool isTrending;
 
@@ -23,7 +23,7 @@ class MenuItem {
     required this.category,
     required this.rating,
     required this.price,
-    required this.time,
+    required this.prepTime,
     required this.icon,
     this.isTrending = false,
   });
@@ -63,6 +63,24 @@ class OrderItem {
   });
 }
 
+class NotificationItem {
+  final String title;
+  final String description;
+  final String time;
+  final String category;
+  final IconData icon;
+  bool isUnread;
+
+  NotificationItem({
+    required this.title,
+    required this.description,
+    required this.time,
+    required this.category,
+    required this.icon,
+    this.isUnread = false,
+  });
+}
+
 // ==================== Dummy Data ====================
 // TODO: replace all dummy data with dynamic data from DB
 
@@ -80,7 +98,7 @@ const List<MenuItem> menuItems = [
     category: 'Mains',
     rating: '4.8',
     price: 15.90,
-    time: '15-20 min',
+    prepTime: '15-20 min',
     icon: Icons.lunch_dining,
     isTrending: true,
   ),
@@ -89,7 +107,7 @@ const List<MenuItem> menuItems = [
     category: 'Mains',
     rating: '4.5',
     price: 22.50,
-    time: '25-30 min',
+    prepTime: '25-30 min',
     icon: Icons.local_pizza,
     isTrending: true,
   ),
@@ -98,7 +116,7 @@ const List<MenuItem> menuItems = [
     category: 'Mains',
     rating: '4.7',
     price: 28.00,
-    time: '20-25 min',
+    prepTime: '20-25 min',
     icon: Icons.set_meal,
   ),
   MenuItem(
@@ -106,7 +124,7 @@ const List<MenuItem> menuItems = [
     category: 'Sides',
     rating: '4.6',
     price: 8.50,
-    time: '10-15 min',
+    prepTime: '10-15 min',
     icon: Icons.fastfood,
   ),
   MenuItem(
@@ -114,7 +132,7 @@ const List<MenuItem> menuItems = [
     category: 'Sides',
     rating: '4.3',
     price: 6.00,
-    time: '5-10 min',
+    prepTime: '5-10 min',
     icon: Icons.bakery_dining,
   ),
   MenuItem(
@@ -122,7 +140,7 @@ const List<MenuItem> menuItems = [
     category: 'Drinks',
     rating: '4.9',
     price: 12.00,
-    time: '5-10 min',
+    prepTime: '5-10 min',
     icon: Icons.local_cafe,
     isTrending: true,
   ),
@@ -131,7 +149,7 @@ const List<MenuItem> menuItems = [
     category: 'Drinks',
     rating: '4.7',
     price: 10.50,
-    time: '5-10 min',
+    prepTime: '5-10 min',
     icon: Icons.local_drink,
   ),
   MenuItem(
@@ -139,7 +157,7 @@ const List<MenuItem> menuItems = [
     category: 'Desserts',
     rating: '4.9',
     price: 14.00,
-    time: '10-15 min',
+    prepTime: '10-15 min',
     icon: Icons.cake,
   ),
   MenuItem(
@@ -147,7 +165,7 @@ const List<MenuItem> menuItems = [
     category: 'Desserts',
     rating: '4.5',
     price: 5.50,
-    time: '5 min',
+    prepTime: '5 min',
     icon: Icons.icecream,
   ),
   MenuItem(
@@ -155,7 +173,7 @@ const List<MenuItem> menuItems = [
     category: 'Healthy',
     rating: '4.8',
     price: 16.00,
-    time: '10-15 min',
+    prepTime: '10-15 min',
     icon: Icons.eco,
   ),
   MenuItem(
@@ -163,7 +181,7 @@ const List<MenuItem> menuItems = [
     category: 'Healthy',
     rating: '4.6',
     price: 18.50,
-    time: '15-20 min',
+    prepTime: '15-20 min',
     icon: Icons.rice_bowl,
   ),
 ];
@@ -230,3 +248,51 @@ List<CartItem> cartItems = [
 
 const double deliveryFee = 5.00;
 const double activeDiscount = 3.00;
+
+List<NotificationItem> notificationItems = [
+  NotificationItem(
+    title: 'Order #ORD-1001 is on the way!',
+    description:
+        'Your delivery driver is heading to your location. Estimated arrival in 12 mins.',
+    time: '2 mins ago',
+    category: 'Orders',
+    icon: Icons.delivery_dining,
+    isUnread: true,
+  ),
+  NotificationItem(
+    title: '30% OFF Your Next Meal!',
+    description:
+        'Use code DISH30 at checkout to save up to RM 15 on selected restaurants today.',
+    time: '1 hour ago',
+    category: 'Promos',
+    icon: Icons.local_offer,
+    isUnread: true,
+  ),
+  NotificationItem(
+    title: 'Payment Method Verified',
+    description:
+        'Your credit card ending in 1234 has been successfully added to your account.',
+    time: '3 hours ago',
+    category: 'System',
+    icon: Icons.credit_card,
+    isUnread: false,
+  ),
+  NotificationItem(
+    title: 'Order #ORD-0998 Delivered',
+    description:
+        'Enjoy your Beef Pepperoni Pizza! Let us know how it was by rating your meal.',
+    time: 'Yesterday, 07:45 PM',
+    category: 'Orders',
+    icon: Icons.check_circle_outline,
+    isUnread: false,
+  ),
+  NotificationItem(
+    title: 'Account Security Update',
+    description:
+        'Your account password was successfully updated from a new device.',
+    time: '5 days ago',
+    category: 'System',
+    icon: Icons.security,
+    isUnread: false,
+  ),
+];

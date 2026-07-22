@@ -67,7 +67,7 @@ class FoodItemCard extends StatelessWidget {
                     const Icon(Icons.access_time, color: textHint, size: 16),
                     const SizedBox(width: spacingXs),
                     Text(
-                      item.time,
+                      item.prepTime,
                       style: const TextStyle(
                         fontSize: fontDetail,
                         color: textSecondary,

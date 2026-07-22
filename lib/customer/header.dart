@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'customer_cart.dart';
-import 'customer_notifications.dart';
+import 'cart.dart';
+import 'notifications.dart';
 
 class CustomerHeader extends StatelessWidget {
   final bool showFilter;

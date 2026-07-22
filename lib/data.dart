@@ -322,3 +322,7 @@ List<NotificationItem> notificationItems = [
     isUnread: false,
   ),
 ];
+
+// ==================== Session State ====================
+bool isLoggedIn = false;
+

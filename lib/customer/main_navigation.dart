@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'customer_account.dart';
-import 'customer_home.dart';
-import 'customer_menu.dart';
-import 'customer_orders.dart';
+import '../data.dart';
+import 'account.dart';
+import 'auth.dart';
+import 'home.dart';
+import 'menu.dart';
+import 'orders.dart';
 
 class CustomerMainNavigation extends StatefulWidget {
   const CustomerMainNavigation({super.key});
@@ -15,12 +17,14 @@ class CustomerMainNavigation extends StatefulWidget {
 class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    CustomerHome(),
-    CustomerMenu(),
-    CustomerOrders(),
-    CustomerAccount(),
-  ];
+  List<Widget> get _screens => [
+        const CustomerHome(),
+        const CustomerMenu(),
+        const CustomerOrders(),
+        isLoggedIn
+            ? CustomerAccount(onLogout: () => setState(() {}))
+            : CustomerAuth(onAuthSuccess: () => setState(() {})),
+      ];
 
   @override
   Widget build(BuildContext context) {

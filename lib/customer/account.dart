@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
-import 'customer_header.dart';
+import '../data.dart';
+import 'header.dart';
 
 class CustomerAccount extends StatelessWidget {
-  const CustomerAccount({super.key});
+  final VoidCallback? onLogout;
+
+  const CustomerAccount({super.key, this.onLogout});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +29,7 @@ class CustomerAccount extends StatelessWidget {
                 _buildAccountOptions(),
                 const SizedBox(height: 32.0),
                 // --- Logout Button ---
-                _buildLogoutButton(),
+                _buildLogoutButton(context),
                 const SizedBox(height: 32.0),
               ],
             ),
@@ -176,7 +179,7 @@ class CustomerAccount extends StatelessWidget {
   }
 
   // --- Logout Button ---
-  Widget _buildLogoutButton() {
+  Widget _buildLogoutButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: SizedBox(
@@ -184,7 +187,19 @@ class CustomerAccount extends StatelessWidget {
         height: 50,
         child: OutlinedButton(
           onPressed: () {
-            // TODO
+            isLoggedIn = false;
+            onLogout?.call();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Logged out successfully',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                backgroundColor: Color(0xFFEF5350),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            );
           },
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFFEF5350),

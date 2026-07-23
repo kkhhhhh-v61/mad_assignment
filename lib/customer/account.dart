@@ -83,18 +83,27 @@ class CustomerAccount extends StatelessWidget {
                 SizedBox(height: 4.0),
                 Text(
                   '+60 16-356 1651',
-                  style: TextStyle(fontSize: 14.0, color: Color(0xFF757575)),
+                  style: TextStyle(
+                    fontSize: 14.0,
+                    color: Color.fromARGB(255, 117, 117, 117),
+                  ),
                 ),
                 SizedBox(height: 2),
                 Text(
                   'kaihao0303@gmail.com',
-                  style: TextStyle(fontSize: 14.0, color: Color(0xFF757575)),
+                  style: TextStyle(
+                    fontSize: 14.0,
+                    color: Color.fromARGB(255, 117, 117, 117),
+                  ),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Color(0xFF9E9E9E)),
+            icon: const Icon(
+              Icons.edit_outlined,
+              color: Color.fromARGB(255, 158, 158, 158),
+            ),
             onPressed: () {},
           ),
         ],
@@ -142,10 +151,14 @@ class CustomerAccount extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8.0),
         decoration: const BoxDecoration(
-          color: Color(0xFFF5F5F5),
+          color: Color.fromARGB(255, 245, 245, 245),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: const Color(0xFF757575), size: 22),
+        child: Icon(
+          icon,
+          color: const Color.fromARGB(255, 117, 117, 117),
+          size: 22,
+        ),
       ),
       title: Text(
         title,
@@ -154,7 +167,7 @@ class CustomerAccount extends StatelessWidget {
       trailing: const Icon(
         Icons.arrow_forward_ios,
         size: 16,
-        color: Color(0xFF9E9E9E),
+        color: Color.fromARGB(255, 158, 158, 158),
       ),
       onTap: () {},
     );
@@ -175,15 +188,15 @@ class CustomerAccount extends StatelessWidget {
                   'Logged out successfully',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                backgroundColor: Color(0xFFEF5350),
+                backgroundColor: Color.fromARGB(255, 239, 83, 80),
                 behavior: SnackBarBehavior.floating,
                 duration: Duration(seconds: 2),
               ),
             );
           },
           style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFFEF5350),
-            side: const BorderSide(color: Color(0xFFEF5350)),
+            foregroundColor: const Color.fromARGB(255, 239, 83, 80),
+            side: const BorderSide(color: Color.fromARGB(255, 239, 83, 80)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15.0),
             ),

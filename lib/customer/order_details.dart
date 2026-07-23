@@ -33,18 +33,18 @@ class OrderDetails extends StatelessWidget {
         statusColor = const Color.fromARGB(255, 255, 160, 122);
         heroIcon = Icons.outdoor_grill;
         buttonText = 'Cancel Order';
-        buttonColor = const Color(0xFFE53935);
+        buttonColor = const Color.fromARGB(255, 229, 57, 53);
         isOutlined = true;
         break;
       case 'Delivering':
-        statusColor = const Color(0xFF2196F3);
+        statusColor = const Color.fromARGB(255, 33, 150, 243);
         heroIcon = Icons.electric_moped;
         buttonText = 'Track Order';
         buttonColor = const Color.fromARGB(255, 255, 160, 122);
         isOutlined = false;
         break;
       case 'Cancelled':
-        statusColor = const Color(0xFFE53935);
+        statusColor = const Color.fromARGB(255, 229, 57, 53);
         heroIcon = Icons.cancel_presentation;
         buttonText = 'Reorder';
         buttonColor = const Color.fromARGB(255, 255, 160, 122);
@@ -52,7 +52,7 @@ class OrderDetails extends StatelessWidget {
         break;
       case 'Completed':
       default:
-        statusColor = const Color(0xFF4CAF50);
+        statusColor = const Color.fromARGB(255, 76, 175, 80);
         heroIcon = Icons.task_alt;
         buttonText = 'Reorder';
         buttonColor = const Color.fromARGB(255, 255, 160, 122);
@@ -61,7 +61,7 @@ class OrderDetails extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: const Color.fromARGB(255, 249, 250, 251),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -69,7 +69,7 @@ class OrderDetails extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios,
-            color: Color(0xDD000000),
+            color: Color.fromARGB(221, 0, 0, 0),
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
@@ -77,7 +77,7 @@ class OrderDetails extends StatelessWidget {
         title: Text(
           orderId,
           style: const TextStyle(
-            color: Color(0xDD000000),
+            color: Color.fromARGB(221, 0, 0, 0),
             fontWeight: FontWeight.bold,
             fontSize: 18.0,
           ),
@@ -117,7 +117,7 @@ class OrderDetails extends StatelessWidget {
                           Text(
                             'Placed on $date',
                             style: const TextStyle(
-                              color: Color(0xFF9E9E9E),
+                              color: Color.fromARGB(255, 158, 158, 158),
                               fontSize: 14.0,
                             ),
                           ),
@@ -133,7 +133,7 @@ class OrderDetails extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16.0),
                         boxShadow: const [
                           BoxShadow(
-                            color: Color(0x08000000),
+                            color: Color.fromARGB(8, 0, 0, 0),
                             blurRadius: 10,
                             offset: Offset(0, 4),
                           ),
@@ -144,7 +144,7 @@ class OrderDetails extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(12.0),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFFF3E0),
+                              color: const Color.fromARGB(255, 255, 243, 224),
                               borderRadius: BorderRadius.circular(12.0),
                             ),
                             child: const Icon(
@@ -162,7 +162,7 @@ class OrderDetails extends StatelessWidget {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15.0,
-                                    color: Color(0xDD000000),
+                                    color: Color.fromARGB(221, 0, 0, 0),
                                   ),
                                 ),
                                 const SizedBox(height: 4.0),
@@ -170,7 +170,7 @@ class OrderDetails extends StatelessWidget {
                                   info,
                                   style: const TextStyle(
                                     fontSize: 14.0,
-                                    color: Color(0xFF757575),
+                                    color: Color.fromARGB(255, 117, 117, 117),
                                   ),
                                 ),
                               ],
@@ -200,7 +200,7 @@ class OrderDetails extends StatelessWidget {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0x0A000000),
+                    color: Color.fromARGB(10, 0, 0, 0),
                     blurRadius: 10,
                     offset: Offset(0, -5),
                   ),
@@ -263,6 +263,7 @@ class OrderDetails extends StatelessWidget {
     );
   }
 }
+
 Widget buildOrderReceiptCard({
   required List<Map<String, Object>> itemsList,
   required double subtotal,
@@ -278,7 +279,7 @@ Widget buildOrderReceiptCard({
       borderRadius: BorderRadius.circular(16.0),
       boxShadow: const [
         BoxShadow(
-          color: Color(0x08000000),
+          color: Color.fromARGB(8, 0, 0, 0),
           blurRadius: 10,
           offset: Offset(0, 4),
         ),
@@ -292,7 +293,7 @@ Widget buildOrderReceiptCard({
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18.0,
-            color: Color(0xDD000000),
+            color: Color.fromARGB(221, 0, 0, 0),
           ),
         ),
         const SizedBox(height: 20.0),
@@ -315,7 +316,7 @@ Widget buildOrderReceiptCard({
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
+                    color: const Color.fromARGB(255, 245, 245, 245),
                     borderRadius: BorderRadius.circular(6.0),
                   ),
                   child: Center(
@@ -324,7 +325,7 @@ Widget buildOrderReceiptCard({
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12.0,
-                        color: Color(0xFF757575),
+                        color: Color.fromARGB(255, 117, 117, 117),
                       ),
                     ),
                   ),
@@ -346,7 +347,7 @@ Widget buildOrderReceiptCard({
                         '@ RM ${price.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 13.0,
-                          color: Color(0xFF9E9E9E),
+                          color: Color.fromARGB(255, 158, 158, 158),
                         ),
                       ),
                     ],
@@ -365,7 +366,11 @@ Widget buildOrderReceiptCard({
         ),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 20.0),
-          child: Divider(color: Color(0xFFEEEEEE), height: 1.0, thickness: 1.0),
+          child: Divider(
+            color: Color.fromARGB(255, 238, 238, 238),
+            height: 1.0,
+            thickness: 1.0,
+          ),
         ),
         buildOrderReceiptRow('Subtotal', 'RM ${subtotal.toStringAsFixed(2)}'),
         const SizedBox(height: 12.0),
@@ -383,7 +388,11 @@ Widget buildOrderReceiptCard({
         ],
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 20.0),
-          child: Divider(color: Color(0xFFEEEEEE), height: 1.0, thickness: 1.0),
+          child: Divider(
+            color: Color.fromARGB(255, 238, 238, 238),
+            height: 1.0,
+            thickness: 1.0,
+          ),
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -393,7 +402,7 @@ Widget buildOrderReceiptCard({
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16.0,
-                color: Color(0xDD000000),
+                color: Color.fromARGB(221, 0, 0, 0),
               ),
             ),
             Text(
@@ -421,14 +430,19 @@ Widget buildOrderReceiptRow(
     children: [
       Text(
         title,
-        style: const TextStyle(fontSize: 15.0, color: Color(0xFF757575)),
+        style: const TextStyle(
+          fontSize: 15.0,
+          color: Color.fromARGB(255, 117, 117, 117),
+        ),
       ),
       Text(
         value,
         style: TextStyle(
           fontSize: 15.0,
           fontWeight: FontWeight.w600,
-          color: isDiscount ? const Color(0xFF4CAF50) : const Color(0xDD000000),
+          color: isDiscount
+              ? const Color.fromARGB(255, 76, 175, 80)
+              : const Color.fromARGB(221, 0, 0, 0),
         ),
       ),
     ],

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../global.dart';
 import 'food_item_detail.dart';
 import 'header.dart';
-import '../global.dart';
 
 class CustomerMenu extends StatefulWidget {
   final String? initialCategory;
@@ -46,12 +46,12 @@ class _CustomerMenuState extends State<CustomerMenu> {
           'Popularity',
           'Highest Rating',
           'Price Low to High',
-          'Price High to Low'
+          'Price High to Low',
         ];
-        
+
         TextEditingController minPriceController = TextEditingController();
         TextEditingController maxPriceController = TextEditingController();
-        
+
         String selectedRating = 'Any';
         final List<String> ratingOptions = ['Any', '4.5+', '4.0+', '3.0+'];
 
@@ -65,7 +65,9 @@ class _CustomerMenuState extends State<CustomerMenu> {
                 padding: const EdgeInsets.all(24.0),
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(20.0),
+                  ),
                 ),
                 child: SingleChildScrollView(
                   child: Column(
@@ -77,7 +79,7 @@ class _CustomerMenuState extends State<CustomerMenu> {
                           width: 40,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE0E0E0),
+                            color: const Color.fromARGB(255, 224, 224, 224),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -94,27 +96,27 @@ class _CustomerMenuState extends State<CustomerMenu> {
                             ),
                           ),
                           TextButton(
-                    onPressed: () {
-                      setState(() {
-                        selectedSort = 'Popularity';
-                        minPriceController.clear();
-                        maxPriceController.clear();
-                        selectedRating = 'Any';
-                      });
-                    },
-                    child: const Text(
-                      'Clear',
-                      style: TextStyle(
-                        color: Color(0xFFE53935),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.0,
+                            onPressed: () {
+                              setState(() {
+                                selectedSort = 'Popularity';
+                                minPriceController.clear();
+                                maxPriceController.clear();
+                                selectedRating = 'Any';
+                              });
+                            },
+                            child: const Text(
+                              'Clear',
+                              style: TextStyle(
+                                color: Color.fromARGB(255, 229, 57, 53),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16.0,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                ],
-              ),
                       const SizedBox(height: 16.0),
-                      
+
                       const Text(
                         'Sort By',
                         style: TextStyle(
@@ -127,7 +129,7 @@ class _CustomerMenuState extends State<CustomerMenu> {
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F5),
+                          color: const Color.fromARGB(255, 245, 245, 245),
                           borderRadius: BorderRadius.circular(12.0),
                         ),
                         child: DropdownButtonHideUnderline(
@@ -170,18 +172,29 @@ class _CustomerMenuState extends State<CustomerMenu> {
                                 prefixText: 'RM ',
                                 hintText: 'Min',
                                 filled: true,
-                                fillColor: const Color(0xFFF5F5F5),
+                                fillColor: const Color.fromARGB(
+                                  255,
+                                  245,
+                                  245,
+                                  245,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12.0),
                                   borderSide: BorderSide.none,
                                 ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                  vertical: 12.0,
+                                ),
                               ),
                             ),
                           ),
                           const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Text('-', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: Text(
+                              '-',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                           Expanded(
                             child: TextField(
@@ -191,12 +204,20 @@ class _CustomerMenuState extends State<CustomerMenu> {
                                 prefixText: 'RM ',
                                 hintText: 'Max',
                                 filled: true,
-                                fillColor: const Color(0xFFF5F5F5),
+                                fillColor: const Color.fromARGB(
+                                  255,
+                                  245,
+                                  245,
+                                  245,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12.0),
                                   borderSide: BorderSide.none,
                                 ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                  vertical: 12.0,
+                                ),
                               ),
                             ),
                           ),
@@ -220,8 +241,12 @@ class _CustomerMenuState extends State<CustomerMenu> {
                             label: Text(
                               rating,
                               style: TextStyle(
-                                color: isSelected ? Colors.white : const Color(0xDD000000),
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color.fromARGB(221, 0, 0, 0),
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
                               ),
                             ),
                             selected: isSelected,
@@ -232,14 +257,24 @@ class _CustomerMenuState extends State<CustomerMenu> {
                                 });
                               }
                             },
-                            selectedColor: const Color.fromARGB(255, 255, 160, 122),
-                            backgroundColor: const Color(0xFFF5F5F5),
+                            selectedColor: const Color.fromARGB(
+                              255,
+                              255,
+                              160,
+                              122,
+                            ),
+                            backgroundColor: const Color.fromARGB(
+                              255,
+                              245,
+                              245,
+                              245,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20.0),
                               side: BorderSide(
                                 color: isSelected
                                     ? const Color.fromARGB(255, 255, 160, 122)
-                                    : const Color(0xFFE0E0E0),
+                                    : const Color.fromARGB(255, 224, 224, 224),
                               ),
                             ),
                           );
@@ -253,7 +288,12 @@ class _CustomerMenuState extends State<CustomerMenu> {
                         child: ElevatedButton(
                           onPressed: () => Navigator.pop(context),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color.fromARGB(255, 255, 160, 122),
+                            backgroundColor: const Color.fromARGB(
+                              255,
+                              255,
+                              160,
+                              122,
+                            ),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(15.0),
@@ -283,10 +323,7 @@ class _CustomerMenuState extends State<CustomerMenu> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        CustomerHeader(
-          showFilter: true,
-          onFilterTap: _showFilterOverlay,
-        ),
+        CustomerHeader(showFilter: true, onFilterTap: _showFilterOverlay),
         const SizedBox(height: 16.0),
         Builder(
           builder: (context) {
@@ -301,15 +338,12 @@ class _CustomerMenuState extends State<CustomerMenu> {
               {'name': 'Beverages', 'icon': Icons.local_drink},
             ];
             // --- END TOREMOVE ---
-            return buildCategoryChips(
-              context,
-              categories,
-              _selectedCategory,
-              (val) {
-                setState(() => _selectedCategory = val);
-                widget.onCategoryChanged?.call(val);
-              },
-            );
+            return buildCategoryChips(context, categories, _selectedCategory, (
+              val,
+            ) {
+              setState(() => _selectedCategory = val);
+              widget.onCategoryChanged?.call(val);
+            });
           },
         ),
         const SizedBox(height: 8.0),
@@ -432,10 +466,15 @@ class _CustomerMenuState extends State<CustomerMenu> {
                     },
                   ];
                   // --- END TOREMOVE ---
-                  
-                  final displayedItems = _selectedCategory.isEmpty || _selectedCategory == 'All'
-                    ? menuItems
-                    : menuItems.where((item) => item['category'] == _selectedCategory).toList();
+
+                  final displayedItems =
+                      _selectedCategory.isEmpty || _selectedCategory == 'All'
+                      ? menuItems
+                      : menuItems
+                            .where(
+                              (item) => item['category'] == _selectedCategory,
+                            )
+                            .toList();
 
                   return buildFoodItems(context, displayedItems);
                 },
@@ -512,7 +551,7 @@ Widget buildCategoryChip({
       label: Text(
         name,
         style: TextStyle(
-          color: isSelected ? Colors.white : const Color(0xDD000000),
+          color: isSelected ? Colors.white : const Color.fromARGB(221, 0, 0, 0),
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -532,17 +571,14 @@ Widget buildCategoryChip({
         side: BorderSide(
           color: isSelected
               ? const Color.fromARGB(255, 255, 160, 122)
-              : const Color(0xFFE0E0E0),
+              : const Color.fromARGB(255, 224, 224, 224),
         ),
       ),
     ),
   );
 }
 
-Widget buildFoodItems(
-  BuildContext context,
-  List<Map<String, dynamic>> items,
-) {
+Widget buildFoodItems(BuildContext context, List<Map<String, dynamic>> items) {
   if (items.isEmpty) {
     return buildFallbackMessage(
       icon: Icons.fastfood_outlined,
@@ -597,12 +633,12 @@ Widget buildFoodItemCard(BuildContext context, Map<String, dynamic> item) {
             height: 80,
             width: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: const Color.fromARGB(255, 245, 245, 245),
               borderRadius: BorderRadius.circular(12.0),
             ),
             child: Icon(
               icon,
-              color: const Color(0xFF9E9E9E),
+              color: const Color.fromARGB(255, 158, 158, 158),
               size: 40,
             ),
           ),
@@ -623,20 +659,24 @@ Widget buildFoodItemCard(BuildContext context, Map<String, dynamic> item) {
                 const SizedBox(height: 4.0),
                 Row(
                   children: [
-                    const Icon(Icons.star, color: Color(0xFFFFC107), size: 16),
+                    const Icon(
+                      Icons.star,
+                      color: Color.fromARGB(255, 255, 193, 7),
+                      size: 16,
+                    ),
                     const SizedBox(width: 4.0),
                     Text(
                       rating,
                       style: const TextStyle(
                         fontSize: 13.0,
-                        color: Color(0xFF757575),
+                        color: Color.fromARGB(255, 117, 117, 117),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(width: 16.0),
                     const Icon(
                       Icons.access_time,
-                      color: Color(0xFF9E9E9E),
+                      color: Color.fromARGB(255, 158, 158, 158),
                       size: 16,
                     ),
                     const SizedBox(width: 4.0),
@@ -644,7 +684,7 @@ Widget buildFoodItemCard(BuildContext context, Map<String, dynamic> item) {
                       prepTime,
                       style: const TextStyle(
                         fontSize: 13.0,
-                        color: Color(0xFF757575),
+                        color: Color.fromARGB(255, 117, 117, 117),
                       ),
                     ),
                   ],

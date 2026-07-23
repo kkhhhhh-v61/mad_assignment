@@ -65,7 +65,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                         style: const TextStyle(
                           fontSize: 22.0,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xDD000000),
+                          color: Color.fromARGB(221, 0, 0, 0),
                         ),
                       )
                     : _buildLocationSelector(),
@@ -112,7 +112,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                     : FontWeight.normal,
                 color: _selectedAddress == address
                     ? const Color.fromARGB(255, 255, 160, 122)
-                    : const Color(0xDD000000),
+                    : const Color.fromARGB(221, 0, 0, 0),
               ),
             ),
           );
@@ -126,7 +126,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
           const Text(
             'Your location',
             style: TextStyle(
-              color: Color(0xFF757575),
+              color: Color.fromARGB(255, 117, 117, 117),
               fontSize: 12.0,
               fontWeight: FontWeight.w500,
             ),
@@ -138,7 +138,10 @@ class _CustomerHeaderState extends State<CustomerHeader> {
               Flexible(
                 child: Text(
                   _selectedAddress,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15.0,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -191,7 +194,11 @@ class _CustomerHeaderState extends State<CustomerHeader> {
     return Stack(
       children: [
         IconButton(
-          icon: Icon(icon, color: const Color(0xFF757575), size: 28),
+          icon: Icon(
+            icon,
+            color: const Color.fromARGB(255, 117, 117, 117),
+            size: 28,
+          ),
           onPressed: onPressed,
         ),
         if (showBadge)
@@ -216,7 +223,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
     return Container(
       height: 45,
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: const Color.fromARGB(255, 245, 245, 245),
         borderRadius: BorderRadius.circular(25.0),
       ),
       child: const TextField(
@@ -226,8 +233,15 @@ class _CustomerHeaderState extends State<CustomerHeader> {
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(vertical: 12.0),
           hintText: 'Search...',
-          hintStyle: TextStyle(color: Color(0xFF9E9E9E), fontSize: 16.0),
-          prefixIcon: Icon(Icons.search, color: Color(0xFF9E9E9E), size: 20),
+          hintStyle: TextStyle(
+            color: Color.fromARGB(255, 158, 158, 158),
+            fontSize: 16.0,
+          ),
+          prefixIcon: Icon(
+            Icons.search,
+            color: Color.fromARGB(255, 158, 158, 158),
+            size: 20,
+          ),
         ),
       ),
     );
@@ -238,7 +252,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
       height: 45,
       width: 45,
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE0E0E0)),
+        border: Border.all(color: const Color.fromARGB(255, 224, 224, 224)),
         borderRadius: BorderRadius.circular(25.0),
       ),
       child: IconButton(

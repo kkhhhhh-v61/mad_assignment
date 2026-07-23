@@ -58,7 +58,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
                   style: const TextStyle(
                     fontSize: 24.0,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xDD000000),
+                    color: Color.fromARGB(221, 0, 0, 0),
                   ),
                 ),
                 const SizedBox(height: 4.0),
@@ -68,7 +68,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
                       : 'Join us today to start ordering delicious food',
                   style: const TextStyle(
                     fontSize: 14.0,
-                    color: Color(0xFF757575),
+                    color: Color.fromARGB(255, 117, 117, 117),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -91,7 +91,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
     return Container(
       padding: const EdgeInsets.all(4.0),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEEEEE),
+        color: const Color.fromARGB(255, 238, 238, 238),
         borderRadius: BorderRadius.circular(25.0),
       ),
       child: Row(
@@ -123,7 +123,9 @@ class _CustomerAuthState extends State<CustomerAuth> {
                   style: TextStyle(
                     fontSize: 15.0,
                     fontWeight: FontWeight.bold,
-                    color: _isLogin ? Colors.white : const Color(0xFF757575),
+                    color: _isLogin
+                        ? Colors.white
+                        : const Color.fromARGB(255, 117, 117, 117),
                   ),
                 ),
               ),
@@ -156,7 +158,9 @@ class _CustomerAuthState extends State<CustomerAuth> {
                   style: TextStyle(
                     fontSize: 15.0,
                     fontWeight: FontWeight.bold,
-                    color: !_isLogin ? Colors.white : const Color(0xFF757575),
+                    color: !_isLogin
+                        ? Colors.white
+                        : const Color.fromARGB(255, 117, 117, 117),
                   ),
                 ),
               ),
@@ -212,7 +216,10 @@ class _CustomerAuthState extends State<CustomerAuth> {
                 const SizedBox(width: 8.0),
                 const Text(
                   'Remember me',
-                  style: TextStyle(fontSize: 13.0, color: Color(0xFF757575)),
+                  style: TextStyle(
+                    fontSize: 13.0,
+                    color: Color.fromARGB(255, 117, 117, 117),
+                  ),
                 ),
               ],
             ),
@@ -303,7 +310,10 @@ class _CustomerAuthState extends State<CustomerAuth> {
             const Expanded(
               child: Text(
                 'I agree to the Terms of Service & Privacy Policy',
-                style: TextStyle(fontSize: 13.0, color: Color(0xFF757575)),
+                style: TextStyle(
+                  fontSize: 13.0,
+                  color: Color.fromARGB(255, 117, 117, 117),
+                ),
               ),
             ),
           ],
@@ -330,7 +340,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
           style: const TextStyle(
             fontSize: 14.0,
             fontWeight: FontWeight.bold,
-            color: Color(0xDD000000),
+            color: Color.fromARGB(221, 0, 0, 0),
           ),
         ),
         const SizedBox(height: 6.0),
@@ -338,20 +348,29 @@ class _CustomerAuthState extends State<CustomerAuth> {
           controller: controller,
           keyboardType: keyboardType,
           obscureText: obscureText,
-          style: const TextStyle(fontSize: 15.0, color: Color(0xDD000000)),
+          style: const TextStyle(
+            fontSize: 15.0,
+            color: Color.fromARGB(221, 0, 0, 0),
+          ),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(color: Color(0xFF9E9E9E)),
+            hintStyle: const TextStyle(
+              color: Color.fromARGB(255, 158, 158, 158),
+            ),
             filled: true,
-            fillColor: const Color(0xFFF5F5F5),
-            prefixIcon: Icon(icon, color: const Color(0xFF757575), size: 20),
+            fillColor: const Color.fromARGB(255, 245, 245, 245),
+            prefixIcon: Icon(
+              icon,
+              color: const Color.fromARGB(255, 117, 117, 117),
+              size: 20,
+            ),
             suffixIcon: isPassword
                 ? IconButton(
                     icon: Icon(
                       obscureText
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: const Color(0xFF757575),
+                      color: const Color.fromARGB(255, 117, 117, 117),
                       size: 20,
                     ),
                     onPressed: onTogglePassword,
@@ -363,11 +382,15 @@ class _CustomerAuthState extends State<CustomerAuth> {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              borderSide: const BorderSide(
+                color: Color.fromARGB(255, 224, 224, 224),
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+              borderSide: const BorderSide(
+                color: Color.fromARGB(255, 224, 224, 224),
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
@@ -395,7 +418,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
                   'Please agree to the Terms of Service to continue.',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                backgroundColor: Color(0xFFEF5350),
+                backgroundColor: Color.fromARGB(255, 239, 83, 80),
                 behavior: SnackBarBehavior.floating,
                 duration: Duration(seconds: 2),
               ),
@@ -454,7 +477,10 @@ class _CustomerAuthState extends State<CustomerAuth> {
             children: [
               const Text(
                 'Enter your email address and we will send you instructions to reset your password.',
-                style: TextStyle(fontSize: 14.0, color: Color(0xFF757575)),
+                style: TextStyle(
+                  fontSize: 14.0,
+                  color: Color.fromARGB(255, 117, 117, 117),
+                ),
               ),
               const SizedBox(height: 16.0),
               TextField(
@@ -463,16 +489,20 @@ class _CustomerAuthState extends State<CustomerAuth> {
                 style: const TextStyle(fontSize: 15.0),
                 decoration: InputDecoration(
                   hintText: 'Email Address',
-                  hintStyle: const TextStyle(color: Color(0xFF9E9E9E)),
+                  hintStyle: const TextStyle(
+                    color: Color.fromARGB(255, 158, 158, 158),
+                  ),
                   filled: true,
-                  fillColor: const Color(0xFFF5F5F5),
+                  fillColor: const Color.fromARGB(255, 245, 245, 245),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16.0,
                     vertical: 12.0,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15.0),
-                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                    borderSide: const BorderSide(
+                      color: Color.fromARGB(255, 224, 224, 224),
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15.0),
@@ -491,7 +521,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
               child: const Text(
                 'Cancel',
                 style: TextStyle(
-                  color: Color(0xFF757575),
+                  color: Color.fromARGB(255, 117, 117, 117),
                   fontWeight: FontWeight.w600,
                 ),
               ),

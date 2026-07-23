@@ -35,7 +35,7 @@ class OrderTracking extends StatelessWidget {
                   child: Icon(
                     Icons.arrow_back_ios,
                     size: 20,
-                    color: Color(0xDD000000),
+                    color: Color.fromARGB(221, 0, 0, 0),
                   ),
                 ),
               ),
@@ -53,7 +53,7 @@ Widget buildOrderTrackingMapPlaceholder() {
   return Container(
     width: double.infinity,
     height: double.infinity,
-    decoration: const BoxDecoration(color: Color(0xFFE0E0E0)),
+    decoration: const BoxDecoration(color: Color.fromARGB(255, 224, 224, 224)),
     child: Stack(
       children: [
         Positioned.fill(child: CustomPaint(painter: GridPainter())),
@@ -61,13 +61,17 @@ Widget buildOrderTrackingMapPlaceholder() {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.location_on, color: Color(0xFFE53935), size: 64),
+              Icon(
+                Icons.location_on,
+                color: Color.fromARGB(255, 229, 57, 53),
+                size: 64,
+              ),
               SizedBox(height: 8),
               Text(
                 'Delivering to Destination...',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF757575),
+                  color: Color.fromARGB(255, 117, 117, 117),
                 ),
               ),
             ],
@@ -106,7 +110,7 @@ Widget buildOrderTrackingSheet(
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFFE0E0E0),
+                color: const Color.fromARGB(255, 224, 224, 224),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -121,7 +125,10 @@ Widget buildOrderTrackingSheet(
                 children: [
                   const Text(
                     'Estimated Arrival',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF757575)),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color.fromARGB(255, 117, 117, 117),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -129,7 +136,7 @@ Widget buildOrderTrackingSheet(
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xDD000000),
+                      color: Color.fromARGB(221, 0, 0, 0),
                     ),
                   ),
                 ],
@@ -140,13 +147,18 @@ Widget buildOrderTrackingSheet(
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3).withValues(alpha: 0.1),
+                  color: const Color.fromARGB(
+                    255,
+                    33,
+                    150,
+                    243,
+                  ).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
                   'On The Way',
                   style: TextStyle(
-                    color: Color(0xFF2196F3),
+                    color: Color.fromARGB(255, 33, 150, 243),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -154,7 +166,7 @@ Widget buildOrderTrackingSheet(
             ],
           ),
           const SizedBox(height: 24),
-          const Divider(color: Color(0xFFEEEEEE), height: 1),
+          const Divider(color: Color.fromARGB(255, 238, 238, 238), height: 1),
           const SizedBox(height: 24),
 
           Row(
@@ -163,12 +175,18 @@ Widget buildOrderTrackingSheet(
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
+                  color: const Color.fromARGB(255, 255, 243, 224),
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFFFCC80), width: 2),
+                  border: Border.all(
+                    color: const Color.fromARGB(255, 255, 204, 128),
+                    width: 2,
+                  ),
                 ),
                 child: const Center(
-                  child: Icon(Icons.person, color: Color(0xFFFF9800)),
+                  child: Icon(
+                    Icons.person,
+                    color: Color.fromARGB(255, 255, 152, 0),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -181,7 +199,7 @@ Widget buildOrderTrackingSheet(
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xDD000000),
+                        color: Color.fromARGB(221, 0, 0, 0),
                       ),
                     ),
                     SizedBox(height: 4),
@@ -194,14 +212,14 @@ Widget buildOrderTrackingSheet(
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF757575),
+                            color: Color.fromARGB(255, 117, 117, 117),
                           ),
                         ),
                         Text(
                           ' (1.2k+ deliveries)',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF9E9E9E),
+                            color: Color.fromARGB(255, 158, 158, 158),
                           ),
                         ),
                       ],
@@ -211,7 +229,7 @@ Widget buildOrderTrackingSheet(
               ),
               Container(
                 decoration: const BoxDecoration(
-                  color: Color(0xFF4CAF50),
+                  color: Color.fromARGB(255, 76, 175, 80),
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
@@ -222,7 +240,7 @@ Widget buildOrderTrackingSheet(
             ],
           ),
           const SizedBox(height: 24),
-          const Divider(color: Color(0xFFEEEEEE), height: 1),
+          const Divider(color: Color.fromARGB(255, 238, 238, 238), height: 1),
           const SizedBox(height: 24),
 
           buildOrderTrackingTimelineStep(
@@ -263,8 +281,10 @@ Widget buildOrderTrackingTimelineStep({
   required bool isLast,
 }) {
   final Color color = isActive
-      ? const Color(0xFF2196F3)
-      : (isCompleted ? const Color(0xFF4CAF50) : const Color(0xFFBDBDBD));
+      ? const Color.fromARGB(255, 33, 150, 243)
+      : (isCompleted
+            ? const Color.fromARGB(255, 76, 175, 80)
+            : const Color.fromARGB(255, 189, 189, 189));
 
   return Row(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,8 +310,8 @@ Widget buildOrderTrackingTimelineStep({
               width: 2,
               height: 40,
               color: isCompleted
-                  ? const Color(0xFF4CAF50)
-                  : const Color(0xFFEEEEEE),
+                  ? const Color.fromARGB(255, 76, 175, 80)
+                  : const Color.fromARGB(255, 238, 238, 238),
             ),
         ],
       ),
@@ -306,14 +326,17 @@ Widget buildOrderTrackingTimelineStep({
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
                 color: isActive
-                    ? const Color(0xDD000000)
-                    : const Color(0xFF757575),
+                    ? const Color.fromARGB(221, 0, 0, 0)
+                    : const Color.fromARGB(255, 117, 117, 117),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF9E9E9E)),
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color.fromARGB(255, 158, 158, 158),
+              ),
             ),
             if (!isLast) const SizedBox(height: 24),
           ],

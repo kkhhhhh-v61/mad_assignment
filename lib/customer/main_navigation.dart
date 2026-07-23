@@ -42,7 +42,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xF8FFFFFF),
+      backgroundColor: const Color.fromARGB(248, 255, 255, 255),
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
@@ -68,7 +68,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
             },
             type: BottomNavigationBarType.fixed,
             selectedItemColor: const Color.fromARGB(255, 255, 160, 122),
-            unselectedItemColor: const Color(0xFF9E9E9E),
+            unselectedItemColor: const Color.fromARGB(255, 158, 158, 158),
             showUnselectedLabels: true,
             items: const [
               BottomNavigationBarItem(

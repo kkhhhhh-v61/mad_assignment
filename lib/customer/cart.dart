@@ -68,7 +68,7 @@ class _CustomerCartState extends State<CustomerCart> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xF8FFFFFF),
+      backgroundColor: const Color.fromARGB(248, 255, 255, 255),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -76,7 +76,7 @@ class _CustomerCartState extends State<CustomerCart> {
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios,
-            color: Color(0xDD000000),
+            color: Color.fromARGB(221, 0, 0, 0),
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
@@ -84,14 +84,17 @@ class _CustomerCartState extends State<CustomerCart> {
         title: const Text(
           'My Cart',
           style: TextStyle(
-            color: Color(0xDD000000),
+            color: Color.fromARGB(221, 0, 0, 0),
             fontWeight: FontWeight.bold,
             fontSize: 18.0,
           ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: const Color(0xFFD6D6D6), height: 1.0),
+          child: Container(
+            color: const Color.fromARGB(255, 214, 214, 214),
+            height: 1.0,
+          ),
         ),
       ),
       body: buildCartLayout(
@@ -132,7 +135,10 @@ Widget buildCartLayout({
 
   double total = 0;
   for (var item in cartItems) {
-    double customTotal = item.customizations.fold(0.0, (sum, c) => sum + c.price);
+    double customTotal = item.customizations.fold(
+      0.0,
+      (sum, c) => sum + c.price,
+    );
     total += (item.price + customTotal) * item.quantity;
   }
 
@@ -175,7 +181,8 @@ Widget buildCartItemCard({
   required Function(int) onItemRemoved,
 }) {
   final baseTotal = item.price * item.quantity;
-  final customTotal = item.customizations.fold(0.0, (sum, c) => sum + c.price) * item.quantity;
+  final customTotal =
+      item.customizations.fold(0.0, (sum, c) => sum + c.price) * item.quantity;
   final itemTotal = baseTotal + customTotal;
 
   return Container(
@@ -203,10 +210,14 @@ Widget buildCartItemCard({
               height: 80,
               width: 80,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
+                color: const Color.fromARGB(255, 245, 245, 245),
                 borderRadius: BorderRadius.circular(16.0),
               ),
-              child: Icon(item.icon, color: const Color(0xFFBDBDBD), size: 40),
+              child: Icon(
+                item.icon,
+                color: const Color.fromARGB(255, 189, 189, 189),
+                size: 40,
+              ),
             ),
             const SizedBox(width: 16.0),
             Expanded(
@@ -223,7 +234,7 @@ Widget buildCartItemCard({
                           style: const TextStyle(
                             fontSize: 16.0,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xDD000000),
+                            color: Color.fromARGB(221, 0, 0, 0),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -241,39 +252,63 @@ Widget buildCartItemCard({
                   ),
                   if (item.customizations.isNotEmpty) ...[
                     const SizedBox(height: 8.0),
-                    ...item.customizations.map((c) => Padding(
-                      padding: const EdgeInsets.only(bottom: 2.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('• ', style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 13.0)),
-                                Expanded(child: Text(c.name, style: const TextStyle(fontSize: 13.0, color: Color(0xFF757575)))),
-                              ],
-                            ),
-                          ),
-                          if (c.price > 0) ...[
-                            const SizedBox(width: 8.0),
-                            Text(
-                              '+ RM ${(c.price * item.quantity).toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 14.0,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF757575),
+                    ...item.customizations.map(
+                      (c) => Padding(
+                        padding: const EdgeInsets.only(bottom: 2.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    '• ',
+                                    style: TextStyle(
+                                      color: Color.fromARGB(255, 158, 158, 158),
+                                      fontSize: 13.0,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      c.name,
+                                      style: const TextStyle(
+                                        fontSize: 13.0,
+                                        color: Color.fromARGB(
+                                          255,
+                                          117,
+                                          117,
+                                          117,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
+                            if (c.price > 0) ...[
+                              const SizedBox(width: 8.0),
+                              Text(
+                                '+ RM ${(c.price * item.quantity).toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 14.0,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color.fromARGB(255, 117, 117, 117),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    )),
+                    ),
                   ],
 
                   const SizedBox(height: 12.0),
-                  const Divider(height: 1, color: Color(0xFFD6D6D6)),
+                  const Divider(
+                    height: 1,
+                    color: Color.fromARGB(255, 214, 214, 214),
+                  ),
                   const SizedBox(height: 8.0),
                   Align(
                     alignment: Alignment.centerRight,
@@ -297,17 +332,27 @@ Widget buildCartItemCard({
           children: [
             TextButton.icon(
               onPressed: () => onItemRemoved(index),
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-              label: const Text('Remove', style: TextStyle(color: Colors.redAccent)),
+              icon: const Icon(
+                Icons.delete_outline,
+                color: Colors.redAccent,
+                size: 20,
+              ),
+              label: const Text(
+                'Remove',
+                style: TextStyle(color: Colors.redAccent),
+              ),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12.0,
+                  vertical: 8.0,
+                ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
+                color: const Color.fromARGB(255, 245, 245, 245),
                 borderRadius: BorderRadius.circular(20.0),
               ),
               child: Row(
@@ -352,7 +397,7 @@ Widget buildCartItemCard({
 Widget buildCartQuantityButton({
   required IconData icon,
   required VoidCallback onPressed,
-  Color iconColor = const Color(0xDD000000),
+  Color iconColor = const Color.fromARGB(221, 0, 0, 0),
 }) {
   return InkWell(
     onTap: onPressed,
@@ -363,8 +408,6 @@ Widget buildCartQuantityButton({
     ),
   );
 }
-
-
 
 Widget buildCartCheckoutBar(BuildContext context, double total) {
   return Container(
@@ -388,7 +431,10 @@ Widget buildCartCheckoutBar(BuildContext context, double total) {
             children: [
               const Text(
                 'Total Price',
-                style: TextStyle(color: Color(0xFF757575), fontSize: 13.0),
+                style: TextStyle(
+                  color: Color.fromARGB(255, 117, 117, 117),
+                  fontSize: 13.0,
+                ),
               ),
               const SizedBox(height: 2.0),
               Text(
@@ -408,7 +454,9 @@ Widget buildCartCheckoutBar(BuildContext context, double total) {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const CustomerCheckout()),
+                  MaterialPageRoute(
+                    builder: (context) => const CustomerCheckout(),
+                  ),
                 );
               },
               style: ElevatedButton.styleFrom(

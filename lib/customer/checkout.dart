@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../global.dart';
-import 'cart.dart'; // For CartItem
+import 'cart.dart';
 import 'order_confirmation.dart';
 
 class CustomerCheckout extends StatefulWidget {
@@ -62,7 +62,12 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     ];
     _selectedAddress = _addresses[0];
     _selectedPaymentMethod = 'Credit Card';
-    _availablePaymentMethods = ['Credit Card', 'Cash on Delivery', 'E-Wallet', 'Online Banking'];
+    _availablePaymentMethods = [
+      'Credit Card',
+      'Cash on Delivery',
+      'E-Wallet',
+      'Online Banking',
+    ];
     _deliveryFee = 5.00;
     _availableVouchers = [
       {
@@ -114,7 +119,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0E0E0),
+                    color: const Color.fromARGB(255, 224, 224, 224),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -152,12 +157,17 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
                     margin: const EdgeInsets.only(bottom: 12.0),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.1)
+                          ? const Color.fromARGB(
+                              255,
+                              255,
+                              160,
+                              122,
+                            ).withValues(alpha: 0.1)
                           : Colors.white,
                       border: Border.all(
                         color: isSelected
                             ? const Color.fromARGB(255, 255, 160, 122)
-                            : const Color(0xFFEEEEEE),
+                            : const Color.fromARGB(255, 238, 238, 238),
                         width: isSelected ? 2.0 : 1.0,
                       ),
                       borderRadius: BorderRadius.circular(12.0),
@@ -169,14 +179,14 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? Colors.white
-                                : const Color(0xFFF5F5F5),
+                                : const Color.fromARGB(255, 245, 245, 245),
                             borderRadius: BorderRadius.circular(12.0),
                           ),
                           child: Icon(
                             Icons.location_on,
                             color: isSelected
                                 ? const Color.fromARGB(255, 255, 160, 122)
-                                : const Color(0xFF9E9E9E),
+                                : const Color.fromARGB(255, 158, 158, 158),
                           ),
                         ),
                         const SizedBox(width: 16.0),
@@ -211,7 +221,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xF8FFFFFF),
+      backgroundColor: const Color.fromARGB(248, 255, 255, 255),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -219,7 +229,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios,
-            color: Color(0xDD000000),
+            color: Color.fromARGB(221, 0, 0, 0),
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
@@ -227,14 +237,17 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         title: const Text(
           'Checkout',
           style: TextStyle(
-            color: Color(0xDD000000),
+            color: Color.fromARGB(221, 0, 0, 0),
             fontWeight: FontWeight.bold,
             fontSize: 18.0,
           ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: const Color(0xFFD6D6D6), height: 1.0),
+          child: Container(
+            color: const Color.fromARGB(255, 214, 214, 214),
+            height: 1.0,
+          ),
         ),
       ),
       body: buildCheckoutLayout(
@@ -295,7 +308,10 @@ Widget buildCheckoutLayout({
 
   double subtotal = 0;
   for (var item in cartItems) {
-    double customTotal = item.customizations.fold(0.0, (sum, c) => sum + c.price);
+    double customTotal = item.customizations.fold(
+      0.0,
+      (sum, c) => sum + c.price,
+    );
     subtotal += (item.price + customTotal) * item.quantity;
   }
 
@@ -371,7 +387,7 @@ Widget buildAddressSelection({
         style: TextStyle(
           fontSize: 16.0,
           fontWeight: FontWeight.bold,
-          color: Color(0xDD000000),
+          color: Color.fromARGB(221, 0, 0, 0),
         ),
       ),
       const SizedBox(height: 12.0),
@@ -383,17 +399,20 @@ Widget buildAddressSelection({
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16.0),
-            border: Border.all(color: const Color(0xFFEEEEEE)),
+            border: Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10.0),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
+                  color: const Color.fromARGB(255, 245, 245, 245),
                   borderRadius: BorderRadius.circular(12.0),
                 ),
-                child: const Icon(Icons.location_on, color: Color.fromARGB(255, 255, 160, 122)),
+                child: const Icon(
+                  Icons.location_on,
+                  color: Color.fromARGB(255, 255, 160, 122),
+                ),
               ),
               const SizedBox(width: 16.0),
               Expanded(
@@ -405,7 +424,10 @@ Widget buildAddressSelection({
                   ),
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Color(0xFFBDBDBD)),
+              const Icon(
+                Icons.chevron_right,
+                color: Color.fromARGB(255, 189, 189, 189),
+              ),
             ],
           ),
         ),
@@ -423,7 +445,7 @@ Widget buildCheckoutOrderItems(List<CartItem> cartItems) {
         style: TextStyle(
           fontSize: 16.0,
           fontWeight: FontWeight.bold,
-          color: Color(0xDD000000),
+          color: Color.fromARGB(221, 0, 0, 0),
         ),
       ),
       const SizedBox(height: 12.0),
@@ -432,17 +454,22 @@ Widget buildCheckoutOrderItems(List<CartItem> cartItems) {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16.0),
-          border: Border.all(color: const Color(0xFFEEEEEE)),
+          border: Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
         ),
         child: Column(
           children: cartItems.asMap().entries.map((entry) {
             int idx = entry.key;
             CartItem item = entry.value;
-            double customTotal = item.customizations.fold(0.0, (sum, c) => sum + c.price);
+            double customTotal = item.customizations.fold(
+              0.0,
+              (sum, c) => sum + c.price,
+            );
             double itemTotal = (item.price + customTotal) * item.quantity;
-            
+
             return Padding(
-              padding: EdgeInsets.only(bottom: idx == cartItems.length - 1 ? 0 : 16.0),
+              padding: EdgeInsets.only(
+                bottom: idx == cartItems.length - 1 ? 0 : 16.0,
+              ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -467,13 +494,15 @@ Widget buildCheckoutOrderItems(List<CartItem> cartItems) {
                         ),
                         if (item.customizations.isNotEmpty) ...[
                           const SizedBox(height: 4.0),
-                          ...item.customizations.map((c) => Text(
-                            '• ${c.name}',
-                            style: const TextStyle(
-                              fontSize: 12.0,
-                              color: Color(0xFF757575),
+                          ...item.customizations.map(
+                            (c) => Text(
+                              '• ${c.name}',
+                              style: const TextStyle(
+                                fontSize: 12.0,
+                                color: Color.fromARGB(255, 117, 117, 117),
+                              ),
                             ),
-                          )),
+                          ),
                         ],
                       ],
                     ),
@@ -510,7 +539,7 @@ Widget buildCheckoutVoucher({
         style: TextStyle(
           fontSize: 16.0,
           fontWeight: FontWeight.bold,
-          color: Color(0xDD000000),
+          color: Color.fromARGB(221, 0, 0, 0),
         ),
       ),
       const SizedBox(height: 12.0),
@@ -537,22 +566,32 @@ Widget buildCheckoutVoucher({
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16.0),
-            border: Border.all(color: const Color(0xFFEEEEEE)),
+            border: Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.local_offer_outlined, color: Color.fromARGB(255, 255, 160, 122)),
+              const Icon(
+                Icons.local_offer_outlined,
+                color: Color.fromARGB(255, 255, 160, 122),
+              ),
               const SizedBox(width: 12.0),
               Expanded(
                 child: Text(
-                  appliedVoucher != null ? appliedVoucher['title'] : 'No voucher applied',
+                  appliedVoucher != null
+                      ? appliedVoucher['title']
+                      : 'No voucher applied',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: appliedVoucher != null ? const Color(0xDD000000) : const Color(0xFF9E9E9E),
+                    color: appliedVoucher != null
+                        ? const Color.fromARGB(221, 0, 0, 0)
+                        : const Color.fromARGB(255, 158, 158, 158),
                   ),
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Color(0xFFBDBDBD)),
+              const Icon(
+                Icons.chevron_right,
+                color: Color.fromARGB(255, 189, 189, 189),
+              ),
             ],
           ),
         ),
@@ -583,7 +622,7 @@ Widget buildVoucherSelectionBottomSheet({
               width: 45,
               height: 5,
               decoration: BoxDecoration(
-                color: const Color(0xFFE0E0E0),
+                color: const Color.fromARGB(255, 224, 224, 224),
                 borderRadius: BorderRadius.circular(25.0),
               ),
             ),
@@ -594,10 +633,7 @@ Widget buildVoucherSelectionBottomSheet({
             children: [
               const Text(
                 'Available Vouchers',
-                style: TextStyle(
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
               ),
               if (appliedVoucher != null)
                 TextButton(
@@ -608,13 +644,19 @@ Widget buildVoucherSelectionBottomSheet({
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Clear', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Clear',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
             ],
           ),
           const SizedBox(height: 20.0),
           if (availableVouchers.isEmpty)
-            const Text('No vouchers available.', style: TextStyle(color: Color(0xFF757575)))
+            const Text(
+              'No vouchers available.',
+              style: TextStyle(color: Color.fromARGB(255, 117, 117, 117)),
+            )
           else
             ...availableVouchers.map((voucher) {
               bool isUsable = subtotal >= (voucher['minSpend'] as double);
@@ -629,9 +671,18 @@ Widget buildVoucherSelectionBottomSheet({
                     margin: const EdgeInsets.only(bottom: 12.0),
                     padding: const EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.1) : Colors.white,
+                      color: isSelected
+                          ? const Color.fromARGB(
+                              255,
+                              255,
+                              160,
+                              122,
+                            ).withValues(alpha: 0.1)
+                          : Colors.white,
                       border: Border.all(
-                        color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFFEEEEEE),
+                        color: isSelected
+                            ? const Color.fromARGB(255, 255, 160, 122)
+                            : const Color.fromARGB(255, 238, 238, 238),
                         width: isSelected ? 2 : 1,
                       ),
                       borderRadius: BorderRadius.circular(16.0),
@@ -642,10 +693,19 @@ Widget buildVoucherSelectionBottomSheet({
                         Container(
                           padding: const EdgeInsets.all(12.0),
                           decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.15),
+                            color: const Color.fromARGB(
+                              255,
+                              255,
+                              160,
+                              122,
+                            ).withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.local_offer, color: Color.fromARGB(255, 255, 160, 122), size: 24),
+                          child: const Icon(
+                            Icons.local_offer,
+                            color: Color.fromARGB(255, 255, 160, 122),
+                            size: 24,
+                          ),
                         ),
                         const SizedBox(width: 16.0),
                         Expanded(
@@ -654,26 +714,45 @@ Widget buildVoucherSelectionBottomSheet({
                             children: [
                               Text(
                                 voucher['title'],
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16.0,
+                                ),
                               ),
                               const SizedBox(height: 4.0),
                               Text(
                                 'Min. spend RM ${voucher['minSpend'].toStringAsFixed(2)}',
                                 style: TextStyle(
-                                  color: isUsable ? const Color(0xFF757575) : Colors.redAccent, 
+                                  color: isUsable
+                                      ? const Color.fromARGB(255, 117, 117, 117)
+                                      : Colors.redAccent,
                                   fontSize: 13.0,
-                                  fontWeight: isUsable ? FontWeight.normal : FontWeight.bold,
+                                  fontWeight: isUsable
+                                      ? FontWeight.normal
+                                      : FontWeight.bold,
                                 ),
                               ),
                               if (voucher.containsKey('expiryDate')) ...[
                                 const SizedBox(height: 4.0),
                                 Row(
                                   children: [
-                                    const Icon(Icons.access_time, size: 14, color: Color(0xFF9E9E9E)),
+                                    const Icon(
+                                      Icons.access_time,
+                                      size: 14,
+                                      color: Color.fromARGB(255, 158, 158, 158),
+                                    ),
                                     const SizedBox(width: 4.0),
                                     Text(
                                       voucher['expiryDate'],
-                                      style: const TextStyle(color: Color(0xFF9E9E9E), fontSize: 12.0),
+                                      style: const TextStyle(
+                                        color: Color.fromARGB(
+                                          255,
+                                          158,
+                                          158,
+                                          158,
+                                        ),
+                                        fontSize: 12.0,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -707,7 +786,7 @@ Widget buildCheckoutPayment({
         style: TextStyle(
           fontSize: 16.0,
           fontWeight: FontWeight.bold,
-          color: Color(0xDD000000),
+          color: Color.fromARGB(221, 0, 0, 0),
         ),
       ),
       const SizedBox(height: 12.0),
@@ -733,11 +812,14 @@ Widget buildCheckoutPayment({
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16.0),
-            border: Border.all(color: const Color(0xFFEEEEEE)),
+            border: Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.credit_card, color: Color.fromARGB(255, 255, 160, 122)),
+              const Icon(
+                Icons.credit_card,
+                color: Color.fromARGB(255, 255, 160, 122),
+              ),
               const SizedBox(width: 12.0),
               Expanded(
                 child: Text(
@@ -745,7 +827,10 @@ Widget buildCheckoutPayment({
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Color(0xFFBDBDBD)),
+              const Icon(
+                Icons.chevron_right,
+                color: Color.fromARGB(255, 189, 189, 189),
+              ),
             ],
           ),
         ),
@@ -775,7 +860,7 @@ Widget buildPaymentSelectionBottomSheet({
               width: 45,
               height: 5,
               decoration: BoxDecoration(
-                color: const Color(0xFFE0E0E0),
+                color: const Color.fromARGB(255, 224, 224, 224),
                 borderRadius: BorderRadius.circular(25.0),
               ),
             ),
@@ -783,10 +868,7 @@ Widget buildPaymentSelectionBottomSheet({
           const SizedBox(height: 16.0),
           const Text(
             'Payment Method',
-            style: TextStyle(
-              fontSize: 18.0,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20.0),
           ...availablePaymentMethods.map((method) {
@@ -798,9 +880,18 @@ Widget buildPaymentSelectionBottomSheet({
                 margin: const EdgeInsets.only(bottom: 12.0),
                 padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.1) : Colors.white,
+                  color: isSelected
+                      ? const Color.fromARGB(
+                          255,
+                          255,
+                          160,
+                          122,
+                        ).withValues(alpha: 0.1)
+                      : Colors.white,
                   border: Border.all(
-                    color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color(0xFFEEEEEE),
+                    color: isSelected
+                        ? const Color.fromARGB(255, 255, 160, 122)
+                        : const Color.fromARGB(255, 238, 238, 238),
                     width: isSelected ? 2 : 1,
                   ),
                   borderRadius: BorderRadius.circular(16.0),
@@ -808,10 +899,13 @@ Widget buildPaymentSelectionBottomSheet({
                 child: Row(
                   children: [
                     Icon(
-                      method == 'Credit Card' ? Icons.credit_card :
-                      method == 'Cash on Delivery' ? Icons.money :
-                      method == 'E-Wallet' ? Icons.account_balance_wallet :
-                      Icons.account_balance,
+                      method == 'Credit Card'
+                          ? Icons.credit_card
+                          : method == 'Cash on Delivery'
+                          ? Icons.money
+                          : method == 'E-Wallet'
+                          ? Icons.account_balance_wallet
+                          : Icons.account_balance,
                       color: const Color.fromARGB(255, 255, 160, 122),
                       size: 24,
                     ),
@@ -819,11 +913,17 @@ Widget buildPaymentSelectionBottomSheet({
                     Expanded(
                       child: Text(
                         method,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16.0,
+                        ),
                       ),
                     ),
                     if (isSelected)
-                      const Icon(Icons.check_circle, color: Color.fromARGB(255, 255, 160, 122)),
+                      const Icon(
+                        Icons.check_circle,
+                        color: Color.fromARGB(255, 255, 160, 122),
+                      ),
                   ],
                 ),
               ),
@@ -861,16 +961,28 @@ Widget buildCheckoutSummary({
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Subtotal', style: TextStyle(color: Color(0xFF757575))),
-            Text('RM ${subtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Subtotal',
+              style: TextStyle(color: Color.fromARGB(255, 117, 117, 117)),
+            ),
+            Text(
+              'RM ${subtotal.toStringAsFixed(2)}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         const SizedBox(height: 12.0),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Delivery Fee', style: TextStyle(color: Color(0xFF757575))),
-            Text('RM ${deliveryFee.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Delivery Fee',
+              style: TextStyle(color: Color.fromARGB(255, 117, 117, 117)),
+            ),
+            Text(
+              'RM ${deliveryFee.toStringAsFixed(2)}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         if (discount > 0) ...[
@@ -878,24 +990,30 @@ Widget buildCheckoutSummary({
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Discount', style: TextStyle(color: Color(0xFF757575))),
-              Text('- RM ${discount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+              const Text(
+                'Discount',
+                style: TextStyle(color: Color.fromARGB(255, 117, 117, 117)),
+              ),
+              Text(
+                '- RM ${discount.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+              ),
             ],
           ),
         ],
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 16.0),
-          child: Divider(height: 1, color: Color(0xFFD6D6D6)),
+          child: Divider(height: 1, color: Color.fromARGB(255, 214, 214, 214)),
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               'Total',
-              style: TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
             ),
             Text(
               'RM ${total.toStringAsFixed(2)}',
@@ -912,7 +1030,11 @@ Widget buildCheckoutSummary({
   );
 }
 
-Widget buildCheckoutBottomBar(BuildContext context, double total, VoidCallback onPlaceOrder) {
+Widget buildCheckoutBottomBar(
+  BuildContext context,
+  double total,
+  VoidCallback onPlaceOrder,
+) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
     decoration: const BoxDecoration(
@@ -949,10 +1071,7 @@ Widget buildCheckoutBottomBar(BuildContext context, double total, VoidCallback o
         ),
         child: const Text(
           'Place Order',
-          style: TextStyle(
-            fontSize: 16.0,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
         ),
       ),
     ),

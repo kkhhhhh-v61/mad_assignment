@@ -21,7 +21,7 @@ class DefaultFallbackMessage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20.0),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -49,14 +49,17 @@ class DefaultFallbackMessage extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16.0,
               fontWeight: FontWeight.bold,
-              color: Color(0xDD000000),
+              color: Color.fromARGB(221, 0, 0, 0),
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4.0),
           Text(
             description,
-            style: const TextStyle(fontSize: 14.0, color: Color(0xFF757575)),
+            style: const TextStyle(
+              fontSize: 14.0,
+              color: Color.fromARGB(255, 117, 117, 117),
+            ),
             textAlign: TextAlign.center,
           ),
         ],

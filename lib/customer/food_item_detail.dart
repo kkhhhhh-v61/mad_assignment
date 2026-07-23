@@ -45,7 +45,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xF8FFFFFF),
+      backgroundColor: const Color.fromARGB(248, 255, 255, 255),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -53,7 +53,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios,
-            color: Color(0xDD000000),
+            color: Color.fromARGB(221, 0, 0, 0),
             size: 20,
           ),
           onPressed: () => Navigator.pop(context),
@@ -61,7 +61,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
         title: Text(
           widget.name,
           style: const TextStyle(
-            color: Color(0xDD000000),
+            color: Color.fromARGB(221, 0, 0, 0),
             fontWeight: FontWeight.bold,
             fontSize: 18.0,
           ),
@@ -81,9 +81,11 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                       width: double.infinity,
                       margin: const EdgeInsets.symmetric(horizontal: 20.0),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
+                        color: const Color.fromARGB(255, 245, 245, 245),
                         borderRadius: BorderRadius.circular(20.0),
-                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        border: Border.all(
+                          color: const Color.fromARGB(255, 224, 224, 224),
+                        ),
                       ),
                       child: Center(
                         child: Icon(
@@ -109,7 +111,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                                   style: const TextStyle(
                                     fontSize: 22.0,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xDD000000),
+                                    color: Color.fromARGB(221, 0, 0, 0),
                                   ),
                                 ),
                               ),
@@ -153,7 +155,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                               const SizedBox(width: 12.0),
                               const Icon(
                                 Icons.star,
-                                color: Color(0xFFFFC107),
+                                color: Color.fromARGB(255, 255, 193, 7),
                                 size: 18,
                               ),
                               const SizedBox(width: 4.0),
@@ -162,7 +164,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                                 style: const TextStyle(
                                   fontSize: 15.0,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xDD000000),
+                                  color: Color.fromARGB(221, 0, 0, 0),
                                 ),
                               ),
                               const SizedBox(width: 4.0),
@@ -170,13 +172,13 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                                 '(120+ reviews)',
                                 style: TextStyle(
                                   fontSize: 13.0,
-                                  color: Color(0xFF757575),
+                                  color: Color.fromARGB(255, 117, 117, 117),
                                 ),
                               ),
                               const SizedBox(width: 16.0),
                               const Icon(
                                 Icons.access_time,
-                                color: Color(0xFF9E9E9E),
+                                color: Color.fromARGB(255, 158, 158, 158),
                                 size: 18,
                               ),
                               const SizedBox(width: 4.0),
@@ -184,21 +186,24 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                                 widget.prepTime,
                                 style: const TextStyle(
                                   fontSize: 13.0,
-                                  color: Color(0xFF757575),
+                                  color: Color.fromARGB(255, 117, 117, 117),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 16.0),
-                          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                          const Divider(
+                            height: 1,
+                            color: Color.fromARGB(255, 224, 224, 224),
+                          ),
                           const SizedBox(height: 16.0),
                           const Text(
                             'Description',
                             style: TextStyle(
                               fontSize: 16.0,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xDD000000),
+                              color: Color.fromARGB(221, 0, 0, 0),
                             ),
                           ),
                           const SizedBox(height: 4.0),
@@ -206,7 +211,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                             'Prepared fresh daily using authentic recipes and signature ingredients. Carefully crafted to provide a delightful balance of rich flavors and perfect textures with every serving.',
                             style: TextStyle(
                               fontSize: 15.0,
-                              color: Color(0xFF757575),
+                              color: Color.fromARGB(255, 117, 117, 117),
                               height: 1.5,
                             ),
                           ),
@@ -245,11 +250,16 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                                   160,
                                   122,
                                 ),
-                                backgroundColor: const Color(0xFFF5F5F5),
+                                backgroundColor: const Color.fromARGB(
+                                  255,
+                                  245,
+                                  245,
+                                  245,
+                                ),
                                 labelStyle: TextStyle(
                                   color: isSelected
                                       ? Colors.white
-                                      : const Color(0xDD000000),
+                                      : const Color.fromARGB(221, 0, 0, 0),
                                   fontWeight: FontWeight.w600,
                                 ),
                                 shape: RoundedRectangleBorder(
@@ -262,7 +272,12 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                                             160,
                                             122,
                                           )
-                                        : const Color(0xFFE0E0E0),
+                                        : const Color.fromARGB(
+                                            255,
+                                            224,
+                                            224,
+                                            224,
+                                          ),
                                   ),
                                 ),
                               );
@@ -287,20 +302,22 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                         decoration: InputDecoration(
                           hintText:
                               'e.g., No onions, extra napkins, separate sauce...',
-                          hintStyle: const TextStyle(color: Color(0xFF9E9E9E)),
+                          hintStyle: const TextStyle(
+                            color: Color.fromARGB(255, 158, 158, 158),
+                          ),
                           filled: true,
-                          fillColor: const Color(0xFFF5F5F5),
+                          fillColor: const Color.fromARGB(255, 245, 245, 245),
                           contentPadding: const EdgeInsets.all(12.0),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15.0),
                             borderSide: const BorderSide(
-                              color: Color(0xFFE0E0E0),
+                              color: Color.fromARGB(255, 224, 224, 224),
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15.0),
                             borderSide: const BorderSide(
-                              color: Color(0xFFE0E0E0),
+                              color: Color.fromARGB(255, 224, 224, 224),
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
@@ -330,15 +347,19 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                     offset: Offset(0, -4),
                   ),
                 ],
-                border: Border(top: BorderSide(color: Color(0xFFE0E0E0))),
+                border: Border(
+                  top: BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
+                ),
               ),
               child: Row(
                 children: [
                   Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
+                      color: const Color.fromARGB(255, 245, 245, 245),
                       borderRadius: BorderRadius.circular(25.0),
-                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                      border: Border.all(
+                        color: const Color.fromARGB(255, 224, 224, 224),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -351,7 +372,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                                 }
                               : null,
                           icon: const Icon(Icons.remove, size: 20),
-                          color: const Color(0xDD000000),
+                          color: const Color.fromARGB(221, 0, 0, 0),
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -360,7 +381,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                             style: const TextStyle(
                               fontSize: 18.0,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xDD000000),
+                              color: Color.fromARGB(221, 0, 0, 0),
                             ),
                           ),
                         ),
@@ -371,7 +392,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                             });
                           },
                           icon: const Icon(Icons.add, size: 20),
-                          color: const Color(0xDD000000),
+                          color: const Color.fromARGB(221, 0, 0, 0),
                         ),
                       ],
                     ),
@@ -460,7 +481,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
             style: const TextStyle(
               fontSize: 16.0,
               fontWeight: FontWeight.bold,
-              color: Color(0xDD000000),
+              color: Color.fromARGB(221, 0, 0, 0),
             ),
           ),
           Container(
@@ -473,7 +494,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                       160,
                       122,
                     ).withValues(alpha: 0.1)
-                  : const Color(0xFFF5F5F5),
+                  : const Color.fromARGB(255, 245, 245, 245),
               borderRadius: BorderRadius.circular(25.0),
             ),
             child: Text(
@@ -483,7 +504,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                 fontWeight: FontWeight.bold,
                 color: isRequired
                     ? const Color.fromARGB(255, 255, 160, 122)
-                    : const Color(0xFF757575),
+                    : const Color.fromARGB(255, 117, 117, 117),
               ),
             ),
           ),
@@ -511,7 +532,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
           border: Border.all(
             color: isSelected
                 ? const Color.fromARGB(255, 255, 160, 122)
-                : const Color(0xFFE0E0E0),
+                : const Color.fromARGB(255, 224, 224, 224),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -526,7 +547,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                       : Icons.radio_button_off,
                   color: isSelected
                       ? const Color.fromARGB(255, 255, 160, 122)
-                      : const Color(0xFF9E9E9E),
+                      : const Color.fromARGB(255, 158, 158, 158),
                   size: 20,
                 ),
                 const SizedBox(width: 12.0),
@@ -535,7 +556,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                   style: TextStyle(
                     fontSize: 15.0,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    color: const Color(0xDD000000),
+                    color: const Color.fromARGB(221, 0, 0, 0),
                   ),
                 ),
               ],
@@ -547,7 +568,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                 fontWeight: FontWeight.w600,
                 color: isSelected
                     ? const Color.fromARGB(255, 255, 160, 122)
-                    : const Color(0xFF757575),
+                    : const Color.fromARGB(255, 117, 117, 117),
               ),
             ),
           ],
@@ -579,7 +600,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
           border: Border.all(
             color: isSelected
                 ? const Color.fromARGB(255, 255, 160, 122)
-                : const Color(0xFFE0E0E0),
+                : const Color.fromARGB(255, 224, 224, 224),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -592,7 +613,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                   isSelected ? Icons.check_box : Icons.check_box_outline_blank,
                   color: isSelected
                       ? const Color.fromARGB(255, 255, 160, 122)
-                      : const Color(0xFF9E9E9E),
+                      : const Color.fromARGB(255, 158, 158, 158),
                   size: 20,
                 ),
                 const SizedBox(width: 12.0),
@@ -601,7 +622,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                   style: TextStyle(
                     fontSize: 15.0,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    color: const Color(0xDD000000),
+                    color: const Color.fromARGB(221, 0, 0, 0),
                   ),
                 ),
               ],
@@ -613,7 +634,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                 fontWeight: FontWeight.w600,
                 color: isSelected
                     ? const Color.fromARGB(255, 255, 160, 122)
-                    : const Color(0xFF757575),
+                    : const Color.fromARGB(255, 117, 117, 117),
               ),
             ),
           ],

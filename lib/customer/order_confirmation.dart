@@ -8,7 +8,7 @@ class CustomerOrderConfirmation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xF8FFFFFF),
+      backgroundColor: const Color.fromARGB(248, 255, 255, 255),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -19,7 +19,12 @@ class CustomerOrderConfirmation extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(24.0),
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.15),
+                  color: const Color.fromARGB(
+                    255,
+                    255,
+                    160,
+                    122,
+                  ).withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Container(
@@ -51,7 +56,7 @@ class CustomerOrderConfirmation extends StatelessWidget {
                   fontSize: 28.0,
                   fontWeight: FontWeight.bold,
                   height: 1.2,
-                  color: Color(0xDD000000),
+                  color: Color.fromARGB(221, 0, 0, 0),
                 ),
               ),
               const SizedBox(height: 16.0),
@@ -60,11 +65,11 @@ class CustomerOrderConfirmation extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 16.0,
-                  color: Color(0xFF757575),
+                  color: Color.fromARGB(255, 117, 117, 117),
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              
+
               const Spacer(),
               ElevatedButton(
                 onPressed: () {
@@ -81,10 +86,7 @@ class CustomerOrderConfirmation extends StatelessWidget {
                 ),
                 child: const Text(
                   'Back to Home',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 16.0),

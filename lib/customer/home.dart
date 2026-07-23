@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'header.dart';
 import '../global.dart';
+import 'header.dart';
 import 'menu.dart';
 
 class CustomerHome extends StatelessWidget {
@@ -71,7 +71,11 @@ class CustomerHome extends StatelessWidget {
                       {'name': 'Beverages', 'icon': Icons.local_drink},
                     ];
                     // --- END TOREMOVE ---
-                    return buildCategoryItems(context, categories, onCategorySelected);
+                    return buildCategoryItems(
+                      context,
+                      categories,
+                      onCategorySelected,
+                    );
                   },
                 ),
                 const SizedBox(height: 16.0),
@@ -231,7 +235,7 @@ Widget buildCategoryItem({
             style: const TextStyle(
               fontSize: 13.0,
               fontWeight: FontWeight.w600,
-              color: Color(0xDD000000),
+              color: Color.fromARGB(221, 0, 0, 0),
             ),
           ),
         ],

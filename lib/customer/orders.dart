@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../global.dart';
+import 'header.dart';
 import 'order_details.dart';
 import 'order_tracking.dart';
-import 'header.dart';
-import '../global.dart';
 
 class CustomerOrders extends StatefulWidget {
   const CustomerOrders({super.key});
@@ -35,7 +35,7 @@ class _CustomerOrdersState extends State<CustomerOrders> {
           margin: const EdgeInsets.symmetric(horizontal: 20.0),
           padding: const EdgeInsets.all(4.0),
           decoration: BoxDecoration(
-            color: const Color(0xFFEEEEEE),
+            color: const Color.fromARGB(255, 238, 238, 238),
             borderRadius: BorderRadius.circular(25.0),
           ),
           child: Row(
@@ -69,7 +69,7 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                         style: TextStyle(
                           color: isSelected
                               ? const Color.fromARGB(255, 255, 160, 122)
-                              : const Color(0xFF757575),
+                              : const Color.fromARGB(255, 117, 117, 117),
                           fontWeight: isSelected
                               ? FontWeight.bold
                               : FontWeight.w600,
@@ -97,8 +97,16 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                   'date': 'Today, 12:45 PM',
                   'status': 'Preparing',
                   'items': [
-                    {'name': 'Classic Beef Burger', 'quantity': 2, 'price': 16.90},
-                    {'name': 'Golden French Fries', 'quantity': 1, 'price': 5.80},
+                    {
+                      'name': 'Classic Beef Burger',
+                      'quantity': 2,
+                      'price': 16.90,
+                    },
+                    {
+                      'name': 'Golden French Fries',
+                      'quantity': 1,
+                      'price': 5.80,
+                    },
                     {'name': 'Iced Lemon Tea', 'quantity': 2, 'price': 5.00},
                   ],
                   'subtotal': 49.60,
@@ -113,7 +121,11 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                   'date': 'Today, 12:15 PM',
                   'status': 'Delivering',
                   'items': [
-                    {'name': 'Classic Beef Burger', 'quantity': 2, 'price': 16.90},
+                    {
+                      'name': 'Classic Beef Burger',
+                      'quantity': 2,
+                      'price': 16.90,
+                    },
                     {'name': 'Iced Lemon Tea', 'quantity': 1, 'price': 5.00},
                   ],
                   'subtotal': 38.80,
@@ -128,8 +140,16 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                   'date': 'Today, 11:30 AM',
                   'status': 'Preparing',
                   'items': [
-                    {'name': 'Pepperoni Feast Pizza', 'quantity': 1, 'price': 28.90},
-                    {'name': 'Crispy Mozzarella Sticks', 'quantity': 1, 'price': 12.90},
+                    {
+                      'name': 'Pepperoni Feast Pizza',
+                      'quantity': 1,
+                      'price': 28.90,
+                    },
+                    {
+                      'name': 'Crispy Mozzarella Sticks',
+                      'quantity': 1,
+                      'price': 12.90,
+                    },
                   ],
                   'subtotal': 41.80,
                   'deliveryFee': 4.00,
@@ -144,7 +164,11 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                   'status': 'Completed',
                   'items': [
                     {'name': 'Spicy Beef Ramen', 'quantity': 1, 'price': 22.90},
-                    {'name': 'Belgian Chocolate Sundae', 'quantity': 1, 'price': 6.90},
+                    {
+                      'name': 'Belgian Chocolate Sundae',
+                      'quantity': 1,
+                      'price': 6.90,
+                    },
                   ],
                   'subtotal': 29.80,
                   'deliveryFee': 4.00,
@@ -158,7 +182,11 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                   'date': 'Yesterday, 1:30 PM',
                   'status': 'Cancelled',
                   'items': [
-                    {'name': 'Pepperoni Feast Pizza', 'quantity': 1, 'price': 28.90},
+                    {
+                      'name': 'Pepperoni Feast Pizza',
+                      'quantity': 1,
+                      'price': 28.90,
+                    },
                   ],
                   'subtotal': 28.90,
                   'deliveryFee': 4.00,
@@ -228,18 +256,18 @@ Widget buildOrderCard(BuildContext context, Map<String, dynamic> order) {
       statusColor = const Color.fromARGB(255, 255, 160, 122);
       footerIcon = Icons.access_time;
       buttonText = 'Cancel Order';
-      buttonColor = const Color(0xFFE53935);
+      buttonColor = const Color.fromARGB(255, 229, 57, 53);
       isOutlined = true;
       break;
     case 'Delivering':
-      statusColor = const Color(0xFF2196F3);
+      statusColor = const Color.fromARGB(255, 33, 150, 243);
       footerIcon = Icons.delivery_dining;
       buttonText = 'Track Order';
       buttonColor = const Color.fromARGB(255, 255, 160, 122);
       isOutlined = false;
       break;
     case 'Cancelled':
-      statusColor = const Color(0xFFE53935);
+      statusColor = const Color.fromARGB(255, 229, 57, 53);
       footerIcon = Icons.cancel_outlined;
       buttonText = 'Reorder';
       buttonColor = const Color.fromARGB(255, 255, 160, 122);
@@ -247,7 +275,7 @@ Widget buildOrderCard(BuildContext context, Map<String, dynamic> order) {
       break;
     case 'Completed':
     default:
-      statusColor = const Color(0xFF4CAF50);
+      statusColor = const Color.fromARGB(255, 76, 175, 80);
       footerIcon = Icons.check_circle_outline;
       buttonText = 'Reorder';
       buttonColor = const Color.fromARGB(255, 255, 160, 122);
@@ -299,7 +327,7 @@ Widget buildOrderCard(BuildContext context, Map<String, dynamic> order) {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16.0,
-                      color: Color(0xDD000000),
+                      color: Color.fromARGB(221, 0, 0, 0),
                     ),
                   ),
                   const SizedBox(height: 2.0),
@@ -307,7 +335,7 @@ Widget buildOrderCard(BuildContext context, Map<String, dynamic> order) {
                     date,
                     style: const TextStyle(
                       fontSize: 12.0,
-                      color: Color(0xFF757575),
+                      color: Color.fromARGB(255, 117, 117, 117),
                     ),
                   ),
                 ],
@@ -334,7 +362,10 @@ Widget buildOrderCard(BuildContext context, Map<String, dynamic> order) {
           ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12.0),
-            child: Divider(color: Color(0xFFEEEEEE), height: 1.0),
+            child: Divider(
+              color: Color.fromARGB(255, 238, 238, 238),
+              height: 1.0,
+            ),
           ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -344,10 +375,14 @@ Widget buildOrderCard(BuildContext context, Map<String, dynamic> order) {
                   height: 60,
                   width: 60,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
+                    color: const Color.fromARGB(255, 245, 245, 245),
                     borderRadius: BorderRadius.circular(12.0),
                   ),
-                  child: Icon(icon, color: const Color(0xFF9E9E9E), size: 30),
+                  child: Icon(
+                    icon,
+                    color: const Color.fromARGB(255, 158, 158, 158),
+                    size: 30,
+                  ),
                 ),
                 const SizedBox(width: 16.0),
               ],
@@ -360,7 +395,7 @@ Widget buildOrderCard(BuildContext context, Map<String, dynamic> order) {
                       style: const TextStyle(
                         fontSize: 15.0,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xDD000000),
+                        color: Color.fromARGB(221, 0, 0, 0),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -381,20 +416,27 @@ Widget buildOrderCard(BuildContext context, Map<String, dynamic> order) {
           ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12.0),
-            child: Divider(color: Color(0xFFEEEEEE), height: 1.0),
+            child: Divider(
+              color: Color.fromARGB(255, 238, 238, 238),
+              height: 1.0,
+            ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  Icon(footerIcon, size: 16.0, color: const Color(0xFF757575)),
+                  Icon(
+                    footerIcon,
+                    size: 16.0,
+                    color: const Color.fromARGB(255, 117, 117, 117),
+                  ),
                   const SizedBox(width: 4.0),
                   Text(
                     info,
                     style: const TextStyle(
                       fontSize: 12.0,
-                      color: Color(0xFF757575),
+                      color: Color.fromARGB(255, 117, 117, 117),
                       fontWeight: FontWeight.w500,
                     ),
                   ),

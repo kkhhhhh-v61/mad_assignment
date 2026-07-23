@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'cart.dart';
 import 'notifications.dart';
 
-class CustomerHeader extends StatelessWidget {
+class CustomerHeader extends StatefulWidget {
   final bool showFilter;
   final bool showSearch;
   final bool showTitle;
@@ -18,6 +18,20 @@ class CustomerHeader extends StatelessWidget {
     this.pageTitle = 'DoorDish',
     this.onFilterTap,
   });
+
+  @override
+  State<CustomerHeader> createState() => _CustomerHeaderState();
+}
+
+class _CustomerHeaderState extends State<CustomerHeader> {
+  // --- TOREMOVE ---
+  final List<String> _addresses = [
+    'Home - 123 Street Name, City',
+    'Work - 456 Office Tower, City',
+    'Partner - 789 Apartment Bldg, City',
+  ];
+  late String _selectedAddress = _addresses[0];
+  // --- END TOREMOVE ---
 
   @override
   Widget build(BuildContext context) {
@@ -42,13 +56,12 @@ class CustomerHeader extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // --- Location / Title + Actions ---
           Row(
             children: [
               Expanded(
-                child: showTitle
+                child: widget.showTitle
                     ? Text(
-                        pageTitle,
+                        widget.pageTitle,
                         style: const TextStyle(
                           fontSize: 22.0,
                           fontWeight: FontWeight.bold,
@@ -60,18 +73,17 @@ class CustomerHeader extends StatelessWidget {
               _buildActionButtons(context),
             ],
           ),
-          // --- Search Bar + Filter ---
-          if (showSearch || showFilter) ...[
+          if (widget.showSearch || widget.showFilter) ...[
             const SizedBox(height: 16.0),
             Row(
               children: [
                 Expanded(
-                  child: showSearch
+                  child: widget.showSearch
                       ? _buildSearchBar()
                       : const SizedBox.shrink(),
                 ),
-                if (showFilter) const SizedBox(width: 12.0),
-                if (showFilter) _buildFilterButton(),
+                if (widget.showFilter) const SizedBox(width: 12.0),
+                if (widget.showFilter) _buildFilterButton(),
               ],
             ),
           ],
@@ -80,12 +92,34 @@ class CustomerHeader extends StatelessWidget {
     );
   }
 
-  // --- Location Selector ---
   Widget _buildLocationSelector() {
-    return InkWell(
-      onTap: () {
-        // TODO
+    return PopupMenuButton<String>(
+      initialValue: _selectedAddress,
+      onSelected: (String newValue) {
+        setState(() {
+          _selectedAddress = newValue;
+        });
       },
+      itemBuilder: (BuildContext context) {
+        return _addresses.map((String address) {
+          return PopupMenuItem<String>(
+            value: address,
+            child: Text(
+              address,
+              style: TextStyle(
+                fontWeight: _selectedAddress == address
+                    ? FontWeight.bold
+                    : FontWeight.normal,
+                color: _selectedAddress == address
+                    ? const Color.fromARGB(255, 255, 160, 122)
+                    : const Color(0xDD000000),
+              ),
+            ),
+          );
+        }).toList();
+      },
+      offset: const Offset(0, 45),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -101,10 +135,10 @@ class CustomerHeader extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             spacing: 4.0,
             children: [
-              const Flexible(
+              Flexible(
                 child: Text(
-                  'Home - 123 Street Name, City',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0),
+                  _selectedAddress,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -120,7 +154,6 @@ class CustomerHeader extends StatelessWidget {
     );
   }
 
-  // --- Action Buttons ---
   Widget _buildActionButtons(BuildContext context) {
     return Row(
       children: [
@@ -150,7 +183,6 @@ class CustomerHeader extends StatelessWidget {
     );
   }
 
-  // --- Icon with Badge Dot ---
   Widget _buildIconWithBadge({
     required IconData icon,
     required bool showBadge,
@@ -180,7 +212,6 @@ class CustomerHeader extends StatelessWidget {
     );
   }
 
-  // --- Search Bar ---
   Widget _buildSearchBar() {
     return Container(
       height: 45,
@@ -202,7 +233,6 @@ class CustomerHeader extends StatelessWidget {
     );
   }
 
-  // --- Filter Button ---
   Widget _buildFilterButton() {
     return Container(
       height: 45,
@@ -217,7 +247,7 @@ class CustomerHeader extends StatelessWidget {
           color: Color.fromARGB(255, 255, 160, 122),
           size: 20,
         ),
-        onPressed: onFilterTap ?? () {},
+        onPressed: widget.onFilterTap ?? () {},
       ),
     );
   }

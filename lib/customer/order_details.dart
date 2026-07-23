@@ -92,7 +92,6 @@ class OrderDetails extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // --- Status Hero Banner ---
                     Center(
                       child: Column(
                         children: [
@@ -126,8 +125,6 @@ class OrderDetails extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 32.0),
-
-                    // --- Info Card ---
                     Container(
                       margin: const EdgeInsets.symmetric(horizontal: 20.0),
                       padding: const EdgeInsets.all(20.0),
@@ -183,9 +180,7 @@ class OrderDetails extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20.0),
-
-                    // --- Receipt Card ---
-                    buildOrderReceiptCardUI(
+                    buildOrderReceiptCard(
                       itemsList: itemsList,
                       subtotal: subtotal,
                       deliveryFee: deliveryFee,
@@ -196,8 +191,6 @@ class OrderDetails extends StatelessWidget {
                 ),
               ),
             ),
-
-            // --- Bottom Action Bar ---
             Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: 20.0,
@@ -270,10 +263,7 @@ class OrderDetails extends StatelessWidget {
     );
   }
 }
-
-// ==================== Dynamic UI Functions ====================
-
-Widget buildOrderReceiptCardUI({
+Widget buildOrderReceiptCard({
   required List<Map<String, Object>> itemsList,
   required double subtotal,
   required double deliveryFee,
@@ -377,15 +367,15 @@ Widget buildOrderReceiptCardUI({
           padding: EdgeInsets.symmetric(vertical: 20.0),
           child: Divider(color: Color(0xFFEEEEEE), height: 1.0, thickness: 1.0),
         ),
-        buildOrderReceiptRowUI('Subtotal', 'RM ${subtotal.toStringAsFixed(2)}'),
+        buildOrderReceiptRow('Subtotal', 'RM ${subtotal.toStringAsFixed(2)}'),
         const SizedBox(height: 12.0),
-        buildOrderReceiptRowUI(
+        buildOrderReceiptRow(
           'Delivery Fee',
           'RM ${deliveryFee.toStringAsFixed(2)}',
         ),
         if (discount > 0) ...[
           const SizedBox(height: 12.0),
-          buildOrderReceiptRowUI(
+          buildOrderReceiptRow(
             'Voucher Discount',
             '-RM ${discount.toStringAsFixed(2)}',
             isDiscount: true,
@@ -421,7 +411,7 @@ Widget buildOrderReceiptCardUI({
   );
 }
 
-Widget buildOrderReceiptRowUI(
+Widget buildOrderReceiptRow(
   String title,
   String value, {
   bool isDiscount = false,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../global.dart';
-import '../data.dart';
 import 'cart.dart'; // For CartItem
+import 'order_confirmation.dart';
 
 class CustomerCheckout extends StatefulWidget {
   const CustomerCheckout({super.key});
@@ -12,6 +12,202 @@ class CustomerCheckout extends StatefulWidget {
 }
 
 class _CustomerCheckoutState extends State<CustomerCheckout> {
+  late List<CartItem> _cartItems;
+  late String _selectedAddress;
+  late List<String> _addresses;
+  late String _selectedPaymentMethod;
+  late List<String> _availablePaymentMethods;
+  Map<String, dynamic>? _appliedVoucher;
+  late double _deliveryFee;
+  late List<Map<String, dynamic>> _availableVouchers;
+
+  @override
+  void initState() {
+    super.initState();
+    _cartItems = [];
+    _selectedAddress = '';
+    _addresses = [];
+    _selectedPaymentMethod = '';
+    _availablePaymentMethods = [];
+    _appliedVoucher = null;
+    _deliveryFee = 0.0;
+    _availableVouchers = [];
+
+    // --- TOREMOVE ---
+    _cartItems = [
+      CartItem(
+        name: 'Classic Beef Burger',
+        price: 16.90,
+        quantity: 2,
+        icon: Icons.lunch_dining,
+        customizations: [
+          CartItemCustomization(name: 'Extra Cheese', price: 2.00),
+          CartItemCustomization(name: 'No Onions', price: 0.00),
+        ],
+      ),
+      CartItem(
+        name: 'Golden French Fries',
+        price: 8.90,
+        quantity: 1,
+        icon: Icons.tapas,
+        customizations: [
+          CartItemCustomization(name: 'Large Size', price: 3.00),
+        ],
+      ),
+    ];
+    _addresses = [
+      'Home - 123 Street Name, City',
+      'Work - 456 Office Tower, City',
+      'Partner - 789 Apartment Bldg, City',
+    ];
+    _selectedAddress = _addresses[0];
+    _selectedPaymentMethod = 'Credit Card';
+    _availablePaymentMethods = ['Credit Card', 'Cash on Delivery', 'E-Wallet', 'Online Banking'];
+    _deliveryFee = 5.00;
+    _availableVouchers = [
+      {
+        'id': 'v1',
+        'title': 'Free Delivery',
+        'type': 'free_delivery',
+        'minSpend': 20.00,
+        'expiryDate': 'Ends Tomorrow',
+      },
+      {
+        'id': 'v2',
+        'title': '10% Off Entire Order',
+        'type': 'percentage',
+        'discountValue': 10.0,
+        'minSpend': 30.00,
+        'expiryDate': 'Valid for 3 days',
+      },
+      {
+        'id': 'v3',
+        'title': '20% Off (Max RM 15)',
+        'type': 'percentage',
+        'discountValue': 20.0,
+        'minSpend': 50.00,
+        'expiryDate': 'Valid until month end',
+      },
+    ];
+    // --- END TOREMOVE ---
+  }
+
+  void _showAddressSelectionDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(24.0),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0E0E0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Delivery Address',
+                    style: TextStyle(
+                      fontSize: 20.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16.0),
+              ..._addresses.map((String address) {
+                final isSelected = _selectedAddress == address;
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedAddress = address;
+                    });
+                    Navigator.pop(context);
+                  },
+                  borderRadius: BorderRadius.circular(12.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(16.0),
+                    margin: const EdgeInsets.only(bottom: 12.0),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.1)
+                          : Colors.white,
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color.fromARGB(255, 255, 160, 122)
+                            : const Color(0xFFEEEEEE),
+                        width: isSelected ? 2.0 : 1.0,
+                      ),
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10.0),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                          child: Icon(
+                            Icons.location_on,
+                            color: isSelected
+                                ? const Color.fromARGB(255, 255, 160, 122)
+                                : const Color(0xFF9E9E9E),
+                          ),
+                        ),
+                        const SizedBox(width: 16.0),
+                        Expanded(
+                          child: Text(
+                            address,
+                            style: TextStyle(
+                              fontSize: 14.0,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        if (isSelected)
+                          const Icon(
+                            Icons.check_circle,
+                            color: Color.fromARGB(255, 255, 160, 122),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,10 +237,30 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
           child: Container(color: const Color(0xFFD6D6D6), height: 1.0),
         ),
       ),
-      body: buildDummyCheckoutView(
+      body: buildCheckoutLayout(
         context: context,
-        onStateChanged: () {
-          setState(() {});
+        cartItems: _cartItems,
+        selectedAddress: _selectedAddress,
+        onAddressTap: () => _showAddressSelectionDialog(context),
+        selectedPaymentMethod: _selectedPaymentMethod,
+        availablePaymentMethods: _availablePaymentMethods,
+        onPaymentMethodChanged: (method) {
+          setState(() {
+            _selectedPaymentMethod = method;
+          });
+        },
+        appliedVoucher: _appliedVoucher,
+        deliveryFee: _deliveryFee,
+        availableVouchers: _availableVouchers,
+        onVoucherApplied: (voucher) {
+          setState(() {
+            _appliedVoucher = voucher;
+          });
+        },
+        onPlaceOrder: () {
+          setState(() {
+            _cartItems.clear();
+          });
         },
       ),
     );
@@ -53,10 +269,11 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
 
 // ==================== Dynamic UI Functions ====================
 
-Widget buildCheckoutLayoutUI({
+Widget buildCheckoutLayout({
   required BuildContext context,
   required List<CartItem> cartItems,
   required String selectedAddress,
+  required VoidCallback onAddressTap,
   required String selectedPaymentMethod,
   required List<String> availablePaymentMethods,
   required Function(String) onPaymentMethodChanged,
@@ -64,10 +281,11 @@ Widget buildCheckoutLayoutUI({
   required double deliveryFee,
   required List<Map<String, dynamic>> availableVouchers,
   required Function(Map<String, dynamic>?) onVoucherApplied,
+  required VoidCallback onPlaceOrder,
 }) {
   if (cartItems.isEmpty) {
     return Center(
-      child: buildDefaultFallbackMessage(
+      child: buildFallbackMessage(
         icon: Icons.shopping_bag_outlined,
         title: 'No Items to Checkout',
         description: 'Please add items to your cart first.',
@@ -101,11 +319,15 @@ Widget buildCheckoutLayoutUI({
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              buildAddressSelectionUI(selectedAddress),
+              buildAddressSelection(
+                context: context,
+                address: selectedAddress,
+                onTap: onAddressTap,
+              ),
               const SizedBox(height: 20.0),
-              buildCheckoutOrderItemsUI(cartItems),
+              buildCheckoutOrderItems(cartItems),
               const SizedBox(height: 20.0),
-              buildCheckoutVoucherUI(
+              buildCheckoutVoucher(
                 context: context,
                 appliedVoucher: appliedVoucher,
                 availableVouchers: availableVouchers,
@@ -113,14 +335,14 @@ Widget buildCheckoutLayoutUI({
                 onVoucherApplied: onVoucherApplied,
               ),
               const SizedBox(height: 20.0),
-              buildCheckoutPaymentUI(
+              buildCheckoutPayment(
                 context: context,
                 selectedPaymentMethod: selectedPaymentMethod,
                 availablePaymentMethods: availablePaymentMethods,
                 onPaymentMethodChanged: onPaymentMethodChanged,
               ),
               const SizedBox(height: 20.0),
-              buildCheckoutSummaryUI(
+              buildCheckoutSummary(
                 subtotal: subtotal,
                 deliveryFee: deliveryFee,
                 discount: discount,
@@ -131,12 +353,16 @@ Widget buildCheckoutLayoutUI({
           ),
         ),
       ),
-      buildCheckoutBottomBarUI(total),
+      buildCheckoutBottomBar(context, total, onPlaceOrder),
     ],
   );
 }
 
-Widget buildAddressSelectionUI(String address) {
+Widget buildAddressSelection({
+  required BuildContext context,
+  required String address,
+  required VoidCallback onTap,
+}) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -149,42 +375,46 @@ Widget buildAddressSelectionUI(String address) {
         ),
       ),
       const SizedBox(height: 12.0),
-      Container(
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16.0),
-          border: Border.all(color: const Color(0xFFEEEEEE)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(12.0),
+      InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16.0),
+        child: Container(
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.0),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10.0),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                child: const Icon(Icons.location_on, color: Color.fromARGB(255, 255, 160, 122)),
               ),
-              child: const Icon(Icons.location_on, color: Color.fromARGB(255, 255, 160, 122)),
-            ),
-            const SizedBox(width: 16.0),
-            Expanded(
-              child: Text(
-                address,
-                style: const TextStyle(
-                  fontSize: 14.0,
-                  fontWeight: FontWeight.w500,
+              const SizedBox(width: 16.0),
+              Expanded(
+                child: Text(
+                  address,
+                  style: const TextStyle(
+                    fontSize: 14.0,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
-            ),
-            const Icon(Icons.chevron_right, color: Color(0xFFBDBDBD)),
-          ],
+              const Icon(Icons.chevron_right, color: Color(0xFFBDBDBD)),
+            ],
+          ),
         ),
       ),
     ],
   );
 }
 
-Widget buildCheckoutOrderItemsUI(List<CartItem> cartItems) {
+Widget buildCheckoutOrderItems(List<CartItem> cartItems) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -265,7 +495,7 @@ Widget buildCheckoutOrderItemsUI(List<CartItem> cartItems) {
   );
 }
 
-Widget buildCheckoutVoucherUI({
+Widget buildCheckoutVoucher({
   required BuildContext context,
   required Map<String, dynamic>? appliedVoucher,
   required List<Map<String, dynamic>> availableVouchers,
@@ -290,7 +520,7 @@ Widget buildCheckoutVoucherUI({
             context: context,
             backgroundColor: Colors.transparent,
             isScrollControlled: true,
-            builder: (context) => buildVoucherSelectionBottomSheetUI(
+            builder: (context) => buildVoucherSelectionBottomSheet(
               availableVouchers: availableVouchers,
               subtotal: subtotal,
               appliedVoucher: appliedVoucher,
@@ -331,7 +561,7 @@ Widget buildCheckoutVoucherUI({
   );
 }
 
-Widget buildVoucherSelectionBottomSheetUI({
+Widget buildVoucherSelectionBottomSheet({
   required List<Map<String, dynamic>> availableVouchers,
   required double subtotal,
   required Map<String, dynamic>? appliedVoucher,
@@ -463,7 +693,7 @@ Widget buildVoucherSelectionBottomSheetUI({
   );
 }
 
-Widget buildCheckoutPaymentUI({
+Widget buildCheckoutPayment({
   required BuildContext context,
   required String selectedPaymentMethod,
   required List<String> availablePaymentMethods,
@@ -487,7 +717,7 @@ Widget buildCheckoutPaymentUI({
             context: context,
             backgroundColor: Colors.transparent,
             isScrollControlled: true,
-            builder: (context) => buildPaymentSelectionBottomSheetUI(
+            builder: (context) => buildPaymentSelectionBottomSheet(
               availablePaymentMethods: availablePaymentMethods,
               selectedPaymentMethod: selectedPaymentMethod,
               onPaymentMethodChanged: (method) {
@@ -524,7 +754,7 @@ Widget buildCheckoutPaymentUI({
   );
 }
 
-Widget buildPaymentSelectionBottomSheetUI({
+Widget buildPaymentSelectionBottomSheet({
   required List<String> availablePaymentMethods,
   required String selectedPaymentMethod,
   required Function(String) onPaymentMethodChanged,
@@ -605,7 +835,7 @@ Widget buildPaymentSelectionBottomSheetUI({
   );
 }
 
-Widget buildCheckoutSummaryUI({
+Widget buildCheckoutSummary({
   required double subtotal,
   required double deliveryFee,
   required double discount,
@@ -682,7 +912,7 @@ Widget buildCheckoutSummaryUI({
   );
 }
 
-Widget buildCheckoutBottomBarUI(double total) {
+Widget buildCheckoutBottomBar(BuildContext context, double total, VoidCallback onPlaceOrder) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
     decoration: const BoxDecoration(
@@ -699,7 +929,15 @@ Widget buildCheckoutBottomBarUI(double total) {
     ),
     child: SafeArea(
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () {
+          onPlaceOrder();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CustomerOrderConfirmation(totalPaid: total),
+            ),
+          );
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 255, 160, 122),
           foregroundColor: Colors.white,

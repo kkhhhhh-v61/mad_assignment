@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// ==================== Default Fallback Message Widget ====================
 class DefaultFallbackMessage extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -66,8 +65,7 @@ class DefaultFallbackMessage extends StatelessWidget {
   }
 }
 
-// ==================== Helper Function ====================
-Widget buildDefaultFallbackMessage({
+Widget buildFallbackMessage({
   required IconData icon,
   required String title,
   required String description,

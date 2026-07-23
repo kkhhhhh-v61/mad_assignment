@@ -5,9 +5,6 @@ import 'order_tracking.dart';
 import 'header.dart';
 import '../global.dart';
 
-// TODELETE
-import '../data.dart';
-
 class CustomerOrders extends StatefulWidget {
   const CustomerOrders({super.key});
 
@@ -34,7 +31,6 @@ class _CustomerOrdersState extends State<CustomerOrders> {
           pageTitle: 'My Orders',
         ),
         const SizedBox(height: 16.0),
-        // --- Status Tabs ---
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 20.0),
           padding: const EdgeInsets.all(4.0),
@@ -91,25 +87,110 @@ class _CustomerOrdersState extends State<CustomerOrders> {
         ),
         const SizedBox(height: 8.0),
         Expanded(
-          // TODELETE
-          // TODO: Replace with dynamic customer orders fetched from database
-          child: buildDummyOrders(context, _selectedStatus),
+          child: Builder(
+            builder: (context) {
+              List<Map<String, dynamic>> dummyOrders = [];
+              // --- TOREMOVE ---
+              dummyOrders = [
+                {
+                  'orderId': '#ORD-8492',
+                  'date': 'Today, 12:45 PM',
+                  'status': 'Preparing',
+                  'items': [
+                    {'name': 'Classic Beef Burger', 'quantity': 2, 'price': 16.90},
+                    {'name': 'Golden French Fries', 'quantity': 1, 'price': 5.80},
+                    {'name': 'Iced Lemon Tea', 'quantity': 2, 'price': 5.00},
+                  ],
+                  'subtotal': 49.60,
+                  'deliveryFee': 5.00,
+                  'discount': 0.00,
+                  'totalPrice': 'RM 54.60',
+                  'info': 'Estimated Delivery: 15-20 mins',
+                  'icon': Icons.lunch_dining,
+                },
+                {
+                  'orderId': '#ORD-8488',
+                  'date': 'Today, 12:15 PM',
+                  'status': 'Delivering',
+                  'items': [
+                    {'name': 'Classic Beef Burger', 'quantity': 2, 'price': 16.90},
+                    {'name': 'Iced Lemon Tea', 'quantity': 1, 'price': 5.00},
+                  ],
+                  'subtotal': 38.80,
+                  'deliveryFee': 3.00,
+                  'discount': 5.00,
+                  'totalPrice': 'RM 36.80',
+                  'info': 'Estimated Arrival: 5 mins',
+                  'icon': Icons.lunch_dining,
+                },
+                {
+                  'orderId': '#ORD-8485',
+                  'date': 'Today, 11:30 AM',
+                  'status': 'Preparing',
+                  'items': [
+                    {'name': 'Pepperoni Feast Pizza', 'quantity': 1, 'price': 28.90},
+                    {'name': 'Crispy Mozzarella Sticks', 'quantity': 1, 'price': 12.90},
+                  ],
+                  'subtotal': 41.80,
+                  'deliveryFee': 4.00,
+                  'discount': 0.00,
+                  'totalPrice': 'RM 45.80',
+                  'info': 'Estimated Delivery: 25-30 mins',
+                  'icon': Icons.local_pizza,
+                },
+                {
+                  'orderId': '#ORD-8470',
+                  'date': 'Yesterday, 7:15 PM',
+                  'status': 'Completed',
+                  'items': [
+                    {'name': 'Spicy Beef Ramen', 'quantity': 1, 'price': 22.90},
+                    {'name': 'Belgian Chocolate Sundae', 'quantity': 1, 'price': 6.90},
+                  ],
+                  'subtotal': 29.80,
+                  'deliveryFee': 4.00,
+                  'discount': 2.00,
+                  'totalPrice': 'RM 31.80',
+                  'info': 'Delivered in 18 mins',
+                  'icon': Icons.ramen_dining,
+                },
+                {
+                  'orderId': '#ORD-8462',
+                  'date': 'Yesterday, 1:30 PM',
+                  'status': 'Cancelled',
+                  'items': [
+                    {'name': 'Pepperoni Feast Pizza', 'quantity': 1, 'price': 28.90},
+                  ],
+                  'subtotal': 28.90,
+                  'deliveryFee': 4.00,
+                  'discount': 0.00,
+                  'totalPrice': 'RM 32.90',
+                  'info': 'Cancelled by restaurant',
+                  'icon': Icons.local_pizza,
+                },
+              ];
+              // --- END TOREMOVE ---
+
+              final filteredOrders = dummyOrders
+                  .where((order) => order['status'] == _selectedStatus)
+                  .toList();
+
+              return buildOrderList(context, filteredOrders, _selectedStatus);
+            },
+          ),
         ),
       ],
     );
   }
 }
 
-// ==================== Dynamic UI Functions ====================
-
-Widget buildOrdersListLayoutUI(
+Widget buildOrderList(
   BuildContext context,
   List<Map<String, dynamic>> orders,
   String selectedStatus,
 ) {
   if (orders.isEmpty) {
     return SingleChildScrollView(
-      child: buildDefaultFallbackMessage(
+      child: buildFallbackMessage(
         icon: Icons.receipt_long_outlined,
         title: 'No Orders Found',
         description: 'You have no $selectedStatus orders at the moment.',
@@ -121,12 +202,12 @@ Widget buildOrdersListLayoutUI(
     padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
     itemCount: orders.length,
     itemBuilder: (context, index) {
-      return buildOrderCardUI(context, orders[index]);
+      return buildOrderCard(context, orders[index]);
     },
   );
 }
 
-Widget buildOrderCardUI(BuildContext context, Map<String, dynamic> order) {
+Widget buildOrderCard(BuildContext context, Map<String, dynamic> order) {
   final String orderId = order['orderId'] as String;
   final String date = order['date'] as String;
   final String status = order['status'] as String;

@@ -52,7 +52,6 @@ class _CustomerAuthState extends State<CustomerAuth> {
             ),
             child: Column(
               children: [
-                // ==================== Header & Welcome ====================
                 const SizedBox(height: 12.0),
                 Text(
                   _isLogin ? 'Welcome Back!' : 'Create Account',
@@ -74,13 +73,10 @@ class _CustomerAuthState extends State<CustomerAuth> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24.0),
-                // ==================== Tab Selector ====================
                 _buildTabSelector(),
                 const SizedBox(height: 24.0),
-                // ==================== Form Section ====================
                 _isLogin ? _buildLoginForm() : _buildRegisterForm(),
                 const SizedBox(height: 24.0),
-                // ==================== Action Button ====================
                 _buildActionButton(context),
                 const SizedBox(height: 32.0),
               ],
@@ -91,7 +87,6 @@ class _CustomerAuthState extends State<CustomerAuth> {
     );
   }
 
-  // ==================== Tab Selector ====================
   Widget _buildTabSelector() {
     return Container(
       padding: const EdgeInsets.all(4.0),
@@ -172,7 +167,6 @@ class _CustomerAuthState extends State<CustomerAuth> {
     );
   }
 
-  // ==================== Login Form ====================
   Widget _buildLoginForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,7 +233,6 @@ class _CustomerAuthState extends State<CustomerAuth> {
     );
   }
 
-  // ==================== Register Form ====================
   Widget _buildRegisterForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,7 +312,6 @@ class _CustomerAuthState extends State<CustomerAuth> {
     );
   }
 
-  // ==================== Input Field Builder ====================
   Widget _buildInputField({
     required TextEditingController controller,
     required String label,
@@ -390,7 +382,6 @@ class _CustomerAuthState extends State<CustomerAuth> {
     );
   }
 
-  // ==================== Action Button ====================
   Widget _buildActionButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
@@ -412,7 +403,6 @@ class _CustomerAuthState extends State<CustomerAuth> {
             return;
           }
 
-          // TODO: replace mock authentication logic with backend call
           widget.onAuthSuccess?.call();
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -445,7 +435,6 @@ class _CustomerAuthState extends State<CustomerAuth> {
     );
   }
 
-  // ==================== Forgot Password Dialog ====================
   void _showForgotPasswordDialog() {
     showDialog(
       context: context,

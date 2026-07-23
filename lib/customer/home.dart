@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'header.dart';
 import '../global.dart';
-
-// TODELETE
-import '../data.dart';
+import 'menu.dart';
 
 class CustomerHome extends StatelessWidget {
   final ValueChanged<String>? onCategorySelected;
@@ -22,7 +20,6 @@ class CustomerHome extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 20.0),
-                // --- Promotional Banner ---
                 SizedBox(
                   height: 200,
                   child: PageView.builder(
@@ -50,7 +47,6 @@ class CustomerHome extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16.0),
-                // --- Quick Categories ---
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20.0),
                   child: Text(
@@ -62,27 +58,37 @@ class CustomerHome extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16.0),
-                // TODELETE
-                // TODO: Replace with dynamic categories data fetched from database
-                buildDummyCategories(context, onSelected: onCategorySelected),
+                Builder(
+                  builder: (context) {
+                    List<Map<String, Object>> categories = [];
+                    // --- TOREMOVE ---
+                    categories = [
+                      {'name': 'Burgers', 'icon': Icons.lunch_dining},
+                      {'name': 'Pizza', 'icon': Icons.local_pizza},
+                      {'name': 'Noodles', 'icon': Icons.ramen_dining},
+                      {'name': 'Sides', 'icon': Icons.tapas},
+                      {'name': 'Desserts', 'icon': Icons.icecream},
+                      {'name': 'Beverages', 'icon': Icons.local_drink},
+                    ];
+                    // --- END TOREMOVE ---
+                    return buildCategoryItems(context, categories, onCategorySelected);
+                  },
+                ),
                 const SizedBox(height: 16.0),
-                // --- Trending Now ---
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Trending Now',
+                        'Most Popular',
                         style: TextStyle(
                           fontSize: 18.0,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       TextButton(
-                        onPressed: () {
-                          // TODO
-                        },
+                        onPressed: () {},
                         style: TextButton.styleFrom(
                           foregroundColor: const Color.fromARGB(
                             255,
@@ -106,9 +112,40 @@ class CustomerHome extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12.0),
-                // TODELETE
-                // TODO: Replace with dynamic trending menu items fetched from database
-                buildDummyMenuItems(context, onlyTrending: true),
+                Builder(
+                  builder: (context) {
+                    List<Map<String, dynamic>> popularItems = [];
+                    // --- TOREMOVE ---
+                    popularItems = [
+                      {
+                        'name': 'Classic Beef Burger',
+                        'category': 'Burgers',
+                        'rating': '4.8 (120+)',
+                        'price': 16.90,
+                        'prepTime': '15-20 min',
+                        'icon': Icons.lunch_dining,
+                      },
+                      {
+                        'name': 'Pepperoni Feast Pizza',
+                        'category': 'Pizza',
+                        'rating': '4.9 (210+)',
+                        'price': 28.90,
+                        'prepTime': '20-25 min',
+                        'icon': Icons.local_pizza,
+                      },
+                      {
+                        'name': 'Spicy Beef Ramen',
+                        'category': 'Noodles',
+                        'rating': '4.8 (150+)',
+                        'price': 18.90,
+                        'prepTime': '15-20 min',
+                        'icon': Icons.ramen_dining,
+                      },
+                    ];
+                    // --- END TOREMOVE ---
+                    return buildFoodItems(context, popularItems);
+                  },
+                ),
                 const SizedBox(height: 20.0),
               ],
             ),
@@ -119,15 +156,13 @@ class CustomerHome extends StatelessWidget {
   }
 }
 
-// ==================== Dynamic UI Functions ====================
-
-Widget buildCategoryItemsLayoutUI(
+Widget buildCategoryItems(
   BuildContext context,
   List<Map<String, Object>> categories,
   ValueChanged<String>? onSelected,
 ) {
   if (categories.isEmpty) {
-    return buildDefaultFallbackMessage(
+    return buildFallbackMessage(
       icon: Icons.category_outlined,
       title: 'No Categories',
       description: 'Categories are currently unavailable.',
@@ -143,7 +178,7 @@ Widget buildCategoryItemsLayoutUI(
       itemBuilder: (context, index) {
         final category = categories[index];
         final String name = category['name'] as String;
-        return buildCategoryItemUI(
+        return buildCategoryItem(
           icon: category['icon'] as IconData,
           name: name,
           onTap: () {
@@ -157,7 +192,7 @@ Widget buildCategoryItemsLayoutUI(
   );
 }
 
-Widget buildCategoryItemUI({
+Widget buildCategoryItem({
   required IconData icon,
   required String name,
   VoidCallback? onTap,

@@ -21,13 +21,10 @@ class CustomerAccount extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 20.0),
-                // --- Profile Card ---
                 _buildProfileCard(),
                 const SizedBox(height: 24.0),
-                // --- Account Options ---
                 _buildAccountOptions(),
                 const SizedBox(height: 32.0),
-                // --- Logout Button ---
                 _buildLogoutButton(context),
                 const SizedBox(height: 32.0),
               ],
@@ -38,7 +35,6 @@ class CustomerAccount extends StatelessWidget {
     );
   }
 
-  // --- Profile Card ---
   Widget _buildProfileCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -99,16 +95,13 @@ class CustomerAccount extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.edit_outlined, color: Color(0xFF9E9E9E)),
-            onPressed: () {
-              // TODO
-            },
+            onPressed: () {},
           ),
         ],
       ),
     );
   }
 
-  // --- Account Options ---
   Widget _buildAccountOptions() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -140,7 +133,6 @@ class CustomerAccount extends StatelessWidget {
     );
   }
 
-  // --- Option Tile ---
   Widget _buildOptionTile(IconData icon, String title) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(
@@ -164,13 +156,10 @@ class CustomerAccount extends StatelessWidget {
         size: 16,
         color: Color(0xFF9E9E9E),
       ),
-      onTap: () {
-        // TODO
-      },
+      onTap: () {},
     );
   }
 
-  // --- Logout Button ---
   Widget _buildLogoutButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),

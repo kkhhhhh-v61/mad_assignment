@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../global.dart';
-import '../data.dart';
 import 'checkout.dart';
 
 class CartItemCustomization {
@@ -35,6 +34,37 @@ class CustomerCart extends StatefulWidget {
 }
 
 class _CustomerCartState extends State<CustomerCart> {
+  late List<CartItem> _cartItems;
+
+  @override
+  void initState() {
+    super.initState();
+    _cartItems = [];
+    // --- TOREMOVE ---
+    _cartItems = [
+      CartItem(
+        name: 'Classic Beef Burger',
+        price: 16.90,
+        quantity: 2,
+        icon: Icons.lunch_dining,
+        customizations: [
+          CartItemCustomization(name: 'Extra Cheese', price: 2.00),
+          CartItemCustomization(name: 'No Onions', price: 0.00),
+        ],
+      ),
+      CartItem(
+        name: 'Golden French Fries',
+        price: 8.90,
+        quantity: 1,
+        icon: Icons.tapas,
+        customizations: [
+          CartItemCustomization(name: 'Large Size', price: 3.00),
+        ],
+      ),
+    ];
+    // --- END TOREMOVE ---
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,10 +94,18 @@ class _CustomerCartState extends State<CustomerCart> {
           child: Container(color: const Color(0xFFD6D6D6), height: 1.0),
         ),
       ),
-      body: buildDummyCartView(
+      body: buildCartLayout(
         context: context,
-        onStateChanged: () {
-          setState(() {});
+        cartItems: _cartItems,
+        onQuantityChanged: (index, newQty) {
+          setState(() {
+            _cartItems[index].quantity = newQty;
+          });
+        },
+        onItemRemoved: (index) {
+          setState(() {
+            _cartItems.removeAt(index);
+          });
         },
       ),
     );
@@ -76,7 +114,7 @@ class _CustomerCartState extends State<CustomerCart> {
 
 // ==================== Dynamic UI Functions ====================
 
-Widget buildCartLayoutUI({
+Widget buildCartLayout({
   required BuildContext context,
   required List<CartItem> cartItems,
   required Function(int, int) onQuantityChanged,
@@ -84,7 +122,7 @@ Widget buildCartLayoutUI({
 }) {
   if (cartItems.isEmpty) {
     return Center(
-      child: buildDefaultFallbackMessage(
+      child: buildFallbackMessage(
         icon: Icons.shopping_cart_outlined,
         title: 'Your Cart is Empty',
         description: 'Add some delicious items from our menu to get started!',
@@ -112,7 +150,7 @@ Widget buildCartLayoutUI({
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: cartItems.length,
                 itemBuilder: (context, index) {
-                  return buildCartItemCardUI(
+                  return buildCartItemCard(
                     item: cartItems[index],
                     index: index,
                     onQuantityChanged: onQuantityChanged,
@@ -125,12 +163,12 @@ Widget buildCartLayoutUI({
         ),
       ),
       // --- Bottom Checkout Bar ---
-      buildCartCheckoutBarUI(context, total),
+      buildCartCheckoutBar(context, total),
     ],
   );
 }
 
-Widget buildCartItemCardUI({
+Widget buildCartItemCard({
   required CartItem item,
   required int index,
   required Function(int, int) onQuantityChanged,
@@ -275,7 +313,7 @@ Widget buildCartItemCardUI({
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  buildCartQuantityButtonUI(
+                  buildCartQuantityButton(
                     icon: Icons.remove,
                     onPressed: () {
                       if (item.quantity > 1) {
@@ -294,7 +332,7 @@ Widget buildCartItemCardUI({
                       ),
                     ),
                   ),
-                  buildCartQuantityButtonUI(
+                  buildCartQuantityButton(
                     icon: Icons.add,
                     iconColor: const Color.fromARGB(255, 255, 160, 122),
                     onPressed: () {
@@ -311,7 +349,7 @@ Widget buildCartItemCardUI({
   );
 }
 
-Widget buildCartQuantityButtonUI({
+Widget buildCartQuantityButton({
   required IconData icon,
   required VoidCallback onPressed,
   Color iconColor = const Color(0xDD000000),
@@ -328,7 +366,7 @@ Widget buildCartQuantityButtonUI({
 
 
 
-Widget buildCartCheckoutBarUI(BuildContext context, double total) {
+Widget buildCartCheckoutBar(BuildContext context, double total) {
   return Container(
     padding: const EdgeInsets.all(20.0),
     decoration: const BoxDecoration(

@@ -10,10 +10,8 @@ class OrderTracking extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Placeholder Map
-          buildOrderTrackingMapPlaceholderUI(),
+          buildOrderTrackingMapPlaceholder(),
 
-          // Floating Back Button
           Positioned(
             top: MediaQuery.of(context).padding.top + 16,
             left: 16,
@@ -44,26 +42,21 @@ class OrderTracking extends StatelessWidget {
             ),
           ),
 
-          // Bottom Sheet
-          buildOrderTrackingSheetUI(context, order),
+          buildOrderTrackingSheet(context, order),
         ],
       ),
     );
   }
 }
 
-// ==================== Dynamic UI Functions ====================
-
-Widget buildOrderTrackingMapPlaceholderUI() {
+Widget buildOrderTrackingMapPlaceholder() {
   return Container(
     width: double.infinity,
     height: double.infinity,
     decoration: const BoxDecoration(color: Color(0xFFE0E0E0)),
     child: Stack(
       children: [
-        // Custom Grid pattern to simulate map texture
         Positioned.fill(child: CustomPaint(painter: GridPainter())),
-        // Center Location Pin
         const Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -85,7 +78,7 @@ Widget buildOrderTrackingMapPlaceholderUI() {
   );
 }
 
-Widget buildOrderTrackingSheetUI(
+Widget buildOrderTrackingSheet(
   BuildContext context,
   Map<String, dynamic> order,
 ) {
@@ -108,7 +101,6 @@ Widget buildOrderTrackingSheetUI(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Handle bar
           Center(
             child: Container(
               width: 40,
@@ -121,7 +113,6 @@ Widget buildOrderTrackingSheetUI(
           ),
           const SizedBox(height: 24),
 
-          // ETA and Status Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -166,7 +157,6 @@ Widget buildOrderTrackingSheetUI(
           const Divider(color: Color(0xFFEEEEEE), height: 1),
           const SizedBox(height: 24),
 
-          // Rider Info
           Row(
             children: [
               Container(
@@ -235,22 +225,21 @@ Widget buildOrderTrackingSheetUI(
           const Divider(color: Color(0xFFEEEEEE), height: 1),
           const SizedBox(height: 24),
 
-          // Vertical Stepper
-          buildOrderTrackingTimelineStepUI(
+          buildOrderTrackingTimelineStep(
             title: 'Order Placed',
             subtitle: 'Restaurant confirmed your order.',
             icon: Icons.receipt,
             isCompleted: true,
             isLast: false,
           ),
-          buildOrderTrackingTimelineStepUI(
+          buildOrderTrackingTimelineStep(
             title: 'Preparing',
             subtitle: 'Your food is being prepared.',
             icon: Icons.outdoor_grill,
             isCompleted: true,
             isLast: false,
           ),
-          buildOrderTrackingTimelineStepUI(
+          buildOrderTrackingTimelineStep(
             title: 'On The Way',
             subtitle: 'Rider is heading to your location.',
             icon: Icons.electric_moped,
@@ -265,7 +254,7 @@ Widget buildOrderTrackingSheetUI(
   );
 }
 
-Widget buildOrderTrackingTimelineStepUI({
+Widget buildOrderTrackingTimelineStep({
   required String title,
   required String subtitle,
   required IconData icon,
@@ -341,12 +330,10 @@ class GridPainter extends CustomPainter {
       ..color = Colors.black.withValues(alpha: 0.05)
       ..strokeWidth = 1.0;
 
-    // Draw horizontal lines
     for (double i = 0; i < size.height; i += 40) {
       canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
     }
 
-    // Draw vertical lines
     for (double i = 0; i < size.width; i += 40) {
       canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
     }

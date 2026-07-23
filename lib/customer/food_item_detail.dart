@@ -70,14 +70,12 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
       body: SafeArea(
         child: Column(
           children: [
-            // --- Scrollable Details & Customization ---
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(top: 16.0, bottom: 20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // --- Hero Banner ---
                     Container(
                       height: 230,
                       width: double.infinity,
@@ -88,7 +86,6 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                         border: Border.all(color: const Color(0xFFE0E0E0)),
                       ),
                       child: Center(
-                        // TODO: replace with high-resolution image
                         child: Icon(
                           widget.icon,
                           size: 96,
@@ -97,7 +94,6 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                       ),
                     ),
                     const SizedBox(height: 16.0),
-                    // --- Title & Metadata Section ---
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: Column(
@@ -197,7 +193,6 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                           const SizedBox(height: 16.0),
                           const Divider(height: 1, color: Color(0xFFE0E0E0)),
                           const SizedBox(height: 16.0),
-                          // --- Description Section ---
                           const Text(
                             'Description',
                             style: TextStyle(
@@ -219,14 +214,12 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                       ),
                     ),
                     const SizedBox(height: 20.0),
-                    // --- Size Section ---
                     _buildSectionHeader('Choice of Size', true),
                     const SizedBox(height: 8.0),
                     _buildSizeOption('Regular', '+ RM 0.00'),
                     _buildSizeOption('Large', '+ RM 3.50'),
                     _buildSizeOption('Extra Large', '+ RM 6.00'),
                     const SizedBox(height: 16.0),
-                    // --- Spice Level Section ---
                     _buildSectionHeader('Spice Level', false),
                     const SizedBox(height: 8.0),
                     Padding(
@@ -278,14 +271,12 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                       ),
                     ),
                     const SizedBox(height: 16.0),
-                    // --- Add-ons Section ---
                     _buildSectionHeader('Add-ons & Extras', false),
                     const SizedBox(height: 8.0),
                     _buildAddonOption('Extra Cheese', '+ RM 2.50'),
                     _buildAddonOption('Add Egg', '+ RM 2.00'),
                     _buildAddonOption('Extra Sauce', '+ RM 1.50'),
                     const SizedBox(height: 16.0),
-                    // --- Special Instructions Section ---
                     _buildSectionHeader('Special Instructions', false),
                     const SizedBox(height: 8.0),
                     Padding(
@@ -325,7 +316,6 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                 ),
               ),
             ),
-            // --- Bottom Action Bar ---
             Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: 20.0,
@@ -390,7 +380,6 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        // TODO: replace with dynamic state management
                         final List<String> customParts = [
                           'Size: $_selectedSize',
                           'Spice: $_selectedSpice',
@@ -407,7 +396,6 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                             'Note: ${_specialInstructionsController.text.trim()}',
                           );
                         }
-                        // TODO: Send item and customizations (${customParts.join(' • ')}) to backend database cart API
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -461,7 +449,6 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
     );
   }
 
-  // --- Helper Widgets ---
   Widget _buildSectionHeader(String title, bool isRequired) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),

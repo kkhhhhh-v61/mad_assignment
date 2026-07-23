@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../global.dart';
-// TODELETE
-import '../data.dart';
 
 class CustomerNotifications extends StatefulWidget {
   const CustomerNotifications({super.key});
@@ -15,15 +13,56 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
   String _selectedCategory = 'All';
   final List<String> _categories = const ['All', 'Orders', 'Promos', 'System'];
 
-  // TODELETE
   late List<Map<String, dynamic>> _notifications;
 
   @override
   void initState() {
     super.initState();
-    // TODELETE
-    // TODO: Initialize notifications from backend API
-    _notifications = getInitialDummyNotifications();
+    _notifications = [];
+    // --- TOREMOVE ---
+    _notifications = [
+      {
+        'id': '1',
+        'type': 'Orders',
+        'title': 'Order Delivered',
+        'description': 'Your order #ORD-8492 has been delivered successfully. Enjoy your meal!',
+        'time': 'Just now',
+        'isRead': false,
+      },
+      {
+        'id': '2',
+        'type': 'Promos',
+        'title': '50% Off Your Next Order!',
+        'description': 'Use code HALFPRICE at checkout to get 50% off your next meal. Valid until tomorrow.',
+        'time': '2 hours ago',
+        'isRead': false,
+      },
+      {
+        'id': '3',
+        'type': 'Orders',
+        'title': 'Order Preparing',
+        'description': 'Your order #ORD-8495 is currently being prepared by the restaurant.',
+        'time': 'Yesterday, 6:30 PM',
+        'isRead': true,
+      },
+      {
+        'id': '4',
+        'type': 'System',
+        'title': 'App Update Available',
+        'description': 'A new version of the app is available with new features and improvements.',
+        'time': 'Yesterday, 10:00 AM',
+        'isRead': true,
+      },
+      {
+        'id': '5',
+        'type': 'Promos',
+        'title': 'Free Delivery Weekend',
+        'description': 'Enjoy free delivery on all orders this weekend! No minimum spend required.',
+        'time': 'Oct 15, 2023',
+        'isRead': true,
+      },
+    ];
+    // --- END TOREMOVE ---
   }
 
   void _forceUpdate() {
@@ -56,7 +95,7 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.done_all, color: Color(0xFF2196F3)),
+            icon: const Icon(Icons.done_all, color: Color.fromARGB(255, 255, 160, 122)),
             tooltip: 'Mark all as read',
             onPressed: () {
               setState(() {
@@ -75,7 +114,6 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
       ),
       body: Column(
         children: [
-          // --- Category Filter Tabs ---
           Container(
             color: Colors.white,
             padding: const EdgeInsets.symmetric(
@@ -129,15 +167,20 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
             ),
           ),
           const SizedBox(height: 8.0),
-          // --- Notifications List ---
           Expanded(
-            // TODELETE
-            // TODO: Call dynamic layout function with data fetched from backend
-            child: buildDummyNotifications(
-              context,
-              _notifications,
-              _selectedCategory,
-              _forceUpdate,
+            child: Builder(
+              builder: (context) {
+                final displayedNotifs = _selectedCategory == 'All'
+                    ? _notifications
+                    : _notifications
+                        .where((notif) => notif['type'] == _selectedCategory)
+                        .toList();
+                return buildNotificationsList(
+                  context,
+                  displayedNotifs,
+                  _forceUpdate,
+                );
+              },
             ),
           ),
         ],
@@ -146,16 +189,14 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
   }
 }
 
-// ==================== Dynamic UI Functions ====================
-
-Widget buildNotificationsListLayoutUI(
+Widget buildNotificationsList(
   BuildContext context,
   List<Map<String, dynamic>> notifications,
   VoidCallback onUpdate,
 ) {
   if (notifications.isEmpty) {
     return SingleChildScrollView(
-      child: buildDefaultFallbackMessage(
+      child: buildFallbackMessage(
         icon: Icons.notifications_none_outlined,
         title: 'No Notifications Yet',
         description: 'You have no notifications or updates right now.',
@@ -169,12 +210,12 @@ Widget buildNotificationsListLayoutUI(
     separatorBuilder: (context, index) => const SizedBox(height: 12.0),
     itemBuilder: (context, index) {
       final notif = notifications[index];
-      return buildNotificationCardUI(context, notif, onUpdate);
+      return buildNotificationCard(context, notif, onUpdate);
     },
   );
 }
 
-Widget buildNotificationCardUI(
+Widget buildNotificationCard(
   BuildContext context,
   Map<String, dynamic> notif,
   VoidCallback onUpdate,

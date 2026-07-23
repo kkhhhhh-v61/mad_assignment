@@ -49,6 +49,7 @@ class OrderTracking extends StatelessWidget {
   }
 }
 
+//TODO: Replace with actual map widget and live location tracking from backend
 Widget buildOrderTrackingMapPlaceholder() {
   return Container(
     width: double.infinity,
@@ -194,6 +195,7 @@ Widget buildOrderTrackingSheet(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    //TODO: Retrieve driver details dynamically from backend
                     Text(
                       'Azizul Rahman',
                       style: TextStyle(
@@ -243,6 +245,7 @@ Widget buildOrderTrackingSheet(
           const Divider(color: Color.fromARGB(255, 238, 238, 238), height: 1),
           const SizedBox(height: 24),
 
+          //TODO: Retrieve order timeline dynamically from backend
           buildOrderTrackingTimelineStep(
             title: 'Order Placed',
             subtitle: 'Restaurant confirmed your order.',

@@ -22,6 +22,7 @@ class CustomerHome extends StatelessWidget {
                 const SizedBox(height: 20.0),
                 SizedBox(
                   height: 200,
+                  //TODO: Retrieve banner images dynamically from backend
                   child: PageView.builder(
                     itemCount: 1,
                     itemBuilder: (context, index) {
@@ -61,6 +62,7 @@ class CustomerHome extends StatelessWidget {
                 Builder(
                   builder: (context) {
                     List<Map<String, Object>> categories = [];
+                    //TODO: Retrieve food categories dynamically from backend
                     // --- TOREMOVE ---
                     categories = [
                       {'name': 'Burgers', 'icon': Icons.lunch_dining},
@@ -119,6 +121,7 @@ class CustomerHome extends StatelessWidget {
                 Builder(
                   builder: (context) {
                     List<Map<String, dynamic>> popularItems = [];
+                    //TODO: Retrieve popular food items dynamically from backend
                     // --- TOREMOVE ---
                     popularItems = [
                       {

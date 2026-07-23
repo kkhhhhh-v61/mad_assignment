@@ -286,7 +286,10 @@ class _CustomerMenuState extends State<CustomerMenu> {
                         width: double.infinity,
                         height: 50.0,
                         child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            //TODO: Fetch filtered and sorted menu items dynamically from backend
+                            Navigator.pop(context);
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color.fromARGB(
                               255,
@@ -328,6 +331,7 @@ class _CustomerMenuState extends State<CustomerMenu> {
         Builder(
           builder: (context) {
             List<Map<String, dynamic>> categories = [];
+            //TODO: Retrieve food categories dynamically from backend
             // --- TOREMOVE ---
             categories = [
               {'name': 'Burgers', 'icon': Icons.lunch_dining},
@@ -354,6 +358,7 @@ class _CustomerMenuState extends State<CustomerMenu> {
               child: Builder(
                 builder: (context) {
                   List<Map<String, dynamic>> menuItems = [];
+                  //TODO: Retrieve food items dynamically from backend based on category and filters
                   // --- TOREMOVE ---
                   menuItems = [
                     {

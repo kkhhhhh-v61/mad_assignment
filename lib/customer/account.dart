@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'header.dart';
+import 'profile.dart';
 
 class CustomerAccount extends StatelessWidget {
   final VoidCallback? onLogout;
@@ -21,7 +22,7 @@ class CustomerAccount extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 20.0),
-                _buildProfileCard(),
+                _buildProfileCard(context),
                 const SizedBox(height: 24.0),
                 _buildAccountOptions(),
                 const SizedBox(height: 32.0),
@@ -35,7 +36,7 @@ class CustomerAccount extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20.0),
       padding: const EdgeInsets.all(20.0),
@@ -76,6 +77,7 @@ class CustomerAccount extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                //TODO: Retrieve user profile details dynamically from backend
                 Text(
                   'Kai Hao',
                   style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
@@ -104,7 +106,14 @@ class CustomerAccount extends StatelessWidget {
               Icons.edit_outlined,
               color: Color.fromARGB(255, 158, 158, 158),
             ),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CustomerProfile(),
+                ),
+              );
+            },
           ),
         ],
       ),

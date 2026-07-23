@@ -401,6 +401,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
+                        //TODO: Submit selected food item and customizations to backend cart API
                         final List<String> customParts = [
                           'Size: $_selectedSize',
                           'Spice: $_selectedSpice',

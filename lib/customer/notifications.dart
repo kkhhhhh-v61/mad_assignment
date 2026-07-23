@@ -19,6 +19,7 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
   void initState() {
     super.initState();
     _notifications = [];
+    //TODO: Retrieve user's notifications dynamically from backend
     // --- TOREMOVE ---
     _notifications = [
       {
@@ -106,6 +107,7 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
             ),
             tooltip: 'Mark all as read',
             onPressed: () {
+              //TODO: Mark all notifications as read via backend API
               setState(() {
                 for (var notif in _notifications) {
                   notif['isRead'] = true;
@@ -259,6 +261,7 @@ Widget buildNotificationCard(
   return InkWell(
     onTap: () {
       if (!isRead) {
+        //TODO: Mark single notification as read via backend API
         notif['isRead'] = true;
         onUpdate();
       }

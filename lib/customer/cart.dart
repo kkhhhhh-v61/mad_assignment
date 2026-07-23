@@ -40,6 +40,7 @@ class _CustomerCartState extends State<CustomerCart> {
   void initState() {
     super.initState();
     _cartItems = [];
+    //TODO: Retrieve user's cart items dynamically from backend
     // --- TOREMOVE ---
     _cartItems = [
       CartItem(
@@ -101,11 +102,13 @@ class _CustomerCartState extends State<CustomerCart> {
         context: context,
         cartItems: _cartItems,
         onQuantityChanged: (index, newQty) {
+          //TODO: Update item quantity in cart via backend API
           setState(() {
             _cartItems[index].quantity = newQty;
           });
         },
         onItemRemoved: (index) {
+          //TODO: Remove item from cart via backend API
           setState(() {
             _cartItems.removeAt(index);
           });

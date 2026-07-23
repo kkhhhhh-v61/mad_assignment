@@ -211,7 +211,9 @@ class OrderDetails extends StatelessWidget {
                 height: 50,
                 child: isOutlined
                     ? OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          //TODO: Handle Cancel Order API request
+                        },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: buttonColor,
                           side: BorderSide(color: buttonColor, width: 2),
@@ -238,7 +240,9 @@ class OrderDetails extends StatelessWidget {
                                   ),
                                 );
                               }
-                            : () {},
+                            : () {
+                                //TODO: Handle Reorder API request or navigate to cart
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: buttonColor,
                           foregroundColor: Colors.white,

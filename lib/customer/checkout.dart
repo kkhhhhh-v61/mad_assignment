@@ -33,6 +33,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     _deliveryFee = 0.0;
     _availableVouchers = [];
 
+    //TODO: Retrieve checkout items, available addresses, payment methods, and vouchers dynamically from backend
     // --- TOREMOVE ---
     _cartItems = [
       CartItem(
@@ -1052,6 +1053,7 @@ Widget buildCheckoutBottomBar(
     child: SafeArea(
       child: ElevatedButton(
         onPressed: () {
+          //TODO: Submit order details to backend API and handle response
           onPlaceOrder();
           Navigator.push(
             context,

@@ -24,6 +24,7 @@ class CustomerHeader extends StatefulWidget {
 }
 
 class _CustomerHeaderState extends State<CustomerHeader> {
+  //TODO: Retrieve user addresses dynamically from backend
   // --- TOREMOVE ---
   final List<String> _addresses = [
     'Home - 123 Street Name, City',
@@ -162,6 +163,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
       children: [
         _buildIconWithBadge(
           icon: Icons.notifications_outlined,
+          //TODO: Retrieve unread notifications count dynamically from backend
           showBadge: true,
           onPressed: () {
             Navigator.push(
@@ -174,6 +176,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
         ),
         _buildIconWithBadge(
           icon: Icons.shopping_cart_outlined,
+          //TODO: Retrieve cart item count dynamically from backend
           showBadge: true,
           onPressed: () {
             Navigator.push(
@@ -228,6 +231,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
       ),
       child: const TextField(
         textAlignVertical: TextAlignVertical.center,
+        //TODO: Handle search query submission to backend
         decoration: InputDecoration(
           isDense: true,
           border: InputBorder.none,

@@ -22,6 +22,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
@@ -31,6 +32,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
     _passwordController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
+    _addressController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
@@ -268,6 +270,14 @@ class _CustomerAuthState extends State<CustomerAuth> {
         ),
         const SizedBox(height: 16.0),
         _buildInputField(
+          controller: _addressController,
+          label: 'Address',
+          hintText: 'e.g., No. 1, Jalan Taylor\'s, 47500 Subang Jaya',
+          icon: Icons.location_on_outlined,
+          keyboardType: TextInputType.streetAddress,
+        ),
+        const SizedBox(height: 16.0),
+        _buildInputField(
           controller: _passwordController,
           label: 'Password',
           hintText: 'Create your password',
@@ -426,6 +436,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
             return;
           }
 
+          //TODO: Authenticate user via backend (login/register) and retrieve user session
           widget.onAuthSuccess?.call();
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -528,6 +539,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
             ),
             ElevatedButton(
               onPressed: () {
+                //TODO: Send password reset link via backend API
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

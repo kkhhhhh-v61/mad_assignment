@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../rider/main_navigation.dart';
 import 'header.dart';
 
 class CustomerAuth extends StatefulWidget {
@@ -80,6 +81,8 @@ class _CustomerAuthState extends State<CustomerAuth> {
                 _isLogin ? _buildLoginForm() : _buildRegisterForm(),
                 const SizedBox(height: 24.0),
                 _buildActionButton(context),
+                const SizedBox(height: 16.0),
+                _buildTempRiderButton(context),
                 const SizedBox(height: 32.0),
               ],
             ),
@@ -464,6 +467,24 @@ class _CustomerAuthState extends State<CustomerAuth> {
         child: Text(
           _isLogin ? 'Log In' : 'Create Account',
           style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTempRiderButton(BuildContext context) {
+    return TextButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const RiderMainNavigation()),
+        );
+      },
+      child: const Text(
+        'Temporary: Go to Rider Interface',
+        style: TextStyle(
+          color: Color.fromARGB(255, 117, 117, 117),
+          decoration: TextDecoration.underline,
         ),
       ),
     );

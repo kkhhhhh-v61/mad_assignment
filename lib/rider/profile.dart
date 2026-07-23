@@ -1,26 +1,24 @@
 import 'package:flutter/material.dart';
 
-class CustomerProfile extends StatefulWidget {
-  const CustomerProfile({super.key});
+class RiderProfile extends StatefulWidget {
+  const RiderProfile({super.key});
 
   @override
-  State<CustomerProfile> createState() => _CustomerProfileState();
+  State<RiderProfile> createState() => _RiderProfileState();
 }
 
-class _CustomerProfileState extends State<CustomerProfile> {
+class _RiderProfileState extends State<RiderProfile> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
-
   @override
   void initState() {
     super.initState();
-    //TODO: Populate controllers with existing user profile data
-    _nameController.text = 'Kai Hao';
-    _emailController.text = 'kaihao0303@gmail.com';
-    _phoneController.text = '+60 16-356 1651';
-
+    //TODO: Populate controllers with existing rider profile data
+    _nameController.text = 'Rider Ahmad';
+    _emailController.text = 'ahmad_rider@example.com';
+    _phoneController.text = '+60 12-345 6789';
   }
 
   @override
@@ -28,7 +26,6 @@ class _CustomerProfileState extends State<CustomerProfile> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-
     super.dispose();
   }
 
@@ -49,7 +46,7 @@ class _CustomerProfileState extends State<CustomerProfile> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Edit Profile',
+          'Rider Profile',
           style: TextStyle(
             color: Color.fromARGB(221, 0, 0, 0),
             fontWeight: FontWeight.bold,
@@ -74,14 +71,14 @@ class _CustomerProfileState extends State<CustomerProfile> {
                   buildInputField(
                     controller: _nameController,
                     label: 'Full Name',
-                    hintText: 'e.g., Kai Hao',
+                    hintText: 'e.g., Ahmad',
                     icon: Icons.person_outline,
                   ),
                   const SizedBox(height: 16.0),
                   buildInputField(
                     controller: _emailController,
                     label: 'Email Address',
-                    hintText: 'e.g., kaihao0303@gmail.com',
+                    hintText: 'e.g., ahmad_rider@example.com',
                     icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                   ),
@@ -89,7 +86,7 @@ class _CustomerProfileState extends State<CustomerProfile> {
                   buildInputField(
                     controller: _phoneController,
                     label: 'Phone Number',
-                    hintText: 'e.g., +60 16-356 1651',
+                    hintText: 'e.g., +60 12-345 6789',
                     icon: Icons.phone_outlined,
                     keyboardType: TextInputType.phone,
                   ),
@@ -146,7 +143,7 @@ Widget buildProfilePicture() {
               size: 20,
             ),
             onPressed: () {
-              //TODO: Handle profile picture update
+              //TODO: Handle rider profile picture update
             },
           ),
         ),
@@ -161,9 +158,6 @@ Widget buildInputField({
   required String hintText,
   required IconData icon,
   TextInputType keyboardType = TextInputType.text,
-  bool isPassword = false,
-  bool obscureText = false,
-  VoidCallback? onTogglePassword,
 }) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,7 +174,6 @@ Widget buildInputField({
       TextField(
         controller: controller,
         keyboardType: keyboardType,
-        obscureText: obscureText,
         style: const TextStyle(
           fontSize: 15.0,
           color: Color.fromARGB(221, 0, 0, 0),
@@ -197,18 +190,6 @@ Widget buildInputField({
             color: const Color.fromARGB(255, 117, 117, 117),
             size: 20,
           ),
-          suffixIcon: isPassword
-              ? IconButton(
-                  icon: Icon(
-                    obscureText
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    color: const Color.fromARGB(255, 117, 117, 117),
-                    size: 20,
-                  ),
-                  onPressed: onTogglePassword,
-                )
-              : null,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16.0,
             vertical: 14.0,
@@ -244,7 +225,7 @@ Widget buildSaveButton(BuildContext context) {
     height: 52,
     child: ElevatedButton(
       onPressed: () {
-        //TODO: Update user profile via backend API
+        //TODO: Update rider profile via backend API
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(

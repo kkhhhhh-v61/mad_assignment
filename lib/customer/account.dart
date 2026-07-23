@@ -26,12 +26,12 @@ class CustomerAccount extends StatelessWidget {
                 const SizedBox(height: 24.0),
                 _buildAccountOptions(),
                 const SizedBox(height: 32.0),
-                _buildLogoutButton(context),
-                const SizedBox(height: 32.0),
               ],
             ),
           ),
         ),
+        _buildLogoutButton(context),
+        const SizedBox(height: 20.0),
       ],
     );
   }

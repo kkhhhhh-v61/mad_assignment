@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-class CustomerOrderConfirmation extends StatelessWidget {
-  final double totalPaid;
+class DeliveryConfirmation extends StatelessWidget {
+  final Map<String, dynamic> delivery;
 
-  const CustomerOrderConfirmation({super.key, required this.totalPaid});
+  const DeliveryConfirmation({super.key, required this.delivery});
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +50,7 @@ class CustomerOrderConfirmation extends StatelessWidget {
               ),
               const SizedBox(height: 40.0),
               const Text(
-                'Order Placed\nSuccessfully!',
+                'Delivery Completed\nSuccessfully!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 28.0,
@@ -61,7 +61,7 @@ class CustomerOrderConfirmation extends StatelessWidget {
               ),
               const SizedBox(height: 16.0),
               Text(
-                'You have successfully paid RM ${totalPaid.toStringAsFixed(2)}',
+                'Order for ${delivery['customerName']} has been delivered.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 16.0,
@@ -73,7 +73,8 @@ class CustomerOrderConfirmation extends StatelessWidget {
               const Spacer(),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
+                  int count = 0;
+                  Navigator.of(context).popUntil((_) => count++ >= 2);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 255, 160, 122),
@@ -85,7 +86,7 @@ class CustomerOrderConfirmation extends StatelessWidget {
                   ),
                 ),
                 child: const Text(
-                  'Back to Home',
+                  'Back to Deliveries',
                   style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                 ),
               ),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../global.dart';
-
 import 'order_details.dart';
+import 'order_tracking.dart';
+import 'header.dart';
+import '../global.dart';
 
 // TODELETE
 import '../data.dart';
-import 'header.dart';
 
 class CustomerOrders extends StatefulWidget {
   const CustomerOrders({super.key});
@@ -90,24 +90,48 @@ class _CustomerOrdersState extends State<CustomerOrders> {
           ),
         ),
         const SizedBox(height: 8.0),
-        // TODO: Replace with dynamic customer orders fetched from database
         Expanded(
-          child: SingleChildScrollView(
-            // TODELETE
-            child: buildDummyOrders(_selectedStatus),
-          ),
+          // TODELETE
+          // TODO: Replace with dynamic customer orders fetched from database
+          child: buildDummyOrders(context, _selectedStatus),
         ),
       ],
     );
   }
 }
 
-// ==================== Order Card UI ====================
-Widget buildOrderCard(BuildContext context, Map<String, Object> order) {
+// ==================== Dynamic UI Functions ====================
+
+Widget buildOrdersListLayoutUI(
+  BuildContext context,
+  List<Map<String, dynamic>> orders,
+  String selectedStatus,
+) {
+  if (orders.isEmpty) {
+    return SingleChildScrollView(
+      child: buildDefaultFallbackMessage(
+        icon: Icons.receipt_long_outlined,
+        title: 'No Orders Found',
+        description: 'You have no $selectedStatus orders at the moment.',
+      ),
+    );
+  }
+
+  return ListView.builder(
+    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+    itemCount: orders.length,
+    itemBuilder: (context, index) {
+      return buildOrderCardUI(context, orders[index]);
+    },
+  );
+}
+
+Widget buildOrderCardUI(BuildContext context, Map<String, dynamic> order) {
   final String orderId = order['orderId'] as String;
   final String date = order['date'] as String;
   final String status = order['status'] as String;
-  final List<Map<String, Object>> itemsList = (order['items'] as List).cast<Map<String, Object>>();
+  final List<Map<String, dynamic>> itemsList = (order['items'] as List)
+      .cast<Map<String, dynamic>>();
   final String totalPrice = order['totalPrice'] as String;
   final String info = order['info'] as String;
   final IconData? icon = order['icon'] as IconData?;
@@ -150,8 +174,9 @@ Widget buildOrderCard(BuildContext context, Map<String, Object> order) {
       break;
   }
 
-  // Parse items
-  String firstItemName = itemsList.isNotEmpty ? itemsList.first['name'] as String : '';
+  String firstItemName = itemsList.isNotEmpty
+      ? itemsList.first['name'] as String
+      : '';
   final int remainingCount = itemsList.length - 1;
   final String displayItems = remainingCount > 0
       ? '$firstItemName & $remainingCount item(s)'
@@ -161,9 +186,7 @@ Widget buildOrderCard(BuildContext context, Map<String, Object> order) {
     onTap: () {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => OrderDetails(order: order),
-        ),
+        MaterialPageRoute(builder: (context) => OrderDetails(order: order)),
       );
     },
     child: Container(
@@ -173,173 +196,184 @@ Widget buildOrderCard(BuildContext context, Map<String, Object> order) {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.0),
         boxShadow: const [
-        BoxShadow(
-          color: Color.fromARGB(20, 0, 0, 0),
-          blurRadius: 8,
-          spreadRadius: 1,
-          offset: Offset(0, 3),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  orderId,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16.0,
-                    color: Color(0xDD000000),
-                  ),
-                ),
-                const SizedBox(height: 2.0),
-                Text(
-                  date,
-                  style: const TextStyle(
-                    fontSize: 12.0,
-                    color: Color(0xFF757575),
-                  ),
-                ),
-              ],
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20.0),
-              ),
-              child: Text(
-                status,
-                style: TextStyle(
-                  color: statusColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12.0,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 12.0),
-          child: Divider(color: Color(0xFFEEEEEE), height: 1.0),
-        ),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Container(
-                height: 60,
-                width: 60,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: Icon(
-                  icon,
-                  color: const Color(0xFF9E9E9E),
-                  size: 30,
-                ),
-              ),
-              const SizedBox(width: 16.0),
-            ],
-            Expanded(
-              child: Column(
+          BoxShadow(
+            color: Color.fromARGB(20, 0, 0, 0),
+            blurRadius: 8,
+            spreadRadius: 1,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    displayItems,
-                    style: const TextStyle(
-                      fontSize: 15.0,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xDD000000),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8.0),
-                  Text(
-                    totalPrice,
+                    orderId,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16.0,
-                      color: Color.fromARGB(255, 255, 160, 122),
+                      color: Color(0xDD000000),
+                    ),
+                  ),
+                  const SizedBox(height: 2.0),
+                  Text(
+                    date,
+                    style: const TextStyle(
+                      fontSize: 12.0,
+                      color: Color(0xFF757575),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 12.0),
-          child: Divider(color: Color(0xFFEEEEEE), height: 1.0),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  footerIcon,
-                  size: 16.0,
-                  color: const Color(0xFF757575),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12.0,
+                  vertical: 6.0,
                 ),
-                const SizedBox(width: 4.0),
-                Text(
-                  info,
-                  style: const TextStyle(
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.bold,
                     fontSize: 12.0,
-                    color: Color(0xFF757575),
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
+              ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12.0),
+            child: Divider(color: Color(0xFFEEEEEE), height: 1.0),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Container(
+                  height: 60,
+                  width: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  child: Icon(icon, color: const Color(0xFF9E9E9E), size: 30),
+                ),
+                const SizedBox(width: 16.0),
               ],
-            ),
-            SizedBox(
-              height: 32,
-              child: isOutlined
-                  ? OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: buttonColor,
-                        side: BorderSide(color: buttonColor),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayItems,
+                      style: const TextStyle(
+                        fontSize: 15.0,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xDD000000),
                       ),
-                      child: Text(
-                        buttonText,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.0),
-                      ),
-                    )
-                  : ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: buttonColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      ),
-                      child: Text(
-                        buttonText,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.0),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8.0),
+                    Text(
+                      totalPrice,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.0,
+                        color: Color.fromARGB(255, 255, 160, 122),
                       ),
                     ),
-            ),
-          ],
-        ),
-      ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12.0),
+            child: Divider(color: Color(0xFFEEEEEE), height: 1.0),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(footerIcon, size: 16.0, color: const Color(0xFF757575)),
+                  const SizedBox(width: 4.0),
+                  Text(
+                    info,
+                    style: const TextStyle(
+                      fontSize: 12.0,
+                      color: Color(0xFF757575),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(
+                height: 32,
+                child: isOutlined
+                    ? OutlinedButton(
+                        onPressed: () {},
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: buttonColor,
+                          side: BorderSide(color: buttonColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        ),
+                        child: Text(
+                          buttonText,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.0,
+                          ),
+                        ),
+                      )
+                    : ElevatedButton(
+                        onPressed: buttonText == 'Track Order'
+                            ? () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        OrderTracking(order: order),
+                                  ),
+                                );
+                              }
+                            : () {},
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: buttonColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        ),
+                        child: Text(
+                          buttonText,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.0,
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ],
+      ),
     ),
-  ),
-);
+  );
 }

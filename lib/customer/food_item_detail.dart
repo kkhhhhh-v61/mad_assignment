@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class FoodItemDetail extends StatefulWidget {
-  final Map<String, Object> item;
+  final Map<String, dynamic> item;
 
   const FoodItemDetail({super.key, required this.item});
 

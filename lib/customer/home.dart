@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'header.dart';
 import '../global.dart';
 
 // TODELETE
 import '../data.dart';
-import 'header.dart';
 
 class CustomerHome extends StatelessWidget {
   final ValueChanged<String>? onCategorySelected;
@@ -62,9 +62,9 @@ class CustomerHome extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16.0),
-                // TODO: Replace with dynamic categories data fetched from database
                 // TODELETE
-                buildDummyCategories(onSelected: onCategorySelected),
+                // TODO: Replace with dynamic categories data fetched from database
+                buildDummyCategories(context, onSelected: onCategorySelected),
                 const SizedBox(height: 16.0),
                 // --- Trending Now ---
                 Padding(
@@ -106,9 +106,9 @@ class CustomerHome extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12.0),
-                // TODO: Replace with dynamic trending menu items fetched from database
                 // TODELETE
-                buildDummyMenuItems(onlyTrending: true),
+                // TODO: Replace with dynamic trending menu items fetched from database
+                buildDummyMenuItems(context, onlyTrending: true),
                 const SizedBox(height: 20.0),
               ],
             ),
@@ -119,8 +119,45 @@ class CustomerHome extends StatelessWidget {
   }
 }
 
-// ==================== Category Item UI ====================
-Widget buildCategoryItem({
+// ==================== Dynamic UI Functions ====================
+
+Widget buildCategoryItemsLayoutUI(
+  BuildContext context,
+  List<Map<String, Object>> categories,
+  ValueChanged<String>? onSelected,
+) {
+  if (categories.isEmpty) {
+    return buildDefaultFallbackMessage(
+      icon: Icons.category_outlined,
+      title: 'No Categories',
+      description: 'Categories are currently unavailable.',
+    );
+  }
+
+  return SizedBox(
+    height: 105,
+    child: ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 4.0),
+      itemCount: categories.length,
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        final String name = category['name'] as String;
+        return buildCategoryItemUI(
+          icon: category['icon'] as IconData,
+          name: name,
+          onTap: () {
+            if (onSelected != null) {
+              onSelected(name);
+            }
+          },
+        );
+      },
+    ),
+  );
+}
+
+Widget buildCategoryItemUI({
   required IconData icon,
   required String name,
   VoidCallback? onTap,

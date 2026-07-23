@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import 'customer/home.dart';
 import 'customer/menu.dart';
 import 'customer/orders.dart';
+import 'customer/notifications.dart';
+import 'customer/cart.dart';
+import 'customer/checkout.dart';
 
-// ==================== Dummy Categories Function ====================
-Widget buildDummyCategories({
+// TODELETE
+// TODO: Fetch categories from backend API and map them to UI
+Widget buildDummyCategories(
+  BuildContext context, {
   bool isChoiceChip = false,
   String selectedCategory = '',
   ValueChanged<String>? onSelected,
@@ -20,71 +25,22 @@ Widget buildDummyCategories({
   ];
 
   if (isChoiceChip) {
-    final List<Map<String, Object>> chipCategories = [
-      {'name': 'All', 'icon': Icons.restaurant_menu},
-      ...categories,
-    ];
-
-    return SizedBox(
-      height: 45,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        itemCount: chipCategories.length,
-        itemBuilder: (context, index) {
-          final category = chipCategories[index];
-          final String name = category['name'] as String;
-          final IconData icon = category['icon'] as IconData;
-          final bool isSelected =
-              selectedCategory == name ||
-              (selectedCategory.isEmpty && name == 'All');
-
-          return buildCategoryChip(
-            name: name,
-            icon: icon,
-            isSelected: isSelected,
-            onSelected: (bool selected) {
-              if (onSelected != null) {
-                if (selected) {
-                  onSelected(name == 'All' ? '' : name);
-                } else if (name != 'All') {
-                  onSelected('');
-                }
-              }
-            },
-          );
-        },
-      ),
+    return buildCategoryChipsLayoutUI(
+      context,
+      categories,
+      selectedCategory,
+      onSelected,
     );
+  } else {
+    return buildCategoryItemsLayoutUI(context, categories, onSelected);
   }
-
-  return SizedBox(
-    height: 105,
-    child: ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 4.0),
-      itemCount: categories.length,
-      itemBuilder: (context, index) {
-        final category = categories[index];
-        final String name = category['name'] as String;
-        return buildCategoryItem(
-          icon: category['icon'] as IconData,
-          name: name,
-          onTap: () {
-            if (onSelected != null) {
-              onSelected(name);
-            }
-          },
-        );
-      },
-    ),
-  );
 }
 
-// ==================== Dummy Menu Items Function ====================
-Widget buildDummyMenuItems({bool onlyTrending = false}) {
+// TODELETE
+// TODO: Fetch menu items from backend API and map them to UI
+Widget buildDummyMenuItems(BuildContext context, {bool onlyTrending = false}) {
   const List<Map<String, Object>> menuItems = [
-    // Burgers (2 items)
+    // --- Burgers (2 items) ---
     {
       'name': 'Classic Beef Burger',
       'category': 'Burgers',
@@ -103,7 +59,7 @@ Widget buildDummyMenuItems({bool onlyTrending = false}) {
       'icon': Icons.lunch_dining,
       'isTrending': false,
     },
-    // Pizza (2 items)
+    // --- Pizza (2 items) ---
     {
       'name': 'Pepperoni Feast Pizza',
       'category': 'Pizza',
@@ -122,7 +78,7 @@ Widget buildDummyMenuItems({bool onlyTrending = false}) {
       'icon': Icons.local_pizza,
       'isTrending': false,
     },
-    // Noodles (2 items)
+    // --- Noodles (2 items) ---
     {
       'name': 'Spicy Beef Ramen',
       'category': 'Noodles',
@@ -141,7 +97,7 @@ Widget buildDummyMenuItems({bool onlyTrending = false}) {
       'icon': Icons.ramen_dining,
       'isTrending': false,
     },
-    // Sides (2 items)
+    // --- Sides (2 items) ---
     {
       'name': 'Golden French Fries',
       'category': 'Sides',
@@ -160,7 +116,7 @@ Widget buildDummyMenuItems({bool onlyTrending = false}) {
       'icon': Icons.tapas,
       'isTrending': false,
     },
-    // Desserts (2 items)
+    // --- Desserts (2 items) ---
     {
       'name': 'Belgian Chocolate Sundae',
       'category': 'Desserts',
@@ -179,7 +135,7 @@ Widget buildDummyMenuItems({bool onlyTrending = false}) {
       'icon': Icons.icecream,
       'isTrending': false,
     },
-    // Beverages (2 items)
+    // --- Beverages (2 items) ---
     {
       'name': 'Iced Lemon Tea',
       'category': 'Beverages',
@@ -200,24 +156,17 @@ Widget buildDummyMenuItems({bool onlyTrending = false}) {
     },
   ];
 
-  final List<Map<String, Object>> displayedItems = onlyTrending
+  final List<Map<String, dynamic>> displayedItems = onlyTrending
       ? menuItems.where((item) => (item['isTrending'] as bool)).toList()
       : menuItems;
 
-  return ListView.builder(
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-    itemCount: displayedItems.length,
-    itemBuilder: (context, index) {
-      return buildFoodItemCard(context, displayedItems[index]);
-    },
-  );
+  return buildFoodItemsLayoutUI(context, displayedItems);
 }
 
-// ==================== Dummy Orders Function ====================
-Widget buildDummyOrders(String selectedStatus) {
-  const List<Map<String, Object>> dummyOrders = [
+// TODELETE
+// TODO: Fetch customer orders from backend API and map them to UI
+Widget buildDummyOrders(BuildContext context, String selectedStatus) {
+  const List<Map<String, dynamic>> dummyOrders = [
     {
       'orderId': '#ORD-8492',
       'date': 'Today, 12:45 PM',
@@ -299,13 +248,181 @@ Widget buildDummyOrders(String selectedStatus) {
       .where((order) => order['status'] == selectedStatus)
       .toList();
 
-  return ListView.builder(
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-    itemCount: filteredOrders.length,
-    itemBuilder: (context, index) {
-      return buildOrderCard(context, filteredOrders[index]);
+  return buildOrdersListLayoutUI(context, filteredOrders, selectedStatus);
+}
+
+// TODELETE
+// TODO: Fetch initial dummy notifications to populate state from backend API
+List<Map<String, dynamic>> getInitialDummyNotifications() {
+  return [
+    {
+      'id': '1',
+      'type': 'Orders',
+      'title': 'Order Arriving Soon!',
+      'description':
+          'Your order #ORD-8488 is on the way and will arrive in 5 minutes.',
+      'time': '5 mins ago',
+      'isRead': false,
+    },
+    {
+      'id': '2',
+      'type': 'Promos',
+      'title': '50% Off Your Next Meal 🍔',
+      'description':
+          'Use code HALFPRICE to get 50% off your next order. Valid until tomorrow!',
+      'time': '2 hours ago',
+      'isRead': false,
+    },
+    {
+      'id': '3',
+      'type': 'Orders',
+      'title': 'Order Completed',
+      'description':
+          'Your order #ORD-8470 has been delivered. Enjoy your meal!',
+      'time': '5 hours ago',
+      'isRead': false,
+    },
+    {
+      'id': '4',
+      'type': 'System',
+      'title': 'System Maintenance',
+      'description':
+          'The app will be down for scheduled maintenance from 2:00 AM to 4:00 AM tonight.',
+      'time': '1 day ago',
+      'isRead': true,
+    },
+    {
+      'id': '5',
+      'type': 'Orders',
+      'title': 'Order Cancelled',
+      'description':
+          'Your order #ORD-8462 has been cancelled by the restaurant.',
+      'time': '1 day ago',
+      'isRead': true,
+    },
+    {
+      'id': '6',
+      'type': 'Promos',
+      'title': 'Free Delivery Weekend! 🚚',
+      'description':
+          'Enjoy free delivery all weekend long on all orders over RM 30.',
+      'time': '2 days ago',
+      'isRead': true,
+    },
+  ];
+}
+
+// TODELETE
+// TODO: Fetch notifications from backend API and map them to UI
+Widget buildDummyNotifications(
+  BuildContext context,
+  List<Map<String, dynamic>> notifications,
+  String selectedCategory,
+  VoidCallback onUpdate,
+) {
+  final filteredNotifications = selectedCategory == 'All'
+      ? notifications
+      : notifications.where((n) => n['type'] == selectedCategory).toList();
+
+  return buildNotificationsListLayoutUI(
+    context,
+    filteredNotifications,
+    onUpdate,
+  );
+}
+
+List<CartItem> dummyCartItems = [
+  CartItem(
+    name: 'Classic Beef Burger',
+    price: 16.90,
+    quantity: 2,
+    icon: Icons.lunch_dining,
+    customizations: [
+      CartItemCustomization(name: 'No onions', price: 0.0),
+      CartItemCustomization(name: 'Extra sauce', price: 2.0),
+    ],
+  ),
+  CartItem(
+    name: 'Iced Lemon Tea',
+    price: 5.00,
+    quantity: 1,
+    icon: Icons.local_drink,
+  ),
+];
+
+// TODELETE
+// TODO: Fetch user cart items dynamically from database
+Widget buildDummyCartView({
+  required BuildContext context,
+  required VoidCallback onStateChanged,
+}) {
+  return buildCartLayoutUI(
+    context: context,
+    cartItems: dummyCartItems,
+    onQuantityChanged: (index, newQuantity) {
+      dummyCartItems[index].quantity = newQuantity;
+      onStateChanged();
+    },
+    onItemRemoved: (index) {
+      dummyCartItems.removeAt(index);
+      onStateChanged();
+    },
+  );
+}
+
+// ==================== Dummy Checkout Data ====================
+
+String dummySelectedAddress = 'Home - 123 Street Name, City';
+String dummySelectedPaymentMethod = 'Credit Card';
+List<String> dummyPaymentMethods = [
+  'Credit Card',
+  'Cash on Delivery',
+  'E-Wallet',
+  'Online Banking'
+];
+Map<String, dynamic>? dummyAppliedVoucher;
+double dummyDeliveryFee = 5.00;
+
+List<Map<String, dynamic>> dummyVouchers = [
+  {
+    'id': 'v1',
+    'title': 'Free Delivery',
+    'expiryDate': 'Valid until 31 Dec 2026',
+    'type': 'free_delivery',
+    'minSpend': 30.0,
+  },
+  {
+    'id': 'v2',
+    'title': '10% Off',
+    'expiryDate': 'Valid until 15 Aug 2026',
+    'type': 'percentage',
+    'discountValue': 10.0,
+    'minSpend': 50.0,
+  },
+];
+
+// TODELETE
+// TODO: Fetch user order details dynamically from database
+Widget buildDummyCheckoutView({
+  required BuildContext context,
+  required VoidCallback onStateChanged,
+}) {
+  return buildCheckoutLayoutUI(
+    context: context,
+    cartItems: dummyCartItems,
+    selectedAddress: dummySelectedAddress,
+    selectedPaymentMethod: dummySelectedPaymentMethod,
+    availablePaymentMethods: dummyPaymentMethods,
+    onPaymentMethodChanged: (method) {
+      dummySelectedPaymentMethod = method;
+      onStateChanged();
+    },
+    appliedVoucher: dummyAppliedVoucher,
+    deliveryFee: dummyDeliveryFee,
+    availableVouchers: dummyVouchers,
+    onVoucherApplied: (voucher) {
+      dummyAppliedVoucher = voucher;
+      onStateChanged();
     },
   );
 }

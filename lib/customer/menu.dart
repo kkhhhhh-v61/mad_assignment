@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'filter_overlay.dart';
+import 'food_item_detail.dart';
+import 'header.dart';
 import '../global.dart';
 
 // TODELETE
 import '../data.dart';
-import 'filter_overlay.dart';
-import 'food_item_detail.dart';
-import 'header.dart';
 
 class CustomerMenu extends StatefulWidget {
   final String? initialCategory;
@@ -46,9 +46,10 @@ class _CustomerMenuState extends State<CustomerMenu> {
           onFilterTap: () => showFilterOverlay(context),
         ),
         const SizedBox(height: 16.0),
-        // TODO: Replace with dynamic category filter chips fetched from database
         // TODELETE
+        // TODO: Replace with dynamic category filter chips fetched from database
         buildDummyCategories(
+          context,
           isChoiceChip: true,
           selectedCategory: _selectedCategory,
           onSelected: (val) {
@@ -57,13 +58,13 @@ class _CustomerMenuState extends State<CustomerMenu> {
           },
         ),
         const SizedBox(height: 8.0),
-        // TODO: Replace with dynamic menu items fetched from database
         Expanded(
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
               // TODELETE
-              child: buildDummyMenuItems(),
+              // TODO: Replace with dynamic menu items fetched from database
+              child: buildDummyMenuItems(context),
             ),
           ),
         ),
@@ -72,8 +73,61 @@ class _CustomerMenuState extends State<CustomerMenu> {
   }
 }
 
-// ==================== Category Chip UI ====================
-Widget buildCategoryChip({
+// ==================== Dynamic UI Functions ====================
+
+Widget buildCategoryChipsLayoutUI(
+  BuildContext context,
+  List<Map<String, dynamic>> categories,
+  String selectedCategory,
+  ValueChanged<String>? onSelected,
+) {
+  if (categories.isEmpty) {
+    return buildDefaultFallbackMessage(
+      icon: Icons.category_outlined,
+      title: 'No Categories',
+      description: 'Categories are currently unavailable.',
+    );
+  }
+
+  final List<Map<String, dynamic>> chipCategories = [
+    {'name': 'All', 'icon': Icons.restaurant_menu},
+    ...categories,
+  ];
+
+  return SizedBox(
+    height: 45,
+    child: ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      itemCount: chipCategories.length,
+      itemBuilder: (context, index) {
+        final category = chipCategories[index];
+        final String name = category['name'] as String;
+        final IconData icon = category['icon'] as IconData;
+        final bool isSelected =
+            selectedCategory == name ||
+            (selectedCategory.isEmpty && name == 'All');
+
+        return buildCategoryChipUI(
+          name: name,
+          icon: icon,
+          isSelected: isSelected,
+          onSelected: (bool selected) {
+            if (onSelected != null) {
+              if (selected) {
+                onSelected(name == 'All' ? '' : name);
+              } else if (name != 'All') {
+                onSelected('');
+              }
+            }
+          },
+        );
+      },
+    ),
+  );
+}
+
+Widget buildCategoryChipUI({
   required String name,
   required IconData icon,
   required bool isSelected,
@@ -112,8 +166,30 @@ Widget buildCategoryChip({
   );
 }
 
-// ==================== Food Item Card UI ====================
-Widget buildFoodItemCard(BuildContext context, Map<String, Object> item) {
+Widget buildFoodItemsLayoutUI(
+  BuildContext context,
+  List<Map<String, dynamic>> items,
+) {
+  if (items.isEmpty) {
+    return buildDefaultFallbackMessage(
+      icon: Icons.fastfood_outlined,
+      title: 'No Items Found',
+      description: 'There are no menu items to display right now.',
+    );
+  }
+
+  return ListView.builder(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+    itemCount: items.length,
+    itemBuilder: (context, index) {
+      return buildFoodItemCardUI(context, items[index]);
+    },
+  );
+}
+
+Widget buildFoodItemCardUI(BuildContext context, Map<String, dynamic> item) {
   final String name = item['name'] as String;
   final String rating = item['rating'] as String;
   final double price = item['price'] as double;
@@ -144,7 +220,6 @@ Widget buildFoodItemCard(BuildContext context, Map<String, Object> item) {
       ),
       child: Row(
         children: [
-          // --- Item Icon ---
           Container(
             height: 80,
             width: 80,
@@ -160,7 +235,6 @@ Widget buildFoodItemCard(BuildContext context, Map<String, Object> item) {
             ),
           ),
           const SizedBox(width: 16.0),
-          // --- Item Details ---
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

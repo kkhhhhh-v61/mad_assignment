@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-// ignore: unused_import
 import '../global.dart';
+
 // TODELETE
 import '../data.dart';
 import 'filter_overlay.dart';

@@ -216,42 +216,96 @@ Widget buildDummyMenuItems({bool onlyTrending = false}) {
 }
 
 // ==================== Dummy Orders Function ====================
-Widget buildDummyOrders() {
+Widget buildDummyOrders(String selectedStatus) {
   const List<Map<String, Object>> dummyOrders = [
     {
       'orderId': '#ORD-8492',
       'date': 'Today, 12:45 PM',
       'status': 'Preparing',
-      'items':
-          '2x Classic Beef Burger, 1x Golden French Fries, 2x Iced Lemon Tea',
-      'totalPrice': 'RM 49.60',
+      'items': [
+        {'name': 'Classic Beef Burger', 'quantity': 2, 'price': 16.90},
+        {'name': 'Golden French Fries', 'quantity': 1, 'price': 5.80},
+        {'name': 'Iced Lemon Tea', 'quantity': 2, 'price': 5.00},
+      ],
+      'subtotal': 49.60,
+      'deliveryFee': 5.00,
+      'discount': 0.00,
+      'totalPrice': 'RM 54.60',
       'info': 'Estimated Delivery: 15-20 mins',
+      'icon': Icons.lunch_dining,
+    },
+    {
+      'orderId': '#ORD-8488',
+      'date': 'Today, 12:15 PM',
+      'status': 'Delivering',
+      'items': [
+        {'name': 'Classic Beef Burger', 'quantity': 2, 'price': 16.90},
+        {'name': 'Iced Lemon Tea', 'quantity': 1, 'price': 5.00},
+      ],
+      'subtotal': 38.80,
+      'deliveryFee': 3.00,
+      'discount': 5.00,
+      'totalPrice': 'RM 36.80',
+      'info': 'Estimated Arrival: 5 mins',
+      'icon': Icons.lunch_dining,
     },
     {
       'orderId': '#ORD-8485',
       'date': 'Today, 11:30 AM',
       'status': 'Preparing',
-      'items': '1x Pepperoni Feast Pizza, 1x Crispy Mozzarella Sticks',
-      'totalPrice': 'RM 41.80',
+      'items': [
+        {'name': 'Pepperoni Feast Pizza', 'quantity': 1, 'price': 28.90},
+        {'name': 'Crispy Mozzarella Sticks', 'quantity': 1, 'price': 12.90},
+      ],
+      'subtotal': 41.80,
+      'deliveryFee': 4.00,
+      'discount': 0.00,
+      'totalPrice': 'RM 45.80',
       'info': 'Estimated Delivery: 25-30 mins',
+      'icon': Icons.local_pizza,
     },
     {
       'orderId': '#ORD-8470',
-      'date': 'Today, 10:15 AM',
-      'status': 'Preparing',
-      'items': '1x Spicy Beef Ramen, 1x Belgian Chocolate Sundae',
-      'totalPrice': 'RM 29.80',
-      'info': 'Estimated Delivery: 10-15 mins',
+      'date': 'Yesterday, 7:15 PM',
+      'status': 'Completed',
+      'items': [
+        {'name': 'Spicy Beef Ramen', 'quantity': 1, 'price': 22.90},
+        {'name': 'Belgian Chocolate Sundae', 'quantity': 1, 'price': 6.90},
+      ],
+      'subtotal': 29.80,
+      'deliveryFee': 4.00,
+      'discount': 2.00,
+      'totalPrice': 'RM 31.80',
+      'info': 'Delivered in 18 mins',
+      'icon': Icons.ramen_dining,
+    },
+    {
+      'orderId': '#ORD-8462',
+      'date': 'Yesterday, 1:30 PM',
+      'status': 'Cancelled',
+      'items': [
+        {'name': 'Pepperoni Feast Pizza', 'quantity': 1, 'price': 28.90},
+      ],
+      'subtotal': 28.90,
+      'deliveryFee': 4.00,
+      'discount': 0.00,
+      'totalPrice': 'RM 32.90',
+      'info': 'Cancelled by restaurant',
+      'icon': Icons.local_pizza,
     },
   ];
+
+  final filteredOrders = dummyOrders
+      .where((order) => order['status'] == selectedStatus)
+      .toList();
 
   return ListView.builder(
     shrinkWrap: true,
     physics: const NeverScrollableScrollPhysics(),
     padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-    itemCount: dummyOrders.length,
+    itemCount: filteredOrders.length,
     itemBuilder: (context, index) {
-      return buildOrderCard(dummyOrders[index]);
+      return buildOrderCard(context, filteredOrders[index]);
     },
   );
 }

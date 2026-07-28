@@ -48,7 +48,7 @@ class OrderDetails extends StatelessWidget {
         heroIcon = Icons.cancel_presentation;
         buttonText = 'Reorder';
         buttonColor = const Color.fromARGB(255, 255, 160, 122);
-        isOutlined = false;
+        isOutlined = true;
         break;
       case 'Completed':
       default:
@@ -56,7 +56,7 @@ class OrderDetails extends StatelessWidget {
         heroIcon = Icons.task_alt;
         buttonText = 'Reorder';
         buttonColor = const Color.fromARGB(255, 255, 160, 122);
-        isOutlined = false;
+        isOutlined = true;
         break;
     }
 

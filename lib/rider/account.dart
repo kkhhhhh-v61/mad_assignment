@@ -19,13 +19,13 @@ class RiderAccount extends StatelessWidget {
               children: [
                 const SizedBox(height: 20.0),
                 buildProfileCard(context),
+                const SizedBox(height: 24.0),
+                buildLogoutTile(context),
                 const SizedBox(height: 32.0),
               ],
             ),
           ),
         ),
-        buildLogoutButton(context),
-        const SizedBox(height: 20.0),
       ],
     );
   }
@@ -110,40 +110,61 @@ Widget buildProfileCard(BuildContext context) {
   );
 }
 
-Widget buildLogoutButton(BuildContext context) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-    child: SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: OutlinedButton(
-        onPressed: () {
-          // Redirect back to the customer side login page
-          Navigator.of(context, rootNavigator: true).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Logged out successfully',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              backgroundColor: Color.fromARGB(255, 239, 83, 80),
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        },
-        style: OutlinedButton.styleFrom(
-          foregroundColor: const Color.fromARGB(255, 239, 83, 80),
-          side: const BorderSide(color: Color.fromARGB(255, 239, 83, 80)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15.0),
-          ),
+Widget buildLogoutTile(BuildContext context) {
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 20.0),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20.0),
+      boxShadow: const [
+        BoxShadow(
+          color: Color.fromARGB(20, 0, 0, 0),
+          blurRadius: 8,
+          spreadRadius: 1,
+          offset: Offset(0, 3),
         ),
-        child: const Text(
-          'Log Out',
-          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+      ],
+    ),
+    child: ListTile(
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 20.0,
+        vertical: 4.0,
+      ),
+      leading: Container(
+        padding: const EdgeInsets.all(8.0),
+        decoration: BoxDecoration(
+          color: const Color.fromARGB(255, 229, 57, 53).withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.logout,
+          color: Color.fromARGB(255, 229, 57, 53),
+          size: 22,
         ),
       ),
+      title: const Text(
+        'Log Out',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 15.0,
+          color: Color.fromARGB(255, 229, 57, 53),
+        ),
+      ),
+      onTap: () {
+        // Redirect back to the customer side login page
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Logged out successfully',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Color.fromARGB(255, 239, 83, 80),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      },
     ),
   );
 }

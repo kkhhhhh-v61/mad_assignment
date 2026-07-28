@@ -24,14 +24,12 @@ class CustomerAccount extends StatelessWidget {
                 const SizedBox(height: 20.0),
                 _buildProfileCard(context),
                 const SizedBox(height: 24.0),
-                _buildAccountOptions(),
+                _buildAccountOptions(context),
                 const SizedBox(height: 32.0),
               ],
             ),
           ),
         ),
-        _buildLogoutButton(context),
-        const SizedBox(height: 20.0),
       ],
     );
   }
@@ -120,7 +118,7 @@ class CustomerAccount extends StatelessWidget {
     );
   }
 
-  Widget _buildAccountOptions() {
+  Widget _buildAccountOptions(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20.0),
       decoration: BoxDecoration(
@@ -146,8 +144,53 @@ class CustomerAccount extends StatelessWidget {
           _buildOptionTile(Icons.help_outline, 'Help Center'),
           const Divider(height: 1, indent: 60, endIndent: 20.0),
           _buildOptionTile(Icons.settings_outlined, 'Settings'),
+          const Divider(height: 1, indent: 60, endIndent: 20.0),
+          _buildLogoutTile(context),
         ],
       ),
+    );
+  }
+
+  Widget _buildLogoutTile(BuildContext context) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 20.0,
+        vertical: 4.0,
+      ),
+      leading: Container(
+        padding: const EdgeInsets.all(8.0),
+        decoration: BoxDecoration(
+          color: const Color.fromARGB(255, 229, 57, 53).withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.logout,
+          color: Color.fromARGB(255, 229, 57, 53),
+          size: 22,
+        ),
+      ),
+      title: const Text(
+        'Log Out',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 15.0,
+          color: Color.fromARGB(255, 229, 57, 53),
+        ),
+      ),
+      onTap: () {
+        onLogout?.call();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Logged out successfully',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Color.fromARGB(255, 239, 83, 80),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      },
     );
   }
 
@@ -182,40 +225,4 @@ class CustomerAccount extends StatelessWidget {
     );
   }
 
-  Widget _buildLogoutButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: SizedBox(
-        width: double.infinity,
-        height: 50,
-        child: OutlinedButton(
-          onPressed: () {
-            onLogout?.call();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Logged out successfully',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                backgroundColor: Color.fromARGB(255, 239, 83, 80),
-                behavior: SnackBarBehavior.floating,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          },
-          style: OutlinedButton.styleFrom(
-            foregroundColor: const Color.fromARGB(255, 239, 83, 80),
-            side: const BorderSide(color: Color.fromARGB(255, 239, 83, 80)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15.0),
-            ),
-          ),
-          child: const Text(
-            'Log Out',
-            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-    );
-  }
 }

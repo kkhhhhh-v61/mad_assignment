@@ -8,6 +8,7 @@ class CustomerHeader extends StatefulWidget {
   final bool showSearch;
   final bool showTitle;
   final String pageTitle;
+  final bool showActions;
   final VoidCallback? onFilterTap;
 
   const CustomerHeader({
@@ -15,6 +16,7 @@ class CustomerHeader extends StatefulWidget {
     this.showFilter = false,
     this.showSearch = true,
     this.showTitle = false,
+    this.showActions = true,
     this.pageTitle = 'DoorDish',
     this.onFilterTap,
   });
@@ -71,7 +73,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                       )
                     : _buildLocationSelector(),
               ),
-              _buildActionButtons(context),
+              if (widget.showActions) _buildActionButtons(context),
             ],
           ),
           if (widget.showSearch || widget.showFilter) ...[

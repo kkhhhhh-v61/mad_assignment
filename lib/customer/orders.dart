@@ -272,7 +272,7 @@ Widget buildOrderCard(BuildContext context, Map<String, dynamic> order) {
       footerIcon = Icons.cancel_outlined;
       buttonText = 'Reorder';
       buttonColor = const Color.fromARGB(255, 255, 160, 122);
-      isOutlined = false;
+      isOutlined = true;
       break;
     case 'Completed':
     default:
@@ -280,7 +280,7 @@ Widget buildOrderCard(BuildContext context, Map<String, dynamic> order) {
       footerIcon = Icons.check_circle_outline;
       buttonText = 'Reorder';
       buttonColor = const Color.fromARGB(255, 255, 160, 122);
-      isOutlined = false;
+      isOutlined = true;
       break;
   }
 

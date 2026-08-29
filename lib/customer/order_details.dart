@@ -180,7 +180,7 @@ class OrderDetails extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20.0),
-                    buildOrderReceiptCard(
+                    OrderReceiptCard(
                       itemsList: itemsList,
                       subtotal: subtotal,
                       deliveryFee: deliveryFee,
@@ -268,187 +268,212 @@ class OrderDetails extends StatelessWidget {
   }
 }
 
-Widget buildOrderReceiptCard({
-  required List<Map<String, Object>> itemsList,
-  required double subtotal,
-  required double deliveryFee,
-  required double discount,
-  required String totalPrice,
-}) {
-  return Container(
-    padding: const EdgeInsets.all(20.0),
-    margin: const EdgeInsets.symmetric(horizontal: 20.0),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16.0),
-      boxShadow: const [
-        BoxShadow(
-          color: Color.fromARGB(8, 0, 0, 0),
-          blurRadius: 10,
-          offset: Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Order Receipt',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18.0,
-            color: Color.fromARGB(221, 0, 0, 0),
-          ),
-        ),
-        const SizedBox(height: 20.0),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: itemsList.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 16.0),
-          itemBuilder: (context, index) {
-            final item = itemsList[index];
-            final String name = item['name'] as String;
-            final int qty = item['quantity'] as int;
-            final double price = (item['price'] as num).toDouble();
-            final double itemTotal = price * qty;
+class OrderReceiptCard extends StatelessWidget {
+  final List<Map<String, Object>> itemsList;
+  final double subtotal;
+  final double deliveryFee;
+  final double discount;
+  final String totalPrice;
 
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 245, 245, 245),
-                    borderRadius: BorderRadius.circular(6.0),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${qty}x',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12.0,
-                        color: Color.fromARGB(255, 117, 117, 117),
+  const OrderReceiptCard({
+    super.key,
+    required this.itemsList,
+    required this.subtotal,
+    required this.deliveryFee,
+    required this.discount,
+    required this.totalPrice,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20.0),
+      margin: const EdgeInsets.symmetric(horizontal: 20.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromARGB(8, 0, 0, 0),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Order Receipt',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18.0,
+              color: Color.fromARGB(221, 0, 0, 0),
+            ),
+          ),
+          const SizedBox(height: 20.0),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: itemsList.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 16.0),
+            itemBuilder: (context, index) {
+              final item = itemsList[index];
+              final String name = item['name'] as String;
+              final int qty = item['quantity'] as int;
+              final double price = (item['price'] as num).toDouble();
+              final double itemTotal = price * qty;
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 245, 245, 245),
+                      borderRadius: BorderRadius.circular(6.0),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${qty}x',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12.0,
+                          color: Color.fromARGB(255, 117, 117, 117),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15.0,
+                  const SizedBox(width: 12.0),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15.0,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2.0),
-                      Text(
-                        '@ RM ${price.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 13.0,
-                          color: Color.fromARGB(255, 158, 158, 158),
+                        const SizedBox(height: 2.0),
+                        Text(
+                          '@ RM ${price.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 13.0,
+                            color: Color.fromARGB(255, 158, 158, 158),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                Text(
-                  'RM ${itemTotal.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15.0,
+                  Text(
+                    'RM ${itemTotal.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15.0,
+                    ),
                   ),
-                ),
-              ],
-            );
-          },
-        ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 20.0),
-          child: Divider(
-            color: Color.fromARGB(255, 238, 238, 238),
-            height: 1.0,
-            thickness: 1.0,
+                ],
+              );
+            },
           ),
-        ),
-        buildOrderReceiptRow('Subtotal', 'RM ${subtotal.toStringAsFixed(2)}'),
-        const SizedBox(height: 12.0),
-        buildOrderReceiptRow(
-          'Delivery Fee',
-          'RM ${deliveryFee.toStringAsFixed(2)}',
-        ),
-        if (discount > 0) ...[
-          const SizedBox(height: 12.0),
-          buildOrderReceiptRow(
-            'Voucher Discount',
-            '-RM ${discount.toStringAsFixed(2)}',
-            isDiscount: true,
-          ),
-        ],
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 20.0),
-          child: Divider(
-            color: Color.fromARGB(255, 238, 238, 238),
-            height: 1.0,
-            thickness: 1.0,
-          ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Total Payment',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16.0,
-                color: Color.fromARGB(221, 0, 0, 0),
-              ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20.0),
+            child: Divider(
+              color: Color.fromARGB(255, 238, 238, 238),
+              height: 1.0,
+              thickness: 1.0,
             ),
-            Text(
-              totalPrice,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 22.0,
-                color: Color.fromARGB(255, 255, 160, 122),
-              ),
+          ),
+          OrderReceiptRow(
+            title: 'Subtotal',
+            value: 'RM ${subtotal.toStringAsFixed(2)}',
+          ),
+          const SizedBox(height: 12.0),
+          OrderReceiptRow(
+            title: 'Delivery Fee',
+            value: 'RM ${deliveryFee.toStringAsFixed(2)}',
+          ),
+          if (discount > 0) ...[
+            const SizedBox(height: 12.0),
+            OrderReceiptRow(
+              title: 'Voucher Discount',
+              value: '-RM ${discount.toStringAsFixed(2)}',
+              isDiscount: true,
             ),
           ],
-        ),
-      ],
-    ),
-  );
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20.0),
+            child: Divider(
+              color: Color.fromARGB(255, 238, 238, 238),
+              height: 1.0,
+              thickness: 1.0,
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total Payment',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16.0,
+                  color: Color.fromARGB(221, 0, 0, 0),
+                ),
+              ),
+              Text(
+                totalPrice,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22.0,
+                  color: Color.fromARGB(255, 255, 160, 122),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-Widget buildOrderReceiptRow(
-  String title,
-  String value, {
-  bool isDiscount = false,
-}) {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(
-        title,
-        style: const TextStyle(
-          fontSize: 15.0,
-          color: Color.fromARGB(255, 117, 117, 117),
+class OrderReceiptRow extends StatelessWidget {
+  final String title;
+  final String value;
+  final bool isDiscount;
+
+  const OrderReceiptRow({
+    super.key,
+    required this.title,
+    required this.value,
+    this.isDiscount = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 15.0,
+            color: Color.fromARGB(255, 117, 117, 117),
+          ),
         ),
-      ),
-      Text(
-        value,
-        style: TextStyle(
-          fontSize: 15.0,
-          fontWeight: FontWeight.w600,
-          color: isDiscount
-              ? const Color.fromARGB(255, 76, 175, 80)
-              : const Color.fromARGB(221, 0, 0, 0),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 15.0,
+            fontWeight: FontWeight.w600,
+            color: isDiscount
+                ? const Color.fromARGB(255, 76, 175, 80)
+                : const Color.fromARGB(221, 0, 0, 0),
+          ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }

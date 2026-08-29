@@ -26,15 +26,14 @@ class CustomerHeader extends StatefulWidget {
 }
 
 class _CustomerHeaderState extends State<CustomerHeader> {
-  //TODO: Retrieve user addresses dynamically from backend
-  // --- TOREMOVE ---
-  final List<String> _addresses = [
-    'Home - 123 Street Name, City',
-    'Work - 456 Office Tower, City',
-    'Partner - 789 Apartment Bldg, City',
-  ];
-  late String _selectedAddress = _addresses[0];
-  // --- END TOREMOVE ---
+  final List<String> _addresses = [];
+  String _selectedAddress = 'Select Location';
+
+  @override
+  void initState() {
+    super.initState();
+    //TODO: Retrieve user addresses dynamically from backend
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,9 +70,17 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                           color: Color.fromARGB(221, 0, 0, 0),
                         ),
                       )
-                    : _buildLocationSelector(),
+                    : HeaderLocationSelector(
+                        selectedAddress: _selectedAddress,
+                        addresses: _addresses,
+                        onSelected: (String newValue) {
+                          setState(() {
+                            _selectedAddress = newValue;
+                          });
+                        },
+                      ),
               ),
-              if (widget.showActions) _buildActionButtons(context),
+              if (widget.showActions) const HeaderActionButtons(),
             ],
           ),
           if (widget.showSearch || widget.showFilter) ...[
@@ -82,11 +89,11 @@ class _CustomerHeaderState extends State<CustomerHeader> {
               children: [
                 Expanded(
                   child: widget.showSearch
-                      ? _buildSearchBar()
+                      ? const HeaderSearchBar()
                       : const SizedBox.shrink(),
                 ),
                 if (widget.showFilter) const SizedBox(width: 12.0),
-                if (widget.showFilter) _buildFilterButton(),
+                if (widget.showFilter) HeaderFilterButton(onFilterTap: widget.onFilterTap),
               ],
             ),
           ],
@@ -94,26 +101,45 @@ class _CustomerHeaderState extends State<CustomerHeader> {
       ),
     );
   }
+}
 
-  Widget _buildLocationSelector() {
+class HeaderLocationSelector extends StatelessWidget {
+  final String selectedAddress;
+  final List<String> addresses;
+  final ValueChanged<String> onSelected;
+
+  const HeaderLocationSelector({
+    super.key,
+    required this.selectedAddress,
+    required this.addresses,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      initialValue: _selectedAddress,
-      onSelected: (String newValue) {
-        setState(() {
-          _selectedAddress = newValue;
-        });
-      },
+      initialValue: selectedAddress,
+      onSelected: onSelected,
       itemBuilder: (BuildContext context) {
-        return _addresses.map((String address) {
+        if (addresses.isEmpty) {
+          return [
+            const PopupMenuItem<String>(
+              value: '',
+              enabled: false,
+              child: Text('No addresses available'),
+            ),
+          ];
+        }
+        return addresses.map((String address) {
           return PopupMenuItem<String>(
             value: address,
             child: Text(
               address,
               style: TextStyle(
-                fontWeight: _selectedAddress == address
+                fontWeight: selectedAddress == address
                     ? FontWeight.bold
                     : FontWeight.normal,
-                color: _selectedAddress == address
+                color: selectedAddress == address
                     ? const Color.fromARGB(255, 255, 160, 122)
                     : const Color.fromARGB(221, 0, 0, 0),
               ),
@@ -140,7 +166,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
             children: [
               Flexible(
                 child: Text(
-                  _selectedAddress,
+                  selectedAddress,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15.0,
@@ -159,11 +185,16 @@ class _CustomerHeaderState extends State<CustomerHeader> {
       ),
     );
   }
+}
 
-  Widget _buildActionButtons(BuildContext context) {
+class HeaderActionButtons extends StatelessWidget {
+  const HeaderActionButtons({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
-        _buildIconWithBadge(
+        HeaderIconWithBadge(
           icon: Icons.notifications_outlined,
           //TODO: Retrieve unread notifications count dynamically from backend
           showBadge: true,
@@ -176,7 +207,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
             );
           },
         ),
-        _buildIconWithBadge(
+        HeaderIconWithBadge(
           icon: Icons.shopping_cart_outlined,
           //TODO: Retrieve cart item count dynamically from backend
           showBadge: true,
@@ -190,12 +221,22 @@ class _CustomerHeaderState extends State<CustomerHeader> {
       ],
     );
   }
+}
 
-  Widget _buildIconWithBadge({
-    required IconData icon,
-    required bool showBadge,
-    required VoidCallback onPressed,
-  }) {
+class HeaderIconWithBadge extends StatelessWidget {
+  final IconData icon;
+  final bool showBadge;
+  final VoidCallback onPressed;
+
+  const HeaderIconWithBadge({
+    super.key,
+    required this.icon,
+    required this.showBadge,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Stack(
       children: [
         IconButton(
@@ -223,8 +264,13 @@ class _CustomerHeaderState extends State<CustomerHeader> {
       ],
     );
   }
+}
 
-  Widget _buildSearchBar() {
+class HeaderSearchBar extends StatelessWidget {
+  const HeaderSearchBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       height: 45,
       decoration: BoxDecoration(
@@ -252,8 +298,15 @@ class _CustomerHeaderState extends State<CustomerHeader> {
       ),
     );
   }
+}
 
-  Widget _buildFilterButton() {
+class HeaderFilterButton extends StatelessWidget {
+  final VoidCallback? onFilterTap;
+
+  const HeaderFilterButton({super.key, this.onFilterTap});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       height: 45,
       width: 45,
@@ -267,7 +320,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
           color: Color.fromARGB(255, 255, 160, 122),
           size: 20,
         ),
-        onPressed: widget.onFilterTap ?? () {},
+        onPressed: onFilterTap ?? () {},
       ),
     );
   }

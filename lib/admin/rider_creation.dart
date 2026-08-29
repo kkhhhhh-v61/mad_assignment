@@ -57,19 +57,19 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    buildImagePlaceholder(),
+                    const _ImagePlaceholder(),
                     const SizedBox(height: 32.0),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        buildInputField(
+                        _InputField(
                           controller: _nameController,
                           label: 'Rider Name',
                           hintText: 'e.g., Ali Bin Abu',
                           icon: Icons.person_outline,
                         ),
                         const SizedBox(height: 16.0),
-                        buildInputField(
+                        _InputField(
                           controller: _phoneController,
                           label: 'Phone Number',
                           hintText: 'e.g., 012-3456789',
@@ -77,7 +77,7 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
                           keyboardType: TextInputType.phone,
                         ),
                         const SizedBox(height: 16.0),
-                        buildInputField(
+                        _InputField(
                           controller: _emailController,
                           label: 'Email Address',
                           hintText: 'e.g., rider@doordish.com',
@@ -85,12 +85,12 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
                           keyboardType: TextInputType.emailAddress,
                         ),
                         const SizedBox(height: 16.0),
-                        buildDropdownField(
+                        _DropdownField(
                           value: _selectedVehicle,
                           label: 'Vehicle Type',
                           hintText: 'Select a vehicle type',
                           icon: Icons.directions_car_outlined,
-                          items: [
+                          items: const [
                             'Motorcycle',
                             'Car',
                             'Bicycle',
@@ -102,7 +102,7 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
                           },
                         ),
                         const SizedBox(height: 16.0),
-                        buildInputField(
+                        _InputField(
                           controller: _plateController,
                           label: 'Vehicle Plate',
                           hintText: 'e.g., VBE 1234',
@@ -126,15 +126,20 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
                   ),
                 ],
               ),
-              child: buildCreateButton(context),
+              child: const _CreateButton(),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget buildImagePlaceholder() {
+class _ImagePlaceholder extends StatelessWidget {
+  const _ImagePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
@@ -178,14 +183,25 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
       ],
     );
   }
+}
 
-  Widget buildInputField({
-    required TextEditingController controller,
-    required String label,
-    required String hintText,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+class _InputField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String hintText;
+  final IconData icon;
+  final TextInputType keyboardType;
+
+  const _InputField({
+    required this.controller,
+    required this.label,
+    required this.hintText,
+    required this.icon,
+    this.keyboardType = TextInputType.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -245,15 +261,27 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
       ],
     );
   }
+}
 
-  Widget buildDropdownField({
-    required String? value,
-    required String label,
-    required String hintText,
-    required IconData icon,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
+class _DropdownField extends StatelessWidget {
+  final String? value;
+  final String label;
+  final String hintText;
+  final IconData icon;
+  final List<String> items;
+  final ValueChanged<String?> onChanged;
+
+  const _DropdownField({
+    required this.value,
+    required this.label,
+    required this.hintText,
+    required this.icon,
+    required this.items,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -315,8 +343,13 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
       ],
     );
   }
+}
 
-  Widget buildCreateButton(BuildContext context) {
+class _CreateButton extends StatelessWidget {
+  const _CreateButton();
+
+  @override
+  Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: 55,

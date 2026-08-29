@@ -56,9 +56,9 @@ class AdminHeader extends StatelessWidget {
             const SizedBox(height: 16.0),
             Row(
               children: [
-                if (showSearch) Expanded(child: _buildSearchBar()),
+                if (showSearch) const Expanded(child: AdminSearchBar()),
                 if (showSearch && showFilter) const SizedBox(width: 12.0),
-                if (showFilter) _buildFilterButton(),
+                if (showFilter) AdminFilterButton(onFilterTap: onFilterTap),
               ],
             ),
           ],
@@ -66,8 +66,13 @@ class AdminHeader extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildSearchBar() {
+class AdminSearchBar extends StatelessWidget {
+  const AdminSearchBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       height: 45,
       decoration: BoxDecoration(
@@ -95,8 +100,15 @@ class AdminHeader extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildFilterButton() {
+class AdminFilterButton extends StatelessWidget {
+  final VoidCallback? onFilterTap;
+
+  const AdminFilterButton({super.key, this.onFilterTap});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       height: 45,
       width: 45,

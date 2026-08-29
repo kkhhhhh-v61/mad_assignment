@@ -61,7 +61,7 @@ class DeliveryConfirmation extends StatelessWidget {
               ),
               const SizedBox(height: 16.0),
               Text(
-                'Order for ${delivery['customerName']} has been delivered.',
+                'Order for ${delivery['customerName'] ?? 'Customer'} has been delivered.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 16.0,

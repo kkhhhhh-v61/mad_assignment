@@ -46,54 +46,61 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    buildImageDisplay(widget.rider['icon'] as IconData?),
+                    _ImageDisplay(existingIcon: widget.rider['icon'] as IconData?),
                     const SizedBox(height: 32.0),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        buildDetailField(
+                        _DetailField(
                           label: 'Rider Name',
                           value: widget.rider['name'] as String? ?? 'N/A',
                           icon: Icons.person_outline,
                         ),
                         const SizedBox(height: 16.0),
-                        buildDetailField(
+                        _DetailField(
                           label: 'Phone Number',
                           value: widget.rider['phone'] as String? ?? 'N/A',
                           icon: Icons.phone_outlined,
                         ),
                         const SizedBox(height: 16.0),
-                        buildDetailField(
+                        _DetailField(
                           label: 'Email Address',
                           value: widget.rider['email'] as String? ?? 'N/A',
                           icon: Icons.email_outlined,
                         ),
                         const SizedBox(height: 16.0),
-                        buildDetailField(
+                        _DetailField(
                           label: 'Vehicle Type',
                           value: widget.rider['vehicle'] as String? ?? 'N/A',
                           icon: Icons.directions_car_outlined,
                         ),
                         const SizedBox(height: 16.0),
-                        buildDetailField(
+                        _DetailField(
                           label: 'Vehicle Plate',
                           value: widget.rider['plate'] as String? ?? 'N/A',
                           icon: Icons.pin_outlined,
                         ),
                         const SizedBox(height: 16.0),
-                        buildDetailField(
+                        _DetailField(
                           label: 'Rating',
                           value: widget.rider['rating'] as String? ?? 'N/A',
                           icon: Icons.star_outline,
                         ),
                         const SizedBox(height: 16.0),
-                        buildDetailField(
+                        _DetailField(
                           label: 'Current Status',
                           value: widget.rider['status'] as String? ?? 'N/A',
                           icon: Icons.info_outline,
                         ),
                         const SizedBox(height: 32.0),
-                        buildAccountToggleSection(),
+                        _AccountToggleSection(
+                          isEnabled: _isAccountEnabled,
+                          onChanged: (value) {
+                            setState(() {
+                              _isAccountEnabled = value;
+                            });
+                          },
+                        ),
                       ],
                     ),
                   ],
@@ -105,8 +112,115 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
       ),
     );
   }
+}
 
-  Widget buildAccountToggleSection() {
+class _ImageDisplay extends StatelessWidget {
+  final IconData? existingIcon;
+
+  const _ImageDisplay({this.existingIcon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 120,
+      width: 120,
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 245, 245, 245),
+        borderRadius: BorderRadius.circular(20.0),
+        border: Border.all(
+          color: const Color.fromARGB(255, 224, 224, 224),
+          width: 2.0,
+        ),
+      ),
+      child: Icon(
+        existingIcon ?? Icons.image_outlined,
+        size: 50,
+        color: const Color.fromARGB(255, 158, 158, 158),
+      ),
+    );
+  }
+}
+
+class _DetailField extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _DetailField({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14.0,
+            fontWeight: FontWeight.bold,
+            color: Color.fromARGB(221, 0, 0, 0),
+          ),
+        ),
+        const SizedBox(height: 6.0),
+        TextField(
+          controller: TextEditingController(text: value),
+          readOnly: true,
+          style: const TextStyle(
+            fontSize: 15.0,
+            color: Color.fromARGB(221, 0, 0, 0),
+          ),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: const Color.fromARGB(255, 245, 245, 245),
+            prefixIcon: Icon(
+              icon,
+              color: const Color.fromARGB(255, 117, 117, 117),
+              size: 20,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 14.0,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(
+                color: Color.fromARGB(255, 224, 224, 224),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(
+                color: Color.fromARGB(255, 224, 224, 224),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(
+                color: Color.fromARGB(255, 224, 224, 224),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AccountToggleSection extends StatelessWidget {
+  final bool isEnabled;
+  final ValueChanged<bool> onChanged;
+
+  const _AccountToggleSection({
+    required this.isEnabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
@@ -145,97 +259,13 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
             ],
           ),
           Switch(
-            value: _isAccountEnabled,
+            value: isEnabled,
             activeThumbColor: const Color.fromARGB(255, 255, 160, 122),
             activeTrackColor: const Color.fromARGB(100, 255, 160, 122),
-            onChanged: (bool value) {
-              setState(() {
-                _isAccountEnabled = value;
-              });
-            },
+            onChanged: onChanged,
           ),
         ],
       ),
     );
   }
-}
-
-Widget buildImageDisplay(IconData? existingIcon) {
-  return Container(
-    height: 120,
-    width: 120,
-    decoration: BoxDecoration(
-      color: const Color.fromARGB(255, 245, 245, 245),
-      borderRadius: BorderRadius.circular(20.0),
-      border: Border.all(
-        color: const Color.fromARGB(255, 224, 224, 224),
-        width: 2.0,
-      ),
-    ),
-    child: Icon(
-      existingIcon ?? Icons.image_outlined,
-      size: 50,
-      color: const Color.fromARGB(255, 158, 158, 158),
-    ),
-  );
-}
-
-Widget buildDetailField({
-  required String label,
-  required String value,
-  required IconData icon,
-}) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        style: const TextStyle(
-          fontSize: 14.0,
-          fontWeight: FontWeight.bold,
-          color: Color.fromARGB(221, 0, 0, 0),
-        ),
-      ),
-      const SizedBox(height: 6.0),
-      TextField(
-        controller: TextEditingController(text: value),
-        readOnly: true,
-        style: const TextStyle(
-          fontSize: 15.0,
-          color: Color.fromARGB(221, 0, 0, 0),
-        ),
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: const Color.fromARGB(255, 245, 245, 245),
-          prefixIcon: Icon(
-            icon,
-            color: const Color.fromARGB(255, 117, 117, 117),
-            size: 20,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16.0,
-            vertical: 14.0,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.0),
-            borderSide: const BorderSide(
-              color: Color.fromARGB(255, 224, 224, 224),
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.0),
-            borderSide: const BorderSide(
-              color: Color.fromARGB(255, 224, 224, 224),
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.0),
-            borderSide: const BorderSide(
-              color: Color.fromARGB(255, 224, 224, 224),
-            ),
-          ),
-        ),
-      ),
-    ],
-  );
 }

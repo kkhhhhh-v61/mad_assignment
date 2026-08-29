@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../global.dart';
 import 'header.dart';
 import 'food_creation.dart';
 import 'food_edit.dart';
@@ -12,32 +13,26 @@ class AdminFoodManagement extends StatefulWidget {
 
 class _AdminFoodManagementState extends State<AdminFoodManagement> {
   //TODO: Retrieve actual food items from backend
-  final List<Map<String, dynamic>> _foodItems = [
-    {
-      'id': '1',
-      'name': 'Classic Beef Burger',
-      'price': 15.90,
-      'icon': Icons.lunch_dining,
-      'rating': '4.8',
-      'prepTime': '15-20 min',
-    },
-    {
-      'id': '2',
-      'name': 'Pepperoni Feast Pizza',
-      'price': 28.90,
-      'icon': Icons.local_pizza,
-      'rating': '4.5',
-      'prepTime': '20-25 min',
-    },
-    {
-      'id': '3',
-      'name': 'Spicy Chicken Wings',
-      'price': 18.50,
-      'icon': Icons.fastfood,
-      'rating': '4.7',
-      'prepTime': '10-15 min',
-    },
-  ];
+  final List<Map<String, dynamic>> _foodItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // TODO: Fetch food items from API
+  }
+
+  void _showFilterOverlay() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (BuildContext context) {
+        return const FoodFilterSheet();
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +63,7 @@ class _AdminFoodManagementState extends State<AdminFoodManagement> {
               child: Column(
                 children: [
                   const SizedBox(height: 20.0),
-                  _buildFoodList(context, _foodItems),
+                  FoodList(items: _foodItems),
                   const SizedBox(height: 80.0), // Padding for FAB
                 ],
               ),
@@ -78,16 +73,22 @@ class _AdminFoodManagementState extends State<AdminFoodManagement> {
       ),
     );
   }
+}
 
-  Widget _buildFoodList(BuildContext context, List<Map<String, dynamic>> items) {
+class FoodList extends StatelessWidget {
+  final List<Map<String, dynamic>> items;
+
+  const FoodList({super.key, required this.items});
+
+  @override
+  Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return const Center(
-        child: Text(
-          'No Food Items',
-          style: TextStyle(
-            color: Color.fromARGB(255, 117, 117, 117),
-            fontSize: 16.0,
-          ),
+      return const Padding(
+        padding: EdgeInsets.only(top: 40.0),
+        child: FallbackMessage(
+          icon: Icons.fastfood_outlined,
+          title: 'No Food Items',
+          description: 'You haven\'t added any food items yet.',
         ),
       );
     }
@@ -98,12 +99,19 @@ class _AdminFoodManagementState extends State<AdminFoodManagement> {
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       itemCount: items.length,
       itemBuilder: (context, index) {
-        return _buildFoodItemCard(context, items[index]);
+        return FoodItemCard(item: items[index]);
       },
     );
   }
+}
 
-  Widget _buildFoodItemCard(BuildContext context, Map<String, dynamic> item) {
+class FoodItemCard extends StatelessWidget {
+  final Map<String, dynamic> item;
+
+  const FoodItemCard({super.key, required this.item});
+
+  @override
+  Widget build(BuildContext context) {
     final String name = item['name'] as String;
     final String rating = item['rating'] as String;
     final double price = item['price'] as double;
@@ -227,249 +235,242 @@ class _AdminFoodManagementState extends State<AdminFoodManagement> {
       ),
     );
   }
+}
 
-  void _showFilterOverlay() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+class FoodFilterSheet extends StatefulWidget {
+  const FoodFilterSheet({super.key});
+
+  @override
+  State<FoodFilterSheet> createState() => _FoodFilterSheetState();
+}
+
+class _FoodFilterSheetState extends State<FoodFilterSheet> {
+  String selectedSort = 'Newest Added';
+  final List<String> sortOptions = [
+    'Newest Added',
+    'Alphabetically',
+    'Price Low to High',
+    'Price High to Low',
+    'Most Sold',
+  ];
+
+  String selectedCategory = 'All';
+  final List<String> categoryOptions = [
+    'All',
+    'Burgers',
+    'Drinks',
+    'Sides',
+    'Desserts',
+    'Specials'
+  ];
+
+  String selectedStatus = 'All';
+  final List<String> statusOptions = [
+    'All',
+    'Active',
+    'Inactive',
+    'Out of Stock',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      builder: (BuildContext context) {
-        String selectedSort = 'Newest Added';
-        final List<String> sortOptions = [
-          'Newest Added',
-          'Alphabetically',
-          'Price Low to High',
-          'Price High to Low',
-          'Most Sold',
-        ];
-
-        String selectedCategory = 'All';
-        final List<String> categoryOptions = [
-          'All',
-          'Burgers',
-          'Drinks',
-          'Sides',
-          'Desserts',
-          'Specials'
-        ];
-
-        String selectedStatus = 'All';
-        final List<String> statusOptions = [
-          'All',
-          'Active',
-          'Inactive',
-          'Out of Stock',
-        ];
-
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(24.0),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(20.0),
-                  ),
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 224, 224, 224),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16.0),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Filter & Sort',
-                            style: TextStyle(
-                              fontSize: 20.0,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                selectedSort = 'Newest Added';
-                                selectedCategory = 'All';
-                                selectedStatus = 'All';
-                              });
-                            },
-                            child: const Text(
-                              'Clear',
-                              style: TextStyle(
-                                color: Color.fromARGB(255, 229, 57, 53),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16.0,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16.0),
-
-                      const Text(
-                        'Sort By',
-                        style: TextStyle(
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8.0),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(255, 245, 245, 245),
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: selectedSort,
-                            isExpanded: true,
-                            items: sortOptions.map((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              if (newValue != null) {
-                                setState(() {
-                                  selectedSort = newValue;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24.0),
-
-                      const Text(
-                        'Category',
-                        style: TextStyle(
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8.0),
-                      Wrap(
-                        spacing: 8.0,
-                        runSpacing: 8.0,
-                        children: categoryOptions.map((String category) {
-                          final isSelected = selectedCategory == category;
-                          return ChoiceChip(
-                            label: Text(
-                              category,
-                              style: TextStyle(
-                                color: isSelected
-                                    ? Colors.white
-                                    : const Color.fromARGB(221, 0, 0, 0),
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.w500,
-                              ),
-                            ),
-                            selected: isSelected,
-                            selectedColor: const Color.fromARGB(255, 255, 160, 122),
-                            backgroundColor: const Color.fromARGB(255, 245, 245, 245),
-                            onSelected: (bool selected) {
-                              setState(() {
-                                selectedCategory = category;
-                              });
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 24.0),
-
-                      const Text(
-                        'Status',
-                        style: TextStyle(
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8.0),
-                      Wrap(
-                        spacing: 8.0,
-                        runSpacing: 8.0,
-                        children: statusOptions.map((String status) {
-                          final isSelected = selectedStatus == status;
-                          return ChoiceChip(
-                            label: Text(
-                              status,
-                              style: TextStyle(
-                                color: isSelected
-                                    ? Colors.white
-                                    : const Color.fromARGB(221, 0, 0, 0),
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.w500,
-                              ),
-                            ),
-                            selected: isSelected,
-                            selectedColor: const Color.fromARGB(255, 255, 160, 122),
-                            backgroundColor: const Color.fromARGB(255, 245, 245, 245),
-                            onSelected: (bool selected) {
-                              setState(() {
-                                selectedStatus = status;
-                              });
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 32.0),
-                      
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            //TODO: Apply filters to list
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color.fromARGB(255, 255, 160, 122),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25.0),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'Apply Filters',
-                            style: TextStyle(
-                              fontSize: 16.0,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+      child: Container(
+        padding: const EdgeInsets.all(24.0),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(20.0),
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 224, 224, 224),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-            );
-          },
-        );
-      },
+              const SizedBox(height: 16.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Filter & Sort',
+                    style: TextStyle(
+                      fontSize: 20.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        selectedSort = 'Newest Added';
+                        selectedCategory = 'All';
+                        selectedStatus = 'All';
+                      });
+                    },
+                    child: const Text(
+                      'Clear',
+                      style: TextStyle(
+                        color: Color.fromARGB(255, 229, 57, 53),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16.0),
+              const Text(
+                'Sort By',
+                style: TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8.0),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 245, 245, 245),
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedSort,
+                    isExpanded: true,
+                    items: sortOptions.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          selectedSort = newValue;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24.0),
+              const Text(
+                'Category',
+                style: TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8.0),
+              Wrap(
+                spacing: 8.0,
+                runSpacing: 8.0,
+                children: categoryOptions.map((String category) {
+                  final isSelected = selectedCategory == category;
+                  return ChoiceChip(
+                    label: Text(
+                      category,
+                      style: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : const Color.fromARGB(221, 0, 0, 0),
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.w500,
+                      ),
+                    ),
+                    selected: isSelected,
+                    selectedColor: const Color.fromARGB(255, 255, 160, 122),
+                    backgroundColor: const Color.fromARGB(255, 245, 245, 245),
+                    onSelected: (bool selected) {
+                      setState(() {
+                        selectedCategory = category;
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 24.0),
+              const Text(
+                'Status',
+                style: TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8.0),
+              Wrap(
+                spacing: 8.0,
+                runSpacing: 8.0,
+                children: statusOptions.map((String status) {
+                  final isSelected = selectedStatus == status;
+                  return ChoiceChip(
+                    label: Text(
+                      status,
+                      style: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : const Color.fromARGB(221, 0, 0, 0),
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.w500,
+                      ),
+                    ),
+                    selected: isSelected,
+                    selectedColor: const Color.fromARGB(255, 255, 160, 122),
+                    backgroundColor: const Color.fromARGB(255, 245, 245, 245),
+                    onSelected: (bool selected) {
+                      setState(() {
+                        selectedStatus = status;
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 32.0),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    //TODO: Apply filters to list
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 255, 160, 122),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25.0),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Apply Filters',
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

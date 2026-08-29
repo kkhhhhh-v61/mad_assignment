@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-class DefaultFallbackMessage extends StatelessWidget {
+class FallbackMessage extends StatelessWidget {
   final IconData icon;
   final String title;
   final String description;
 
-  const DefaultFallbackMessage({
+  const FallbackMessage({
     super.key,
     required this.icon,
     required this.title,
@@ -66,16 +66,4 @@ class DefaultFallbackMessage extends StatelessWidget {
       ),
     );
   }
-}
-
-Widget buildFallbackMessage({
-  required IconData icon,
-  required String title,
-  required String description,
-}) {
-  return DefaultFallbackMessage(
-    icon: icon,
-    title: title,
-    description: description,
-  );
 }

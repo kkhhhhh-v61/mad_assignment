@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
+import '../shared/account.dart';
+import 'header.dart';
 import 'food_management.dart';
 import 'rider_management.dart';
-import 'account.dart';
 
 class AdminMainNavigation extends StatefulWidget {
   const AdminMainNavigation({super.key});
@@ -13,11 +15,27 @@ class AdminMainNavigation extends StatefulWidget {
 class _AdminMainNavigationState extends State<AdminMainNavigation> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
+  // Generate pages dynamically to pass context for the logout function
+  List<Widget> _getPages(BuildContext context) => [
     const AdminFoodManagement(),
     const AdminRiderManagement(),
-    const AdminAccount(),
+    _buildAccountScreen(context),
   ];
+
+  // Build the Admin account screen
+  Widget _buildAccountScreen(BuildContext context) {
+    return SharedAccountScreen(
+      header: const AdminHeader(pageTitle: 'Account'),
+      name: 'Admin User',
+      subtitle: 'Administrator',
+      email: 'admin@doordish.com',
+      profileIcon: Icons.admin_panel_settings,
+      showEditIcon: false, // Hide the edit profile button for admin
+      onLogout: () {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +43,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
       backgroundColor: const Color.fromARGB(255, 249, 250, 251),
       body: IndexedStack(
         index: _currentIndex,
-        children: _pages,
+        children: _getPages(context),
       ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(

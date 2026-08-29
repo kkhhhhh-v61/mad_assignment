@@ -1,24 +1,38 @@
 import 'package:flutter/material.dart';
 
-class RiderProfile extends StatefulWidget {
-  const RiderProfile({super.key});
+class SharedProfileScreen extends StatefulWidget {
+  final String title;
+  final String initialName;
+  final String initialEmail;
+  final String initialPhone;
+  final Function(String name, String email, String phone) onSave;
+  final VoidCallback? onUpdatePicture;
+
+  const SharedProfileScreen({
+    super.key,
+    required this.title,
+    this.initialName = '',
+    this.initialEmail = '',
+    this.initialPhone = '',
+    required this.onSave,
+    this.onUpdatePicture,
+  });
 
   @override
-  State<RiderProfile> createState() => _RiderProfileState();
+  State<SharedProfileScreen> createState() => _SharedProfileScreenState();
 }
 
-class _RiderProfileState extends State<RiderProfile> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
+class _SharedProfileScreenState extends State<SharedProfileScreen> {
+  late TextEditingController _nameController;
+  late TextEditingController _emailController;
+  late TextEditingController _phoneController;
 
   @override
   void initState() {
     super.initState();
-    //TODO: Populate controllers with existing rider profile data dynamically
-    _nameController.text = '';
-    _emailController.text = '';
-    _phoneController.text = '';
+    _nameController = TextEditingController(text: widget.initialName);
+    _emailController = TextEditingController(text: widget.initialEmail);
+    _phoneController = TextEditingController(text: widget.initialPhone);
   }
 
   @override
@@ -45,9 +59,9 @@ class _RiderProfileState extends State<RiderProfile> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Rider Profile',
-          style: TextStyle(
+        title: Text(
+          widget.title,
+          style: const TextStyle(
             color: Color.fromARGB(221, 0, 0, 0),
             fontWeight: FontWeight.bold,
             fontSize: 18.0,
@@ -63,30 +77,30 @@ class _RiderProfileState extends State<RiderProfile> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const ProfilePicture(),
+                    SharedProfilePicture(onUpdatePicture: widget.onUpdatePicture),
                     const SizedBox(height: 32.0),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        InputField(
+                        SharedInputField(
                           controller: _nameController,
                           label: 'Full Name',
-                          hintText: 'e.g., Ahmad',
+                          hintText: 'Enter your full name',
                           icon: Icons.person_outline,
                         ),
                         const SizedBox(height: 16.0),
-                        InputField(
+                        SharedInputField(
                           controller: _emailController,
                           label: 'Email Address',
-                          hintText: 'e.g., ahmad_rider@example.com',
+                          hintText: 'Enter your email address',
                           icon: Icons.email_outlined,
                           keyboardType: TextInputType.emailAddress,
                         ),
                         const SizedBox(height: 16.0),
-                        InputField(
+                        SharedInputField(
                           controller: _phoneController,
                           label: 'Phone Number',
-                          hintText: 'e.g., +60 12-345 6789',
+                          hintText: 'Enter your phone number',
                           icon: Icons.phone_outlined,
                           keyboardType: TextInputType.phone,
                         ),
@@ -96,9 +110,17 @@ class _RiderProfileState extends State<RiderProfile> {
                 ),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
-              child: SaveButton(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: SharedSaveButton(
+                onPressed: () {
+                  widget.onSave(
+                    _nameController.text,
+                    _emailController.text,
+                    _phoneController.text,
+                  );
+                },
+              ),
             ),
             const SizedBox(height: 20.0),
           ],
@@ -108,8 +130,10 @@ class _RiderProfileState extends State<RiderProfile> {
   }
 }
 
-class ProfilePicture extends StatelessWidget {
-  const ProfilePicture({super.key});
+class SharedProfilePicture extends StatelessWidget {
+  final VoidCallback? onUpdatePicture;
+
+  const SharedProfilePicture({super.key, this.onUpdatePicture});
 
   @override
   Widget build(BuildContext context) {
@@ -141,14 +165,8 @@ class ProfilePicture extends StatelessWidget {
             ),
             child: IconButton(
               padding: EdgeInsets.zero,
-              icon: const Icon(
-                Icons.camera_alt,
-                color: Colors.white,
-                size: 20,
-              ),
-              onPressed: () {
-                //TODO: Handle rider profile picture update
-              },
+              icon: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+              onPressed: onUpdatePicture ?? () {},
             ),
           ),
         ),
@@ -157,14 +175,14 @@ class ProfilePicture extends StatelessWidget {
   }
 }
 
-class InputField extends StatelessWidget {
+class SharedInputField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String hintText;
   final IconData icon;
   final TextInputType keyboardType;
 
-  const InputField({
+  const SharedInputField({
     super.key,
     required this.controller,
     required this.label,
@@ -190,44 +208,25 @@ class InputField extends StatelessWidget {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
-          style: const TextStyle(
-            fontSize: 15.0,
-            color: Color.fromARGB(221, 0, 0, 0),
-          ),
+          style: const TextStyle(fontSize: 15.0, color: Color.fromARGB(221, 0, 0, 0)),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(
-              color: Color.fromARGB(255, 158, 158, 158),
-            ),
+            hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
             filled: true,
             fillColor: const Color.fromARGB(255, 245, 245, 245),
-            prefixIcon: Icon(
-              icon,
-              color: const Color.fromARGB(255, 117, 117, 117),
-              size: 20,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 14.0,
-            ),
+            prefixIcon: Icon(icon, color: const Color.fromARGB(255, 117, 117, 117), size: 20),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(
-                color: Color.fromARGB(255, 224, 224, 224),
-              ),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(
-                color: Color.fromARGB(255, 224, 224, 224),
-              ),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(
-                color: Color.fromARGB(255, 255, 160, 122),
-                width: 1.5,
-              ),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 1.5),
             ),
           ),
         ),
@@ -236,8 +235,10 @@ class InputField extends StatelessWidget {
   }
 }
 
-class SaveButton extends StatelessWidget {
-  const SaveButton({super.key});
+class SharedSaveButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const SharedSaveButton({super.key, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -245,33 +246,14 @@ class SaveButton extends StatelessWidget {
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
-        onPressed: () {
-          //TODO: Update rider profile via backend API
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Profile updated successfully!',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              backgroundColor: Color.fromARGB(255, 255, 160, 122),
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(seconds: 2),
-            ),
-          );
-          Navigator.pop(context);
-        },
+        onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 255, 160, 122),
           foregroundColor: Colors.white,
           elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.0),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
         ),
-        child: const Text(
-          'Save Changes',
-          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-        ),
+        child: const Text('Save Changes', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
       ),
     );
   }

@@ -1,22 +1,34 @@
 import 'package:flutter/material.dart';
 
-import 'header.dart';
-import 'profile.dart';
+class SharedAccountScreen extends StatelessWidget {
+  final Widget header;
+  final String name;
+  final String email;
+  final String subtitle;
+  final IconData profileIcon;
+  final bool showEditIcon;
+  final VoidCallback? onEditPressed;
+  final VoidCallback onLogout;
+  final List<Widget> accountOptions;
 
-class CustomerAccount extends StatelessWidget {
-  final VoidCallback? onLogout;
-
-  const CustomerAccount({super.key, this.onLogout});
+  const SharedAccountScreen({
+    super.key,
+    required this.header,
+    required this.name,
+    required this.email,
+    required this.subtitle,
+    required this.profileIcon,
+    this.showEditIcon = true,
+    this.onEditPressed,
+    required this.onLogout,
+    this.accountOptions = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const CustomerHeader(
-          showTitle: true,
-          pageTitle: 'My Account',
-          showSearch: false,
-        ),
+        header,
         Expanded(
           child: SingleChildScrollView(
             child: Column(
@@ -24,7 +36,10 @@ class CustomerAccount extends StatelessWidget {
                 const SizedBox(height: 20.0),
                 _buildProfileCard(context),
                 const SizedBox(height: 24.0),
-                _buildAccountOptions(context),
+                if (accountOptions.isNotEmpty)
+                  _buildOptionsContainer(context)
+                else
+                  _buildStandaloneLogout(context),
                 const SizedBox(height: 32.0),
               ],
             ),
@@ -56,42 +71,36 @@ class CustomerAccount extends StatelessWidget {
             height: 70,
             width: 70,
             decoration: BoxDecoration(
-              color: const Color.fromARGB(
-                255,
-                255,
-                160,
-                122,
-              ).withValues(alpha: 0.2),
+              color: const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.person,
+            child: Icon(
+              profileIcon,
               size: 40,
-              color: Color.fromARGB(255, 255, 160, 122),
+              color: const Color.fromARGB(255, 255, 160, 122),
             ),
           ),
           const SizedBox(width: 20.0),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                //TODO: Retrieve user profile details dynamically from backend
                 Text(
-                  'Kai Hao',
-                  style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                  name.isNotEmpty ? name : 'No Name',
+                  style: const TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 4.0),
+                const SizedBox(height: 4.0),
                 Text(
-                  '+60 16-356 1651',
-                  style: TextStyle(
+                  subtitle.isNotEmpty ? subtitle : 'No Details',
+                  style: const TextStyle(
                     fontSize: 14.0,
                     color: Color.fromARGB(255, 117, 117, 117),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'kaihao0303@gmail.com',
-                  style: TextStyle(
+                  email.isNotEmpty ? email : 'No Email',
+                  style: const TextStyle(
                     fontSize: 14.0,
                     color: Color.fromARGB(255, 117, 117, 117),
                   ),
@@ -99,26 +108,20 @@ class CustomerAccount extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(
-              Icons.edit_outlined,
-              color: Color.fromARGB(255, 158, 158, 158),
+          if (showEditIcon)
+            IconButton(
+              icon: const Icon(
+                Icons.edit_outlined,
+                color: Color.fromARGB(255, 158, 158, 158),
+              ),
+              onPressed: onEditPressed,
             ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CustomerProfile(),
-                ),
-              );
-            },
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildAccountOptions(BuildContext context) {
+  Widget _buildOptionsContainer(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20.0),
       decoration: BoxDecoration(
@@ -135,19 +138,30 @@ class CustomerAccount extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildOptionTile(Icons.location_on_outlined, 'Saved Addresses'),
-          const Divider(height: 1, indent: 60, endIndent: 20.0),
-          _buildOptionTile(Icons.credit_card_outlined, 'Payment Methods'),
-          const Divider(height: 1, indent: 60, endIndent: 20.0),
-          _buildOptionTile(Icons.local_offer_outlined, 'Vouchers & Offers'),
-          const Divider(height: 1, indent: 60, endIndent: 20.0),
-          _buildOptionTile(Icons.help_outline, 'Help Center'),
-          const Divider(height: 1, indent: 60, endIndent: 20.0),
-          _buildOptionTile(Icons.settings_outlined, 'Settings'),
+          ...accountOptions,
           const Divider(height: 1, indent: 60, endIndent: 20.0),
           _buildLogoutTile(context),
         ],
       ),
+    );
+  }
+
+  Widget _buildStandaloneLogout(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.0),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromARGB(20, 0, 0, 0),
+            blurRadius: 8,
+            spreadRadius: 1,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: _buildLogoutTile(context),
     );
   }
 
@@ -177,24 +191,25 @@ class CustomerAccount extends StatelessWidget {
           color: Color.fromARGB(255, 229, 57, 53),
         ),
       ),
-      onTap: () {
-        onLogout?.call();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Logged out successfully',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            backgroundColor: Color.fromARGB(255, 239, 83, 80),
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      },
+      onTap: onLogout,
     );
   }
+}
 
-  Widget _buildOptionTile(IconData icon, String title) {
+class SharedOptionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const SharedOptionTile({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 20.0,
@@ -221,8 +236,7 @@ class CustomerAccount extends StatelessWidget {
         size: 16,
         color: Color.fromARGB(255, 158, 158, 158),
       ),
-      onTap: () {},
+      onTap: onTap,
     );
   }
-
 }

@@ -1,35 +1,38 @@
 import 'package:flutter/material.dart';
 
+// Import role-specific navigations for RBAC routing
 import '../admin/main_navigation.dart';
 import '../rider/main_navigation.dart';
-import 'header.dart';
 
-class CustomerAuth extends StatefulWidget {
+class SharedAuthScreen extends StatefulWidget {
+  // Callback to trigger upon successful customer authentication
   final VoidCallback? onAuthSuccess;
 
-  const CustomerAuth({super.key, this.onAuthSuccess});
+  const SharedAuthScreen({super.key, this.onAuthSuccess});
 
   @override
-  State<CustomerAuth> createState() => _CustomerAuthState();
+  State<SharedAuthScreen> createState() => _SharedAuthScreenState();
 }
 
-class _CustomerAuthState extends State<CustomerAuth> {
+class _SharedAuthScreenState extends State<SharedAuthScreen> {
+  // Form toggle states
   bool _isLogin = true;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _rememberMe = false;
   bool _agreeTerms = false;
 
+  // Text controllers for input fields
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
   @override
   void dispose() {
+    // Dispose controllers to prevent memory leaks
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
@@ -39,15 +42,14 @@ class _CustomerAuthState extends State<CustomerAuth> {
     super.dispose();
   }
 
+  // Displays a dialog for users to request a password reset
   void _showForgotPasswordDialog() {
     showDialog(
       context: context,
       builder: (context) {
         final TextEditingController resetController = TextEditingController();
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.0),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
           title: const Text(
             'Reset Password',
             style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
@@ -58,10 +60,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
             children: [
               const Text(
                 'Enter your email address and we will send you instructions to reset your password.',
-                style: TextStyle(
-                  fontSize: 14.0,
-                  color: Color.fromARGB(255, 117, 117, 117),
-                ),
+                style: TextStyle(fontSize: 14.0, color: Color.fromARGB(255, 117, 117, 117)),
               ),
               const SizedBox(height: 16.0),
               TextField(
@@ -70,27 +69,17 @@ class _CustomerAuthState extends State<CustomerAuth> {
                 style: const TextStyle(fontSize: 15.0),
                 decoration: InputDecoration(
                   hintText: 'Email Address',
-                  hintStyle: const TextStyle(
-                    color: Color.fromARGB(255, 158, 158, 158),
-                  ),
+                  hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
                   filled: true,
                   fillColor: const Color.fromARGB(255, 245, 245, 245),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 12.0,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15.0),
-                    borderSide: const BorderSide(
-                      color: Color.fromARGB(255, 224, 224, 224),
-                    ),
+                    borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15.0),
-                    borderSide: const BorderSide(
-                      color: Color.fromARGB(255, 255, 160, 122),
-                      width: 1.5,
-                    ),
+                    borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 1.5),
                   ),
                 ),
               ),
@@ -101,15 +90,12 @@ class _CustomerAuthState extends State<CustomerAuth> {
               onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Cancel',
-                style: TextStyle(
-                  color: Color.fromARGB(255, 117, 117, 117),
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(color: Color.fromARGB(255, 117, 117, 117), fontWeight: FontWeight.w600),
               ),
             ),
             ElevatedButton(
               onPressed: () {
-                //TODO: Send password reset link via backend API
+                // TODO: Send password reset link via backend API
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -127,14 +113,9 @@ class _CustomerAuthState extends State<CustomerAuth> {
                 backgroundColor: const Color.fromARGB(255, 255, 160, 122),
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25.0),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.0)),
               ),
-              child: const Text(
-                'Send Link',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              child: const Text('Send Link', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -142,56 +123,108 @@ class _CustomerAuthState extends State<CustomerAuth> {
     );
   }
 
+  // Handles authentication logic (Login/Register) and RBAC routing
   void _handleAuthAction() {
-    if (!_isLogin && !_agreeTerms) {
+    if (!_isLogin) {
+      // Flow 1: Customer Registration
+      if (!_agreeTerms) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Please agree to the Terms of Service to continue.',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Color.fromARGB(255, 239, 83, 80),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+
+      // TODO: Call Backend API to register as a Customer.
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Please agree to the Terms of Service to continue.',
+            'Account created successfully! Please log in.',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          backgroundColor: Color.fromARGB(255, 239, 83, 80),
+          backgroundColor: Color.fromARGB(255, 255, 160, 122),
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 2),
         ),
       );
-      return;
+
+      // Switch back to Login tab and clear sensitive fields upon successful registration
+      setState(() {
+        _isLogin = true;
+        _passwordController.clear();
+        _confirmPasswordController.clear();
+      });
+
+    } else {
+      // Flow 2: Login and RBAC Routing
+      // TODO: Authenticate via Backend API and retrieve user role.
+
+      // Mock RBAC logic based on email input for development testing
+      String email = _emailController.text.trim().toLowerCase();
+
+      if (email == 'admin') {
+        // Route to Admin interface
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AdminMainNavigation()),
+        );
+      } else if (email == 'rider') {
+        // Route to Rider interface
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const RiderMainNavigation()),
+        );
+      } else {
+        // Default: Route to Customer interface
+        widget.onAuthSuccess?.call();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Welcome back!',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Color.fromARGB(255, 255, 160, 122),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
-
-    //TODO: Authenticate user via backend (login/register) and retrieve user session dynamically
-    widget.onAuthSuccess?.call();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _isLogin
-              ? 'Welcome back!'
-              : 'Account created successfully!',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: const Color.fromARGB(255, 255, 160, 122),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const CustomerHeader(
-          showTitle: true,
-          pageTitle: 'Account',
-          showSearch: false,
-          showActions: false,
+        // Shared minimal header for the authentication screen
+        SafeArea(
+          bottom: false,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20.0),
+            color: Colors.white,
+            alignment: Alignment.center,
+            child: const Text(
+              'Account',
+              style: TextStyle(
+                fontSize: 18.0,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ),
         ),
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20.0,
-              vertical: 16.0,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
             child: Column(
               children: [
                 const SizedBox(height: 12.0),
@@ -204,9 +237,10 @@ class _CustomerAuthState extends State<CustomerAuth> {
                   ),
                 ),
                 const SizedBox(height: 4.0),
+                // Dynamic subtitle based on selected auth mode
                 Text(
                   _isLogin
-                      ? 'Sign in to manage your orders & profile'
+                      ? 'Sign in to access your account'
                       : 'Join us today to start ordering delicious food',
                   style: const TextStyle(
                     fontSize: 14.0,
@@ -255,6 +289,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
                   onPressed: _handleAuthAction,
                 ),
                 const SizedBox(height: 24.0),
+                // Developer access buttons (Remove in production)
                 const TempAccessButtons(),
                 const SizedBox(height: 32.0),
               ],
@@ -266,6 +301,7 @@ class _CustomerAuthState extends State<CustomerAuth> {
   }
 }
 
+// Widget to toggle between Login and Register tabs
 class AuthTabSelector extends StatelessWidget {
   final bool isLogin;
   final ValueChanged<bool> onToggle;
@@ -289,18 +325,10 @@ class AuthTabSelector extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 12.0),
                 decoration: BoxDecoration(
-                  color: isLogin
-                      ? const Color.fromARGB(255, 255, 160, 122)
-                      : Colors.transparent,
+                  color: isLogin ? const Color.fromARGB(255, 255, 160, 122) : Colors.transparent,
                   borderRadius: BorderRadius.circular(25.0),
                   boxShadow: isLogin
-                      ? const [
-                          BoxShadow(
-                            color: Color.fromARGB(40, 255, 160, 122),
-                            blurRadius: 8,
-                            offset: Offset(0, 3),
-                          ),
-                        ]
+                      ? const [BoxShadow(color: Color.fromARGB(40, 255, 160, 122), blurRadius: 8, offset: Offset(0, 3))]
                       : const [],
                 ),
                 alignment: Alignment.center,
@@ -309,9 +337,7 @@ class AuthTabSelector extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15.0,
                     fontWeight: FontWeight.bold,
-                    color: isLogin
-                        ? Colors.white
-                        : const Color.fromARGB(255, 117, 117, 117),
+                    color: isLogin ? Colors.white : const Color.fromARGB(255, 117, 117, 117),
                   ),
                 ),
               ),
@@ -324,18 +350,10 @@ class AuthTabSelector extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 12.0),
                 decoration: BoxDecoration(
-                  color: !isLogin
-                      ? const Color.fromARGB(255, 255, 160, 122)
-                      : Colors.transparent,
+                  color: !isLogin ? const Color.fromARGB(255, 255, 160, 122) : Colors.transparent,
                   borderRadius: BorderRadius.circular(25.0),
                   boxShadow: !isLogin
-                      ? const [
-                          BoxShadow(
-                            color: Color.fromARGB(40, 255, 160, 122),
-                            blurRadius: 8,
-                            offset: Offset(0, 3),
-                          ),
-                        ]
+                      ? const [BoxShadow(color: Color.fromARGB(40, 255, 160, 122), blurRadius: 8, offset: Offset(0, 3))]
                       : const [],
                 ),
                 alignment: Alignment.center,
@@ -344,9 +362,7 @@ class AuthTabSelector extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15.0,
                     fontWeight: FontWeight.bold,
-                    color: !isLogin
-                        ? Colors.white
-                        : const Color.fromARGB(255, 117, 117, 117),
+                    color: !isLogin ? Colors.white : const Color.fromARGB(255, 117, 117, 117),
                   ),
                 ),
               ),
@@ -358,6 +374,7 @@ class AuthTabSelector extends StatelessWidget {
   }
 }
 
+// Layout for the Login form fields
 class LoginForm extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController passwordController;
@@ -412,19 +429,14 @@ class LoginForm extends StatelessWidget {
                   child: Checkbox(
                     value: rememberMe,
                     activeColor: const Color.fromARGB(255, 255, 160, 122),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4.0),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0)),
                     onChanged: (value) => onRememberMeChanged(value ?? false),
                   ),
                 ),
                 const SizedBox(width: 8.0),
                 const Text(
                   'Remember me',
-                  style: TextStyle(
-                    fontSize: 13.0,
-                    color: Color.fromARGB(255, 117, 117, 117),
-                  ),
+                  style: TextStyle(fontSize: 13.0, color: Color.fromARGB(255, 117, 117, 117)),
                 ),
               ],
             ),
@@ -446,6 +458,7 @@ class LoginForm extends StatelessWidget {
   }
 }
 
+// Layout for the Registration form fields
 class RegisterForm extends StatelessWidget {
   final TextEditingController nameController;
   final TextEditingController emailController;
@@ -540,9 +553,7 @@ class RegisterForm extends StatelessWidget {
               child: Checkbox(
                 value: agreeTerms,
                 activeColor: const Color.fromARGB(255, 255, 160, 122),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4.0),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0)),
                 onChanged: (value) => onAgreeTermsChanged(value ?? false),
               ),
             ),
@@ -550,10 +561,7 @@ class RegisterForm extends StatelessWidget {
             const Expanded(
               child: Text(
                 'I agree to the Terms of Service & Privacy Policy',
-                style: TextStyle(
-                  fontSize: 13.0,
-                  color: Color.fromARGB(255, 117, 117, 117),
-                ),
+                style: TextStyle(fontSize: 13.0, color: Color.fromARGB(255, 117, 117, 117)),
               ),
             ),
           ],
@@ -563,6 +571,7 @@ class RegisterForm extends StatelessWidget {
   }
 }
 
+// Reusable input field for authentication forms
 class AuthInputField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
@@ -603,56 +612,35 @@ class AuthInputField extends StatelessWidget {
           controller: controller,
           keyboardType: keyboardType,
           obscureText: obscureText,
-          style: const TextStyle(
-            fontSize: 15.0,
-            color: Color.fromARGB(221, 0, 0, 0),
-          ),
+          style: const TextStyle(fontSize: 15.0, color: Color.fromARGB(221, 0, 0, 0)),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(
-              color: Color.fromARGB(255, 158, 158, 158),
-            ),
+            hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
             filled: true,
             fillColor: const Color.fromARGB(255, 245, 245, 245),
-            prefixIcon: Icon(
-              icon,
-              color: const Color.fromARGB(255, 117, 117, 117),
-              size: 20,
-            ),
+            prefixIcon: Icon(icon, color: const Color.fromARGB(255, 117, 117, 117), size: 20),
             suffixIcon: isPassword
                 ? IconButton(
-                    icon: Icon(
-                      obscureText
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: const Color.fromARGB(255, 117, 117, 117),
-                      size: 20,
-                    ),
-                    onPressed: onTogglePassword,
-                  )
+              icon: Icon(
+                obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                color: const Color.fromARGB(255, 117, 117, 117),
+                size: 20,
+              ),
+              onPressed: onTogglePassword,
+            )
                 : null,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 14.0,
-            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(
-                color: Color.fromARGB(255, 224, 224, 224),
-              ),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(
-                color: Color.fromARGB(255, 224, 224, 224),
-              ),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(
-                color: Color.fromARGB(255, 255, 160, 122),
-                width: 1.5,
-              ),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 1.5),
             ),
           ),
         ),
@@ -682,9 +670,7 @@ class AuthActionButton extends StatelessWidget {
           backgroundColor: const Color.fromARGB(255, 255, 160, 122),
           foregroundColor: Colors.white,
           elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25.0),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.0)),
         ),
         child: Text(
           isLogin ? 'Log In' : 'Create Account',
@@ -695,6 +681,7 @@ class AuthActionButton extends StatelessWidget {
   }
 }
 
+// Temporary buttons for quick navigation during development
 class TempAccessButtons extends StatelessWidget {
   const TempAccessButtons({super.key});
 

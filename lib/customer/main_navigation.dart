@@ -5,7 +5,7 @@ import '../shared/account.dart';
 import '../shared/profile.dart';
 
 // Import customer pages
-import 'auth.dart';
+import '../shared/auth.dart';
 import 'header.dart';
 import 'home.dart';
 import 'menu.dart';
@@ -41,7 +41,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
     const CustomerOrders(),
     _isLoggedIn
         ? _buildAccountScreen() // Build the account screen
-        : CustomerAuth(onAuthSuccess: () => setState(() => _isLoggedIn = true)),
+        : SharedAuthScreen(onAuthSuccess: () => setState(() => _isLoggedIn = true)),
   ];
 
   // Build the customer account screen with custom options

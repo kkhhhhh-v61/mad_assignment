@@ -1,5 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../main.dart';
 
 // Import role-specific navigations for RBAC routing
 import '../admin/main_navigation.dart';
@@ -46,79 +52,154 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
   }
 
   void _showForgotPasswordDialog() {
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
+    final TextEditingController newPasswordController = TextEditingController();
+    bool isLoading = false;
+
     showDialog(
       context: context,
       builder: (context) {
-        final TextEditingController resetController = TextEditingController();
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-          title: const Text(
-            'Reset Password',
-            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Enter your email address and we will send you instructions to reset your password.',
-                style: TextStyle(fontSize: 14.0, color: Color.fromARGB(255, 117, 117, 117)),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+              title: const Text(
+                'Reset Password',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 16.0),
-              TextField(
-                controller: resetController,
-                keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(fontSize: 15.0),
-                decoration: InputDecoration(
-                  hintText: 'Email Address',
-                  hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
-                  filled: true,
-                  fillColor: const Color.fromARGB(255, 245, 245, 245),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15.0),
-                    borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Enter your registered email, phone number, and a new password.',
+                    style: TextStyle(fontSize: 13.0, color: Color.fromARGB(255, 117, 117, 117)),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15.0),
-                    borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 1.5),
+                  const SizedBox(height: 16.0),
+                  TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      hintText: 'Email Address',
+                      hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
+                      filled: true,
+                      fillColor: const Color.fromARGB(255, 245, 245, 245),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12.0),
+                  TextField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [PhoneWithDashFormatter()],
+                    decoration: InputDecoration(
+                      hintText: 'Phone Number (e.g., 012-345 6789)',
+                      hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
+                      filled: true,
+                      fillColor: const Color.fromARGB(255, 245, 245, 245),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12.0),
+                  TextField(
+                    controller: newPasswordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      hintText: 'New Password (min. 8 chars)',
+                      hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
+                      filled: true,
+                      fillColor: const Color.fromARGB(255, 245, 245, 245),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Color.fromARGB(255, 117, 117, 117), fontWeight: FontWeight.w600),
                   ),
                 ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Color.fromARGB(255, 117, 117, 117), fontWeight: FontWeight.w600),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Password reset link sent to email!',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    backgroundColor: Color.fromARGB(255, 255, 160, 122),
-                    behavior: SnackBarBehavior.floating,
-                    duration: Duration(seconds: 2),
+                ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                    final email = emailController.text.trim();
+                    final phone = phoneController.text.trim();
+                    final newPassword = newPasswordController.text.trim();
+
+                    if (email.isEmpty || phone.isEmpty || newPassword.length < 8) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill in all fields (password min. 8 chars).', style: TextStyle(fontWeight: FontWeight.bold)),
+                          backgroundColor: Color.fromARGB(255, 239, 83, 80),
+                        ),
+                      );
+                      return;
+                    }
+
+                    setDialogState(() => isLoading = true);
+
+                    try {
+                      await supabase.rpc('reset_password_by_email_and_phone', params: {
+                        'target_email': email,
+                        'target_phone': phone,
+                        'new_pass': newPassword,
+                      });
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Password updated successfully! Please log in.', style: TextStyle(fontWeight: FontWeight.bold)),
+                            backgroundColor: Color.fromARGB(255, 255, 160, 122),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      setDialogState(() => isLoading = false);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: Email or phone not matched.', style: TextStyle(fontWeight: FontWeight.bold)),
+                            backgroundColor: const Color.fromARGB(255, 239, 83, 80),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 255, 160, 122),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.0)),
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 255, 160, 122),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.0)),
-              ),
-              child: const Text('Send Link', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
+                  child: isLoading
+                      ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                      : const Text('Update Password', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -143,7 +224,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
         return;
       }
 
-      if (_phoneController.text.trim().length < 9) {
+      if (_phoneController.text.trim().length < 10) {
         _showErrorSnackBar('Please enter a valid phone number.');
         return;
       }
@@ -546,12 +627,11 @@ class RegisterForm extends StatelessWidget {
           inputFormatters: [PhoneWithDashFormatter()],
         ),
         const SizedBox(height: 16.0),
-        AuthInputField(
+        AddressAutocompleteField(
           controller: addressController,
           label: 'Address',
-          hintText: 'e.g., No. 1, Jalan Taylor\'s, 47500 Subang Jaya',
+          hintText: 'Search address in Malaysia (e.g., Subang Jaya, Penang)...',
           icon: Icons.location_on_outlined,
-          keyboardType: TextInputType.streetAddress,
         ),
         const SizedBox(height: 16.0),
         AuthInputField(
@@ -680,6 +760,181 @@ class AuthInputField extends StatelessWidget {
   }
 }
 
+class AddressAutocompleteField extends StatefulWidget {
+  final TextEditingController controller;
+  final String label;
+  final String hintText;
+  final IconData icon;
+
+  const AddressAutocompleteField({
+    super.key,
+    required this.controller,
+    required this.label,
+    required this.hintText,
+    required this.icon,
+  });
+
+  @override
+  State<AddressAutocompleteField> createState() => _AddressAutocompleteFieldState();
+}
+
+class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
+  List<String> _suggestions = [];
+  bool _isLoading = false;
+  Timer? _debounce;
+  void _onSearchChanged(String query) {
+    widget.controller.text = query;
+
+    if (query.trim().length < 3) {
+      setState(() {
+        _suggestions = [];
+        _isLoading = false;
+      });
+      return;
+    }
+
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      _fetchAddresses(query);
+    });
+  }
+
+  Future<void> _fetchAddresses(String query) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final encodedQuery = Uri.encodeComponent(query);
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/search?format=json&q=$encodedQuery&countrycodes=my&limit=5&addressdetails=1',
+      );
+
+      // for OSM req needed（User-Agent)
+      final response = await http.get(
+        url,
+        headers: {
+          'User-Agent': 'DoorDishFoodDeliveryApp/1.0 (student@taylors.edu.my)',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          _suggestions = data.map((item) => item['display_name'].toString()).toList();
+          _isLoading = false;
+        });
+      } else {
+        print('OSM API Status Code: ${response.statusCode}');
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('OSM Search Error: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.label,
+          style: const TextStyle(
+            fontSize: 14.0,
+            fontWeight: FontWeight.bold,
+            color: Color.fromARGB(221, 0, 0, 0),
+          ),
+        ),
+        const SizedBox(height: 6.0),
+        TextField(
+          controller: widget.controller,
+          onChanged: _onSearchChanged,
+          keyboardType: TextInputType.streetAddress,
+          style: const TextStyle(fontSize: 15.0, color: Color.fromARGB(221, 0, 0, 0)),
+          decoration: InputDecoration(
+            hintText: widget.hintText,
+            hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
+            filled: true,
+            fillColor: const Color.fromARGB(255, 245, 245, 245),
+            prefixIcon: Icon(widget.icon, color: const Color.fromARGB(255, 117, 117, 117), size: 20),
+            suffixIcon: _isLoading
+                ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: Padding(
+                padding: EdgeInsets.all(12.0),
+                child: CircularProgressIndicator(strokeWidth: 2, color: Color.fromARGB(255, 255, 160, 122)),
+              ),
+            )
+                : null,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 1.5),
+            ),
+          ),
+        ),
+        if (_suggestions.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 6.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15.0),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color.fromARGB(25, 0, 0, 0),
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _suggestions.length,
+              itemBuilder: (context, index) {
+                final address = _suggestions[index];
+                return ListTile(
+                  title: Text(
+                    address,
+                    style: const TextStyle(fontSize: 13.0, color: Color.fromARGB(221, 0, 0, 0)),
+                  ),
+                  onTap: () {
+                    widget.controller.text = address;
+                    setState(() {
+                      _suggestions = [];
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class AuthActionButton extends StatelessWidget {
   final bool isLogin;
   final VoidCallback onPressed;
@@ -692,7 +947,6 @@ class AuthActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color.fromARGB(255, 255, 160, 122);
     return SizedBox(
       width: double.infinity,
       height: 52,
@@ -724,7 +978,6 @@ class PhoneWithDashFormatter extends TextInputFormatter {
     String text = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
 
     String formatted = '';
-
     bool is11Digits = text.startsWith('011') && text.length > 3;
 
     for (int i = 0; i < text.length; i++) {

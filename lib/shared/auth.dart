@@ -323,9 +323,6 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                   isLogin: _isLogin,
                   onPressed: _handleAuthAction,
                 ),
-                const SizedBox(height: 24.0),
-                const TempAccessButtons(),
-                const SizedBox(height: 32.0),
               ],
             ),
           ),
@@ -712,48 +709,6 @@ class AuthActionButton extends StatelessWidget {
           style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
         ),
       ),
-    );
-  }
-}
-
-class TempAccessButtons extends StatelessWidget {
-  const TempAccessButtons({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        TextButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const RiderMainNavigation()),
-            );
-          },
-          child: const Text(
-            'Temporary: Go to Rider Interface',
-            style: TextStyle(
-              color: Color.fromARGB(255, 117, 117, 117),
-              decoration: TextDecoration.underline,
-            ),
-          ),
-        ),
-        TextButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AdminMainNavigation()),
-            );
-          },
-          child: const Text(
-            'Temporary: Grade to Admin Interface',
-            style: TextStyle(
-              color: Color.fromARGB(255, 117, 117, 117),
-              decoration: TextDecoration.underline,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

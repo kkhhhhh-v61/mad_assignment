@@ -11,6 +11,8 @@ import 'home.dart';
 import 'menu.dart';
 import 'orders.dart';
 
+import '../models.dart';
+
 class CustomerMainNavigation extends StatefulWidget {
   const CustomerMainNavigation({super.key});
 
@@ -22,6 +24,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
   int _currentIndex = 0;
   bool _isLoggedIn = false;
   String _selectedMenuCategory = '';
+  AppUser? currentUser;
 
   List<Widget> get _screens => [
     CustomerHome(
@@ -41,7 +44,14 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
     const CustomerOrders(),
     _isLoggedIn
         ? _buildAccountScreen() // Build the account screen
-        : SharedAuthScreen(onAuthSuccess: () => setState(() => _isLoggedIn = true)),
+        : SharedAuthScreen(
+      onAuthSuccess: (user) {
+        setState(() {
+          _isLoggedIn = true;
+          currentUser = user;
+        });
+      },
+    ),
   ];
 
   // Build the customer account screen with custom options

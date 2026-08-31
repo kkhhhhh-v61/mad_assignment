@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../main.dart';
+import '../customer/main_navigation.dart';
+
 import '../shared/account.dart';
+import '../shared/profile.dart';
 import 'header.dart';
 import 'food_management.dart';
 import 'rider_management.dart';
 
-class AdminMainNavigation extends StatefulWidget {
-  const AdminMainNavigation({super.key});
+import '../models.dart';
 
+class AdminMainNavigation extends StatefulWidget {
+  final AppUser? user;
+  const AdminMainNavigation({super.key, this.user});
   @override
   State<AdminMainNavigation> createState() => _AdminMainNavigationState();
 }
@@ -26,13 +32,63 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
   Widget _buildAccountScreen(BuildContext context) {
     return SharedAccountScreen(
       header: const AdminHeader(pageTitle: 'Account'),
-      name: 'Admin User',
-      subtitle: 'Administrator',
-      email: 'admin@doordish.com',
+      name: widget.user?.name ?? 'Admin User',
+      subtitle: widget.user?.phone ?? 'Administrator',
+      email: widget.user?.email ?? 'No Email',
       profileIcon: Icons.admin_panel_settings,
-      showEditIcon: false, // Hide the edit profile button for admin
-      onLogout: () {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+
+      showEditIcon: true,
+
+      onEditPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SharedProfileScreen(
+              title: 'Admin Profile',
+              initialName: widget.user?.name ?? '',
+              initialEmail: widget.user?.email ?? '',
+              initialPhone: widget.user?.phone ?? '',
+              onSave: (name, email, phone) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Profile updated successfully!',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    backgroundColor: Color.fromARGB(255, 255, 160, 122),
+                    behavior: SnackBarBehavior.floating,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                Navigator.pop(context);
+              },
+            ),
+          ),
+        );
+      },
+
+      onLogout: () async {
+        await supabase.auth.signOut();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Logged out successfully',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              backgroundColor: Color.fromARGB(255, 239, 83, 80),
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
+            ),
+          );
+
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const CustomerMainNavigation()),
+                (route) => false,
+          );
+        }
       },
     );
   }

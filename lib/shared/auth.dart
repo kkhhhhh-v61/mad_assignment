@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 // Import role-specific navigations for RBAC routing
 import '../admin/main_navigation.dart';
 import '../rider/main_navigation.dart';
 
+import '../services/auth_service.dart';
+import '../models.dart';
+
 class SharedAuthScreen extends StatefulWidget {
   // Callback to trigger upon successful customer authentication
-  final VoidCallback? onAuthSuccess;
+  final Function(AppUser)? onAuthSuccess;
 
   const SharedAuthScreen({super.key, this.onAuthSuccess});
 
@@ -32,7 +36,6 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
 
   @override
   void dispose() {
-    // Dispose controllers to prevent memory leaks
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
@@ -42,7 +45,6 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
     super.dispose();
   }
 
-  // Displays a dialog for users to request a password reset
   void _showForgotPasswordDialog() {
     showDialog(
       context: context,
@@ -95,7 +97,6 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                // TODO: Send password reset link via backend API
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -124,87 +125,122 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
   }
 
   // Handles authentication logic (Login/Register) and RBAC routing
-  void _handleAuthAction() {
+  void _handleAuthAction() async {
     if (!_isLogin) {
-      // Flow 1: Customer Registration
-      if (!_agreeTerms) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Please agree to the Terms of Service to continue.',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            backgroundColor: Color.fromARGB(255, 239, 83, 80),
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
-        );
+      if (_nameController.text.trim().isEmpty ||
+          _emailController.text.trim().isEmpty ||
+          _phoneController.text.trim().isEmpty ||
+          _addressController.text.trim().isEmpty ||
+          _passwordController.text.isEmpty ||
+          _confirmPasswordController.text.isEmpty) {
+        _showErrorSnackBar('Please fill in all fields before registering.');
         return;
       }
 
-      // TODO: Call Backend API to register as a Customer.
+      // verify name no have number
+      if (RegExp(r'[0-9]').hasMatch(_nameController.text.trim())) {
+        _showErrorSnackBar('Full Name cannot contain numbers.');
+        return;
+      }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Account created successfully! Please log in.',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          backgroundColor: Color.fromARGB(255, 255, 160, 122),
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
+      if (_phoneController.text.trim().length < 9) {
+        _showErrorSnackBar('Please enter a valid phone number.');
+        return;
+      }
+
+      if (_passwordController.text.length < 8) {
+        _showErrorSnackBar('Password must be at least 8 characters long.');
+        return;
+      }
+
+      if (_passwordController.text != _confirmPasswordController.text) {
+        _showErrorSnackBar('Passwords do not match. Please check again.');
+        return;
+      }
+
+      if (!_agreeTerms) {
+        _showErrorSnackBar('Please agree to the Terms of Service to continue.');
+        return;
+      }
+
+      String? errorMessage = await registerCustomer(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        name: _nameController.text.trim(),
+        phone: _phoneController.text.trim(),
+        address: _addressController.text.trim(),
       );
 
-      // Switch back to Login tab and clear sensitive fields upon successful registration
-      setState(() {
-        _isLogin = true;
-        _passwordController.clear();
-        _confirmPasswordController.clear();
-      });
-
-    } else {
-      // Flow 2: Login and RBAC Routing
-      // TODO: Authenticate via Backend API and retrieve user role.
-
-      // Mock RBAC logic based on email input for development testing
-      String email = _emailController.text.trim().toLowerCase();
-
-      if (email == 'admin') {
-        // Route to Admin interface
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const AdminMainNavigation()),
-        );
-      } else if (email == 'rider') {
-        // Route to Rider interface
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const RiderMainNavigation()),
-        );
-      } else {
-        // Default: Route to Customer interface
-        widget.onAuthSuccess?.call();
+      if (errorMessage == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Welcome back!',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            content: Text('Account created successfully! Please log in.', style: TextStyle(fontWeight: FontWeight.bold)),
             backgroundColor: Color.fromARGB(255, 255, 160, 122),
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
+          ),
+        );
+        setState(() {
+          _isLogin = true;
+          _nameController.clear();
+          _emailController.clear();
+          _phoneController.clear();
+          _addressController.clear();
+          _passwordController.clear();
+          _confirmPasswordController.clear();
+          _agreeTerms = false;
+        });
+      } else {
+        _showErrorSnackBar(errorMessage);
+      }
+
+    } else {
+      AppUser? loggedInUser = await loginUser(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      if (loggedInUser == null) {
+        _showErrorSnackBar('Invalid email or password.');
+        return;
+      }
+
+      String role = loggedInUser.role;
+
+      if (role == 'admin') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => AdminMainNavigation(user: loggedInUser)),
+        );
+      } else if (role == 'rider') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => RiderMainNavigation(user: loggedInUser)),
+        );
+      } else {
+        widget.onAuthSuccess?.call(loggedInUser);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Welcome back, ${loggedInUser.name}!', style: const TextStyle(fontWeight: FontWeight.bold)),
+            backgroundColor: const Color.fromARGB(255, 255, 160, 122),
           ),
         );
       }
     }
   }
 
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: const Color.fromARGB(255, 239, 83, 80),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Shared minimal header for the authentication screen
         SafeArea(
           bottom: false,
           child: Container(
@@ -237,7 +273,6 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                   ),
                 ),
                 const SizedBox(height: 4.0),
-                // Dynamic subtitle based on selected auth mode
                 Text(
                   _isLogin
                       ? 'Sign in to access your account'
@@ -289,7 +324,6 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                   onPressed: _handleAuthAction,
                 ),
                 const SizedBox(height: 24.0),
-                // Developer access buttons (Remove in production)
                 const TempAccessButtons(),
                 const SizedBox(height: 32.0),
               ],
@@ -301,7 +335,6 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
   }
 }
 
-// Widget to toggle between Login and Register tabs
 class AuthTabSelector extends StatelessWidget {
   final bool isLogin;
   final ValueChanged<bool> onToggle;
@@ -374,7 +407,6 @@ class AuthTabSelector extends StatelessWidget {
   }
 }
 
-// Layout for the Login form fields
 class LoginForm extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController passwordController;
@@ -458,7 +490,6 @@ class LoginForm extends StatelessWidget {
   }
 }
 
-// Layout for the Registration form fields
 class RegisterForm extends StatelessWidget {
   final TextEditingController nameController;
   final TextEditingController emailController;
@@ -512,9 +543,10 @@ class RegisterForm extends StatelessWidget {
         AuthInputField(
           controller: phoneController,
           label: 'Phone Number',
-          hintText: 'e.g., +60 16-356 1651',
+          hintText: 'e.g., 012-345 6789',
           icon: Icons.phone_outlined,
           keyboardType: TextInputType.phone,
+          inputFormatters: [PhoneWithDashFormatter()],
         ),
         const SizedBox(height: 16.0),
         AuthInputField(
@@ -528,7 +560,7 @@ class RegisterForm extends StatelessWidget {
         AuthInputField(
           controller: passwordController,
           label: 'Password',
-          hintText: 'Create your password',
+          hintText: 'Create your password (min. 8 characters)',
           icon: Icons.lock_outline,
           isPassword: true,
           obscureText: obscurePassword,
@@ -571,7 +603,6 @@ class RegisterForm extends StatelessWidget {
   }
 }
 
-// Reusable input field for authentication forms
 class AuthInputField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
@@ -581,6 +612,7 @@ class AuthInputField extends StatelessWidget {
   final bool isPassword;
   final bool obscureText;
   final VoidCallback? onTogglePassword;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AuthInputField({
     super.key,
@@ -592,6 +624,7 @@ class AuthInputField extends StatelessWidget {
     this.isPassword = false,
     this.obscureText = false,
     this.onTogglePassword,
+    this.inputFormatters,
   });
 
   @override
@@ -612,6 +645,7 @@ class AuthInputField extends StatelessWidget {
           controller: controller,
           keyboardType: keyboardType,
           obscureText: obscureText,
+          inputFormatters: inputFormatters,
           style: const TextStyle(fontSize: 15.0, color: Color.fromARGB(221, 0, 0, 0)),
           decoration: InputDecoration(
             hintText: hintText,
@@ -661,6 +695,7 @@ class AuthActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const Color.fromARGB(255, 255, 160, 122);
     return SizedBox(
       width: double.infinity,
       height: 52,
@@ -681,7 +716,6 @@ class AuthActionButton extends StatelessWidget {
   }
 }
 
-// Temporary buttons for quick navigation during development
 class TempAccessButtons extends StatelessWidget {
   const TempAccessButtons({super.key});
 
@@ -712,7 +746,7 @@ class TempAccessButtons extends StatelessWidget {
             );
           },
           child: const Text(
-            'Temporary: Go to Admin Interface',
+            'Temporary: Grade to Admin Interface',
             style: TextStyle(
               color: Color.fromARGB(255, 117, 117, 117),
               decoration: TextDecoration.underline,
@@ -720,6 +754,42 @@ class TempAccessButtons extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class PhoneWithDashFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    if (oldValue.text.length > newValue.text.length) {
+      return newValue;
+    }
+
+    String text = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    String formatted = '';
+
+    bool is11Digits = text.startsWith('011') && text.length > 3;
+
+    for (int i = 0; i < text.length; i++) {
+      if (i == 3) {
+        formatted += '-';
+      } else if (is11Digits && i == 7) {
+        formatted += ' ';
+      } else if (!is11Digits && i == 6) {
+        formatted += ' ';
+      }
+      formatted += text[i];
+    }
+
+    if (formatted.length > 13) {
+      return oldValue;
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../main.dart';
+import '../customer/main_navigation.dart';
+
 import '../shared/account.dart';
 import '../shared/profile.dart';
 
 import 'deliveries.dart';
 import 'header.dart';
 
+import '../models.dart';
+
 class RiderMainNavigation extends StatefulWidget {
-  const RiderMainNavigation({super.key});
+  final AppUser? user;
+  const RiderMainNavigation({super.key, this.user});
 
   @override
   State<RiderMainNavigation> createState() => _RiderMainNavigationState();
@@ -26,9 +32,9 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
   Widget _buildAccountScreen(BuildContext context) {
     return SharedAccountScreen(
       header: const RiderHeader(pageTitle: 'My Account'),
-      name: '',
-      subtitle: '',
-      email: '',
+      name: widget.user?.name ?? 'Rider',
+      subtitle: widget.user?.phone ?? 'No Phone',
+      email: widget.user?.email ?? 'No Email',
       profileIcon: Icons.person,
       showEditIcon: true,
       onEditPressed: () {
@@ -38,9 +44,9 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
           MaterialPageRoute(
             builder: (context) => SharedProfileScreen(
               title: 'Rider Profile',
-              initialName: '',
-              initialEmail: '',
-              initialPhone: '',
+              initialName: widget.user?.name ?? '',
+              initialEmail: widget.user?.email ?? '',
+              initialPhone: widget.user?.phone ?? '',
               onSave: (name, email, phone) {
                 // TODO: Update rider profile via backend API
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -60,20 +66,28 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
           ),
         );
       },
-      onLogout: () {
-        // Handle rider logout
-        Navigator.of(context, rootNavigator: true).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Logged out successfully',
-              style: TextStyle(fontWeight: FontWeight.bold),
+      onLogout: () async {
+        await supabase.auth.signOut();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Logged out successfully',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              backgroundColor: Color.fromARGB(255, 239, 83, 80),
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
             ),
-            backgroundColor: Color.fromARGB(255, 239, 83, 80),
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
-        );
+          );
+
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const CustomerMainNavigation()),
+                (route) => false,
+          );
+        }
       },
     );
   }

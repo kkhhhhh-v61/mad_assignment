@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main.dart';
 import '../customer/main_navigation.dart';
@@ -21,6 +22,13 @@ class RiderMainNavigation extends StatefulWidget {
 
 class _RiderMainNavigationState extends State<RiderMainNavigation> {
   int _currentIndex = 0;
+  AppUser? currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    currentUser = widget.user;
+  }
 
   // Generate screens dynamically to pass context for navigation and snackbars
   List<Widget> _getScreens(BuildContext context) => [
@@ -32,9 +40,9 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
   Widget _buildAccountScreen(BuildContext context) {
     return SharedAccountScreen(
       header: const RiderHeader(pageTitle: 'My Account'),
-      name: widget.user?.name ?? 'Rider',
-      subtitle: widget.user?.phone ?? 'No Phone',
-      email: widget.user?.email ?? 'No Email',
+      name: currentUser?.name ?? 'Rider',
+      subtitle: currentUser?.phone ?? 'No Phone',
+      email: currentUser?.email ?? 'No Email',
       profileIcon: Icons.person,
       showEditIcon: true,
       onEditPressed: () {
@@ -44,23 +52,73 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
           MaterialPageRoute(
             builder: (context) => SharedProfileScreen(
               title: 'Rider Profile',
-              initialName: widget.user?.name ?? '',
-              initialEmail: widget.user?.email ?? '',
-              initialPhone: widget.user?.phone ?? '',
-              onSave: (name, email, phone) {
-                // TODO: Update rider profile via backend API
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Profile updated successfully!',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    backgroundColor: Color.fromARGB(255, 255, 160, 122),
-                    behavior: SnackBarBehavior.floating,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-                Navigator.pop(context);
+              initialName: currentUser?.name ?? '',
+              initialEmail: currentUser?.email ?? '',
+              initialPhone: currentUser?.phone ?? '',
+              onSave: (name, email, phone, password) async {
+                try {
+                  final userId = supabase.auth.currentUser!.id;
+
+                  await supabase.from('profiles').update({
+                    'name': name,
+                    'email': email,
+                    'phone': phone,
+                  }).eq('id', userId);
+
+                  if (password.isNotEmpty) {
+                    if (password.length < 8) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Password must be at least 8 characters long.'),
+                            backgroundColor: Color.fromARGB(255, 239, 83, 80),
+                          ),
+                        );
+                      }
+                      return;
+                    }
+                    await supabase.auth.updateUser(UserAttributes(password: password));
+                  }
+
+                  setState(() {
+                    currentUser = AppUser(
+                      id: currentUser!.id,
+                      role: currentUser!.role,
+                      name: name,
+                      email: email,
+                      phone: phone,
+                      address: currentUser!.address,
+                    );
+                  });
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Profile updated successfully!',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        backgroundColor: Color.fromARGB(255, 255, 160, 122),
+                        behavior: SnackBarBehavior.floating,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    Navigator.pop(context);
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Error updating profile: $e',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        backgroundColor: const Color.fromARGB(255, 239, 83, 80),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                }
               },
             ),
           ),

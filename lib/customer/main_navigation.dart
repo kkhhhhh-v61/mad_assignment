@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Import shared components
 import '../shared/account.dart';
 import '../shared/profile.dart';
+import '../main.dart';
 
 // Import customer pages
 import '../shared/auth.dart';
@@ -62,9 +64,9 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
         pageTitle: 'My Account',
         showSearch: false,
       ),
-      name: 'Kai Hao',
-      subtitle: '+60 16-356 1651',
-      email: 'kaihao0303@gmail.com',
+      name: currentUser?.name ?? 'No Name',
+      subtitle: currentUser?.phone ?? 'No Phone',
+      email: currentUser?.email ?? 'No Email',
       profileIcon: Icons.person,
       onEditPressed: () {
         // Navigate to the shared profile screen
@@ -73,42 +75,94 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
           MaterialPageRoute(
             builder: (context) => SharedProfileScreen(
               title: 'Edit Profile',
-              initialName: 'Kai Hao',
-              initialEmail: 'kaihao0303@gmail.com',
-              initialPhone: '+60 16-356 1651',
-              onSave: (name, email, phone) {
-                // TODO: Update user profile via backend API
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Profile updated successfully!',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    backgroundColor: Color.fromARGB(255, 255, 160, 122),
-                    behavior: SnackBarBehavior.floating,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-                Navigator.pop(context);
+              initialName: currentUser?.name ?? '',
+              initialEmail: currentUser?.email ?? '',
+              initialPhone: currentUser?.phone ?? '',
+              onSave: (name, email, phone, password) async {
+                try {
+                  final userId = supabase.auth.currentUser!.id;
+
+                  await supabase.from('profiles').update({
+                    'name': name,
+                    'email': email,
+                    'phone': phone,
+                  }).eq('id', userId);
+
+                  if (password.isNotEmpty) {
+                    if (password.length < 8) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Password must be at least 8 characters long.'),
+                            backgroundColor: Color.fromARGB(255, 239, 83, 80),
+                          ),
+                        );
+                      }
+                      return;
+                    }
+                    await supabase.auth.updateUser(UserAttributes(password: password));
+                  }
+
+                  setState(() {
+                    currentUser = AppUser(
+                      id: currentUser!.id,
+                      role: currentUser!.role,
+                      name: name,
+                      email: email,
+                      phone: phone,
+                      address: currentUser!.address,
+                    );
+                  });
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Profile updated successfully!',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        backgroundColor: Color.fromARGB(255, 255, 160, 122),
+                        behavior: SnackBarBehavior.floating,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    Navigator.pop(context);
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error updating profile: $e', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        backgroundColor: const Color.fromARGB(255, 239, 83, 80),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                }
               },
             ),
           ),
         );
       },
-      onLogout: () {
-        // Handle logout and show snackbar notification
-        setState(() => _isLoggedIn = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Logged out successfully',
-              style: TextStyle(fontWeight: FontWeight.bold),
+      onLogout: () async {
+        await supabase.auth.signOut();
+        setState(() {
+          _isLoggedIn = false;
+          currentUser = null;
+        });
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Logged out successfully',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              backgroundColor: Color.fromARGB(255, 239, 83, 80),
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
             ),
-            backgroundColor: Color.fromARGB(255, 239, 83, 80),
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
-        );
+          );
+        }
       },
       accountOptions: [
         SharedOptionTile(icon: Icons.location_on_outlined, title: 'Saved Addresses', onTap: () {}),

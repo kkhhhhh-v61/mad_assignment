@@ -5,7 +5,7 @@ class SharedProfileScreen extends StatefulWidget {
   final String initialName;
   final String initialEmail;
   final String initialPhone;
-  final Function(String name, String email, String phone) onSave;
+  final Function(String name, String email, String phone, String password) onSave;
   final VoidCallback? onUpdatePicture;
 
   const SharedProfileScreen({
@@ -26,6 +26,12 @@ class _SharedProfileScreenState extends State<SharedProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
+  late TextEditingController _passwordController;
+  late TextEditingController _confirmPasswordController;
+
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -33,6 +39,8 @@ class _SharedProfileScreenState extends State<SharedProfileScreen> {
     _nameController = TextEditingController(text: widget.initialName);
     _emailController = TextEditingController(text: widget.initialEmail);
     _phoneController = TextEditingController(text: widget.initialPhone);
+    _passwordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
   }
 
   @override
@@ -40,6 +48,8 @@ class _SharedProfileScreenState extends State<SharedProfileScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -92,17 +102,57 @@ class _SharedProfileScreenState extends State<SharedProfileScreen> {
                         SharedInputField(
                           controller: _emailController,
                           label: 'Email Address',
-                          hintText: 'Enter your email address',
+                          hintText: 'Email cannot be changed',
                           icon: Icons.email_outlined,
                           keyboardType: TextInputType.emailAddress,
+                          readOnly: true,
                         ),
                         const SizedBox(height: 16.0),
                         SharedInputField(
                           controller: _phoneController,
                           label: 'Phone Number',
-                          hintText: 'Enter your phone number',
+                          hintText: 'Enter your new phone number',
                           icon: Icons.phone_outlined,
                           keyboardType: TextInputType.phone,
+                        ),
+                        const SizedBox(height: 32.0),
+                        const Divider(color: Color.fromARGB(255, 238, 238, 238), thickness: 1.5),
+                        const SizedBox(height: 24.0),
+                        const Text(
+                          'Security',
+                          style: TextStyle(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                            color: Color.fromARGB(221, 0, 0, 0),
+                          ),
+                        ),
+                        const SizedBox(height: 16.0),
+                        SharedInputField(
+                          controller: _passwordController,
+                          label: 'New Password',
+                          hintText: 'Leave blank to keep current password',
+                          icon: Icons.lock_outline,
+                          isPassword: true,
+                          obscureText: _obscurePassword,
+                          onTogglePassword: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16.0),
+                        SharedInputField(
+                          controller: _confirmPasswordController,
+                          label: 'Confirm New Password',
+                          hintText: 'Re-enter your new password',
+                          icon: Icons.lock_outline,
+                          isPassword: true,
+                          obscureText: _obscureConfirmPassword,
+                          onTogglePassword: () {
+                            setState(() {
+                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                            });
+                          },
                         ),
                       ],
                     ),
@@ -113,12 +163,29 @@ class _SharedProfileScreenState extends State<SharedProfileScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: SharedSaveButton(
-                onPressed: () {
-                  widget.onSave(
-                    _nameController.text,
-                    _emailController.text,
-                    _phoneController.text,
+                isLoading: _isLoading,
+                onPressed: () async {
+                  final password = _passwordController.text.trim();
+                  final confirmPassword = _confirmPasswordController.text.trim();
+
+                  if (password.isNotEmpty && password != confirmPassword) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Passwords do not match. Please check again.', style: TextStyle(fontWeight: FontWeight.bold)),
+                        backgroundColor: Color.fromARGB(255, 239, 83, 80),
+                      ),
+                    );
+                    return;
+                  }
+
+                  setState(() => _isLoading = true);
+                  await widget.onSave(
+                    _nameController.text.trim(),
+                    _emailController.text.trim(),
+                    _phoneController.text.trim(),
+                    password,
                   );
+                  if (mounted) setState(() => _isLoading = false);
                 },
               ),
             ),
@@ -181,6 +248,10 @@ class SharedInputField extends StatelessWidget {
   final String hintText;
   final IconData icon;
   final TextInputType keyboardType;
+  final bool isPassword;
+  final bool obscureText;
+  final VoidCallback? onTogglePassword;
+  final bool readOnly;
 
   const SharedInputField({
     super.key,
@@ -189,6 +260,10 @@ class SharedInputField extends StatelessWidget {
     required this.hintText,
     required this.icon,
     this.keyboardType = TextInputType.text,
+    this.isPassword = false,
+    this.obscureText = false,
+    this.onTogglePassword,
+    this.readOnly = false,
   });
 
   @override
@@ -208,25 +283,32 @@ class SharedInputField extends StatelessWidget {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 15.0, color: Color.fromARGB(221, 0, 0, 0)),
+          obscureText: obscureText,
+          readOnly: readOnly,
+          style: TextStyle(
+              fontSize: 15.0,
+              color: readOnly ? const Color.fromARGB(255, 158, 158, 158) : const Color.fromARGB(221, 0, 0, 0)
+          ),
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
             filled: true,
-            fillColor: const Color.fromARGB(255, 245, 245, 245),
+            fillColor: readOnly ? const Color.fromARGB(255, 238, 238, 238) : const Color.fromARGB(255, 245, 245, 245),
             prefixIcon: Icon(icon, color: const Color.fromARGB(255, 117, 117, 117), size: 20),
+            suffixIcon: isPassword
+                ? IconButton(
+              icon: Icon(
+                obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                color: const Color.fromARGB(255, 117, 117, 117),
+                size: 20,
+              ),
+              onPressed: onTogglePassword,
+            )
+                : null,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 1.5),
+              borderSide: BorderSide.none,
             ),
           ),
         ),
@@ -236,9 +318,10 @@ class SharedInputField extends StatelessWidget {
 }
 
 class SharedSaveButton extends StatelessWidget {
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final bool isLoading;
 
-  const SharedSaveButton({super.key, required this.onPressed});
+  const SharedSaveButton({super.key, required this.onPressed, this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -246,14 +329,20 @@ class SharedSaveButton extends StatelessWidget {
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 255, 160, 122),
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
         ),
-        child: const Text('Save Changes', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
+        child: isLoading
+            ? const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+        )
+            : const Text('Save Changes', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
       ),
     );
   }

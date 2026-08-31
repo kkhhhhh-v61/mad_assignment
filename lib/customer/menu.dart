@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mad_assignment/models.dart';
 
 import '../global.dart';
+import '../services/states.dart';
 import 'food_item_detail.dart';
 import 'header.dart';
 
@@ -51,20 +53,28 @@ class _CustomerMenuState extends State<CustomerMenu> {
       children: [
         CustomerHeader(showFilter: true, onFilterTap: _showFilterOverlay),
         const SizedBox(height: 16.0),
-        Builder(
-          builder: (context) {
-            final List<Map<String, dynamic>> categories = [];
-            //TODO: Retrieve food categories dynamically from backend
-            return CategoryChips(
-              categories: categories,
-              selectedCategory: _selectedCategory,
-              onSelected: (val) {
-                setState(() => _selectedCategory = val);
-                widget.onCategoryChanged?.call(val);
-              },
-            );
+        // ---------- SAMPLE START ----------
+        FutureBuilder<List<States>>(
+          future: fetchStates(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else if (snapshot.hasData) {
+              return CategoryChips(
+                categories: snapshot.data!,
+                selectedCategory: _selectedCategory,
+                onSelected: (val) {
+                  setState(() => _selectedCategory = val);
+                  widget.onCategoryChanged?.call(val);
+                },
+              );
+            }
+            return const SizedBox.shrink();
           },
         ),
+        // ---------- SAMPLE END ----------
         const SizedBox(height: 8.0),
         Expanded(
           child: SingleChildScrollView(
@@ -142,9 +152,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
         padding: const EdgeInsets.all(24.0),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(20.0),
-          ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -196,10 +204,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
 
               const Text(
                 'Sort By',
-                style: TextStyle(
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8.0),
               Container(
@@ -233,10 +238,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
 
               const Text(
                 'Price Range',
-                style: TextStyle(
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8.0),
               Row(
@@ -249,12 +251,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                         prefixText: 'RM ',
                         hintText: 'Min',
                         filled: true,
-                        fillColor: const Color.fromARGB(
-                          255,
-                          245,
-                          245,
-                          245,
-                        ),
+                        fillColor: const Color.fromARGB(255, 245, 245, 245),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                           borderSide: BorderSide.none,
@@ -281,12 +278,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                         prefixText: 'RM ',
                         hintText: 'Max',
                         filled: true,
-                        fillColor: const Color.fromARGB(
-                          255,
-                          245,
-                          245,
-                          245,
-                        ),
+                        fillColor: const Color.fromARGB(255, 245, 245, 245),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                           borderSide: BorderSide.none,
@@ -304,10 +296,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
 
               const Text(
                 'Rating',
-                style: TextStyle(
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8.0),
               Wrap(
@@ -334,18 +323,8 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                         });
                       }
                     },
-                    selectedColor: const Color.fromARGB(
-                      255,
-                      255,
-                      160,
-                      122,
-                    ),
-                    backgroundColor: const Color.fromARGB(
-                      255,
-                      245,
-                      245,
-                      245,
-                    ),
+                    selectedColor: const Color.fromARGB(255, 255, 160, 122),
+                    backgroundColor: const Color.fromARGB(255, 245, 245, 245),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20.0),
                       side: BorderSide(
@@ -368,12 +347,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(
-                      255,
-                      255,
-                      160,
-                      122,
-                    ),
+                    backgroundColor: const Color.fromARGB(255, 255, 160, 122),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15.0),
@@ -397,7 +371,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
 }
 
 class CategoryChips extends StatelessWidget {
-  final List<Map<String, dynamic>> categories;
+  final List<States> categories;
   final String selectedCategory;
   final ValueChanged<String>? onSelected;
 
@@ -418,28 +392,23 @@ class CategoryChips extends StatelessWidget {
       );
     }
 
-    final List<Map<String, dynamic>> chipCategories = [
-      {'name': 'All', 'icon': Icons.restaurant_menu},
-      ...categories,
-    ];
+    final List<String> chipNames = ['All', ...categories.map((c) => c.name)];
 
     return SizedBox(
       height: 45,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        itemCount: chipCategories.length,
+        itemCount: chipNames.length,
         itemBuilder: (context, index) {
-          final category = chipCategories[index];
-          final String name = category['name'] as String;
-          final IconData icon = category['icon'] as IconData;
+          final String name = chipNames[index];
           final bool isSelected =
               selectedCategory == name ||
               (selectedCategory.isEmpty && name == 'All');
 
           return CategoryChip(
             name: name,
-            icon: icon,
+            icon: Icons.restaurant_menu,
             isSelected: isSelected,
             onSelected: (bool selected) {
               if (onSelected != null) {
@@ -479,7 +448,9 @@ class CategoryChip extends StatelessWidget {
         label: Text(
           name,
           style: TextStyle(
-            color: isSelected ? Colors.white : const Color.fromARGB(221, 0, 0, 0),
+            color: isSelected
+                ? Colors.white
+                : const Color.fromARGB(221, 0, 0, 0),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -661,7 +632,8 @@ class FoodItemCard extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => FoodItemDetail(item: item),
+                                builder: (context) =>
+                                    FoodItemDetail(item: item),
                               ),
                             );
                           },

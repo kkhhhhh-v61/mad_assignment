@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'rider_delivery.dart';
+
 class DeliveryConfirmation extends StatelessWidget {
-  final Map<String, dynamic> delivery;
+  final RiderDelivery delivery;
 
   const DeliveryConfirmation({super.key, required this.delivery});
 
@@ -61,7 +63,7 @@ class DeliveryConfirmation extends StatelessWidget {
               ),
               const SizedBox(height: 16.0),
               Text(
-                'Order for ${delivery['customerName'] ?? 'Customer'} has been delivered.',
+                'Order for ${delivery.customerName} has been delivered.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 16.0,

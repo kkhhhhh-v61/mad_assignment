@@ -9,8 +9,10 @@ import '../shared/profile.dart';
 
 import 'deliveries.dart';
 import 'header.dart';
+import 'rider_delivery_repository.dart';
 
 import '../models.dart';
+import '../Order/order_repository.dart';
 
 class RiderMainNavigation extends StatefulWidget {
   final AppUser? user;
@@ -30,9 +32,20 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
     currentUser = widget.user;
   }
 
+  RiderDeliveryRepository? _buildDeliveryRepository() {
+    final riderId = currentUser?.id ?? supabase.auth.currentUser?.id;
+    if (riderId == null || riderId.trim().isEmpty) {
+      return null;
+    }
+    return SupabaseRiderDeliveryRepository(
+      orderRepository: SupabaseOrderRepository(supabase),
+      riderId: riderId,
+    );
+  }
+
   // Generate screens dynamically to pass context for navigation and snackbars
   List<Widget> _getScreens(BuildContext context) => [
-    const RiderDeliveries(),
+    RiderDeliveries(repository: _buildDeliveryRepository()),
     _buildAccountScreen(context),
   ];
 
@@ -59,25 +72,28 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
                 try {
                   final userId = supabase.auth.currentUser!.id;
 
-                  await supabase.from('profiles').update({
-                    'name': name,
-                    'email': email,
-                    'phone': phone,
-                  }).eq('id', userId);
+                  await supabase
+                      .from('profiles')
+                      .update({'name': name, 'email': email, 'phone': phone})
+                      .eq('id', userId);
 
                   if (password.isNotEmpty) {
                     if (password.length < 8) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Password must be at least 8 characters long.'),
+                            content: Text(
+                              'Password must be at least 8 characters long.',
+                            ),
                             backgroundColor: Color.fromARGB(255, 239, 83, 80),
                           ),
                         );
                       }
                       return;
                     }
-                    await supabase.auth.updateUser(UserAttributes(password: password));
+                    await supabase.auth.updateUser(
+                      UserAttributes(password: password),
+                    );
                   }
 
                   setState(() {
@@ -142,8 +158,10 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
 
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const CustomerMainNavigation()),
-                (route) => false,
+            MaterialPageRoute(
+              builder: (context) => const CustomerMainNavigation(),
+            ),
+            (route) => false,
           );
         }
       },

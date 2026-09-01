@@ -1,19 +1,52 @@
-import 'package:flutter/material.dart';
+  import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'splash_screen.dart';
 
-const String supabaseUrl = "https://xjumxpsalmmyboqlvand.supabase.co";
-const String supabaseKey = "sb_secret_mGhPh1mK9Jd15cPGmlMt3w_mvsJ9uLs";
+  const String supabaseUrl =
+  String.fromEnvironment('SUPABASE_URL');
 
-final supabase = Supabase.instance.client;
+  const String supabasePublishableKey =
+  String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+
+SupabaseClient get supabase => Supabase.instance.client;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey);
+  if (supabaseUrl.isEmpty || supabasePublishableKey.isEmpty) {
+    runApp(const MissingSupabaseConfigurationApp());
+    return;
+  }
+
+  await Supabase.initialize(
+    url: supabaseUrl,
+    publishableKey: supabasePublishableKey,
+  );
 
   runApp(const MyApp());
+}
+
+class MissingSupabaseConfigurationApp extends StatelessWidget {
+  const MissingSupabaseConfigurationApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Supabase configuration is missing. Run with SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY dart defines.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {

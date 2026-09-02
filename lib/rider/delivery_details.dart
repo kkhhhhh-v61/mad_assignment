@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../global.dart';
 import '../Order/order.dart';
 import 'data_gov_my_fuel_price_repository.dart';
+import 'proof_photo_repository.dart';
 import 'rider_delivery.dart';
 import 'rider_fuel_estimate.dart';
 import 'rider_fuel_estimator.dart';
@@ -12,11 +14,13 @@ import 'rider_fuel_estimator.dart';
 class DeliveryDetails extends StatefulWidget {
   final RiderDelivery delivery;
   final RiderFuelEstimateService? fuelEstimateService;
+  final ProofPhotoRepository? proofPhotoRepository;
 
   const DeliveryDetails({
     super.key,
     required this.delivery,
     this.fuelEstimateService,
+    this.proofPhotoRepository,
   });
 
   @override
@@ -28,11 +32,61 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
   String? _fuelError;
   bool _fuelLoading = true;
   DataGovMyFuelPriceRepository? _ownedFuelRepository;
+  String? _proofPhotoUrl;
+  String? _proofPhotoError;
+  bool _proofPhotoLoading = false;
 
   @override
   void initState() {
     super.initState();
     _loadFuelEstimate();
+    _loadProofPhoto();
+  }
+
+  Future<void> _loadProofPhoto() async {
+    final path = widget.delivery.order.proofPhotoPath?.trim();
+    if (path == null || path.isEmpty) return;
+
+    if (mounted) {
+      setState(() {
+        _proofPhotoLoading = true;
+        _proofPhotoError = null;
+      });
+    }
+
+    final repository =
+        widget.proofPhotoRepository ?? _defaultProofPhotoRepository();
+    if (repository == null) {
+      if (!mounted) return;
+      setState(() {
+        _proofPhotoLoading = false;
+        _proofPhotoError = 'Proof photo access is not configured.';
+      });
+      return;
+    }
+
+    try {
+      final signedUrl = await repository.createSignedUrl(path);
+      if (!mounted) return;
+      setState(() {
+        _proofPhotoLoading = false;
+        _proofPhotoUrl = signedUrl;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _proofPhotoLoading = false;
+        _proofPhotoError = 'Proof photo could not be loaded.';
+      });
+    }
+  }
+
+  ProofPhotoRepository? _defaultProofPhotoRepository() {
+    try {
+      return SupabaseProofPhotoRepository(client: Supabase.instance.client);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _loadFuelEstimate() async {
@@ -109,7 +163,12 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
                 error: _fuelError,
               ),
               const SizedBox(height: 20),
-              EvidenceCard(delivery: delivery),
+              EvidenceCard(
+                delivery: delivery,
+                proofPhotoUrl: _proofPhotoUrl,
+                proofPhotoLoading: _proofPhotoLoading,
+                proofPhotoError: _proofPhotoError,
+              ),
             ],
           ),
         ),
@@ -464,12 +523,22 @@ class _FuelRow extends StatelessWidget {
 
 class EvidenceCard extends StatelessWidget {
   final RiderDelivery delivery;
+  final String? proofPhotoUrl;
+  final bool proofPhotoLoading;
+  final String? proofPhotoError;
 
-  const EvidenceCard({super.key, required this.delivery});
+  const EvidenceCard({
+    super.key,
+    required this.delivery,
+    this.proofPhotoUrl,
+    this.proofPhotoLoading = false,
+    this.proofPhotoError,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final hasProof = delivery.order.proofPhotoPath != null;
+    final proofPath = delivery.order.proofPhotoPath?.trim();
+    final hasProof = proofPath != null && proofPath.isNotEmpty;
     final comments = delivery.order.deliveryComments;
     if (!hasProof && (comments == null || comments.trim().isEmpty)) {
       return Container(
@@ -514,12 +583,31 @@ class EvidenceCard extends StatelessWidget {
               color: const Color(0xfff5f5f5),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Center(
-              child: Text(
-                hasProof ? 'Proof photo stored securely' : 'No Photo Provided',
-                style: const TextStyle(color: Color(0xff9e9e9e), fontSize: 14),
-              ),
-            ),
+            child: proofPhotoLoading
+                ? const Center(child: CircularProgressIndicator())
+                : proofPhotoUrl != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      proofPhotoUrl!,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      semanticLabel: 'Delivery proof photo',
+                      errorBuilder: (_, _, _) => _ProofPhotoFallback(
+                        message:
+                            proofPhotoError ??
+                            'Proof photo could not be loaded.',
+                      ),
+                    ),
+                  )
+                : _ProofPhotoFallback(
+                    message:
+                        proofPhotoError ??
+                        (hasProof
+                            ? 'Proof photo stored securely.'
+                            : 'No Photo Provided'),
+                  ),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -536,6 +624,23 @@ class EvidenceCard extends StatelessWidget {
             style: const TextStyle(fontSize: 14, color: Color(0xff757575)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProofPhotoFallback extends StatelessWidget {
+  final String message;
+
+  const _ProofPhotoFallback({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Color(0xff9e9e9e), fontSize: 14),
       ),
     );
   }

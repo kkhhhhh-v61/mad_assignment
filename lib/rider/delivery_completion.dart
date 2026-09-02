@@ -42,6 +42,30 @@ class _DeliveryCompletionState extends State<DeliveryCompletion> {
     super.dispose();
   }
 
+  Future<ImageSource?> _choosePhotoSource() {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('Take a photo'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Choose from device'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _pickPhoto() async {
     if (_picking || _submitting) return;
     setState(() {
@@ -49,8 +73,10 @@ class _DeliveryCompletionState extends State<DeliveryCompletion> {
       _error = null;
     });
     try {
+      final source = await _choosePhotoSource();
+      if (!mounted || source == null) return;
       final photo = await _imagePicker.pickImage(
-        source: ImageSource.camera,
+        source: source,
         imageQuality: 85,
         maxWidth: 1600,
       );
@@ -252,13 +278,13 @@ class PhotoEvidenceSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Please take a picture of the delivered order as proof.',
+          'Take a picture or choose one from the device as proof.',
           style: TextStyle(fontSize: 14, color: Color(0xff757575)),
         ),
         const SizedBox(height: 16),
         Semantics(
           button: true,
-          label: hasPhoto ? 'Retake proof photo' : 'Take proof photo',
+          label: hasPhoto ? 'Change proof photo' : 'Add proof photo',
           child: GestureDetector(
             onTap: picking ? null : onPick,
             child: Container(
@@ -289,7 +315,7 @@ class PhotoEvidenceSection extends StatelessWidget {
                                     color: Colors.black54,
                                     padding: const EdgeInsets.all(8),
                                     child: const Text(
-                                      'Tap to retake photo',
+                                      'Tap to change photo',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Colors.white,
@@ -311,13 +337,13 @@ class PhotoEvidenceSection extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.camera_alt_outlined,
+                          Icons.add_a_photo_outlined,
                           size: 48,
                           color: Color(0xff9e9e9e),
                         ),
                         SizedBox(height: 12),
                         Text(
-                          'Tap to take a picture',
+                          'Tap to add a picture',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,

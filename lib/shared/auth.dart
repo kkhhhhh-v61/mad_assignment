@@ -33,19 +33,26 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
   bool _rememberMe = false;
   bool _agreeTerms = false;
 
-  // Text controllers for input fields
+  // Text controllers for basic input fields
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _addressController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
+  // Address controllers and states
+  final TextEditingController _addressLine1Controller = TextEditingController();
+  final TextEditingController _addressLine2Controller = TextEditingController();
+  final TextEditingController _postcodeController = TextEditingController();
+  String? _selectedStateName;
+  List<States> _statesList = [];
+  bool _isLoadingStates = true;
 
   @override
   void initState() {
     super.initState();
     _loadRememberedUser();
+    _fetchStates();
   }
 
   Future<void> _loadRememberedUser() async {
@@ -60,14 +67,30 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
     }
   }
 
+  // Fetch states from Supabase for the dropdown
+  Future<void> _fetchStates() async {
+    try {
+      final response = await supabase.from('states').select().order('name', ascending: true);
+      setState(() {
+        _statesList = (response as List).map((e) => States.fromJson(e)).toList();
+        _isLoadingStates = false;
+      });
+    } catch (e) {
+      print('Error fetching states: $e');
+      setState(() => _isLoadingStates = false);
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
-    _addressController.dispose();
     _confirmPasswordController.dispose();
+    _addressLine1Controller.dispose();
+    _addressLine2Controller.dispose();
+    _postcodeController.dispose();
     super.dispose();
   }
 
@@ -195,9 +218,9 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                       setDialogState(() => isLoading = false);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
+                          const SnackBar(
                             content: Text('Error: Email or phone not matched.', style: TextStyle(fontWeight: FontWeight.bold)),
-                            backgroundColor: const Color.fromARGB(255, 239, 83, 80),
+                            backgroundColor: Color.fromARGB(255, 239, 83, 80),
                           ),
                         );
                       }
@@ -231,10 +254,12 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
       if (_nameController.text.trim().isEmpty ||
           _emailController.text.trim().isEmpty ||
           _phoneController.text.trim().isEmpty ||
-          _addressController.text.trim().isEmpty ||
+          _addressLine1Controller.text.trim().isEmpty ||
+          _postcodeController.text.trim().isEmpty ||
+          _selectedStateName == null ||
           _passwordController.text.isEmpty ||
           _confirmPasswordController.text.isEmpty) {
-        _showErrorSnackBar('Please fill in all fields before registering.');
+        _showErrorSnackBar('Please fill in all required fields before registering.');
         return;
       }
 
@@ -264,12 +289,21 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
         return;
       }
 
+      // Combine address fields
+      String line1 = _addressLine1Controller.text.trim();
+      String line2 = _addressLine2Controller.text.trim();
+      String postcode = _postcodeController.text.trim();
+
+      String fullAddress = line1;
+      if (line2.isNotEmpty) fullAddress += ', $line2';
+      fullAddress += ', $postcode, $_selectedStateName';
+
       String? errorMessage = await registerCustomer(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
-        address: _addressController.text.trim(),
+        address: fullAddress, // Use the combined full address
       );
 
       if (errorMessage == null) {
@@ -284,7 +318,10 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
           _nameController.clear();
           _emailController.clear();
           _phoneController.clear();
-          _addressController.clear();
+          _addressLine1Controller.clear();
+          _addressLine2Controller.clear();
+          _postcodeController.clear();
+          _selectedStateName = null;
           _passwordController.clear();
           _confirmPasswordController.clear();
           _agreeTerms = false;
@@ -420,7 +457,13 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                     nameController: _nameController,
                     emailController: _emailController,
                     phoneController: _phoneController,
-                    addressController: _addressController,
+                    addressLine1Controller: _addressLine1Controller,
+                    addressLine2Controller: _addressLine2Controller,
+                    postcodeController: _postcodeController,
+                    selectedStateName: _selectedStateName,
+                    statesList: _statesList,
+                    isLoadingStates: _isLoadingStates,
+                    onStateChanged: (value) => setState(() => _selectedStateName = value),
                     passwordController: _passwordController,
                     confirmPasswordController: _confirmPasswordController,
                     obscurePassword: _obscurePassword,
@@ -603,7 +646,16 @@ class RegisterForm extends StatelessWidget {
   final TextEditingController nameController;
   final TextEditingController emailController;
   final TextEditingController phoneController;
-  final TextEditingController addressController;
+
+  // Address parameters
+  final TextEditingController addressLine1Controller;
+  final TextEditingController addressLine2Controller;
+  final TextEditingController postcodeController;
+  final String? selectedStateName;
+  final List<States> statesList;
+  final bool isLoadingStates;
+  final ValueChanged<String?> onStateChanged;
+
   final TextEditingController passwordController;
   final TextEditingController confirmPasswordController;
   final bool obscurePassword;
@@ -618,7 +670,13 @@ class RegisterForm extends StatelessWidget {
     required this.nameController,
     required this.emailController,
     required this.phoneController,
-    required this.addressController,
+    required this.addressLine1Controller,
+    required this.addressLine2Controller,
+    required this.postcodeController,
+    required this.selectedStateName,
+    required this.statesList,
+    required this.isLoadingStates,
+    required this.onStateChanged,
     required this.passwordController,
     required this.confirmPasswordController,
     required this.obscurePassword,
@@ -636,14 +694,14 @@ class RegisterForm extends StatelessWidget {
       children: [
         AuthInputField(
           controller: nameController,
-          label: 'Full Name',
+          label: 'Full Name *',
           hintText: 'e.g., Kai Hao',
           icon: Icons.person_outline,
         ),
         const SizedBox(height: 16.0),
         AuthInputField(
           controller: emailController,
-          label: 'Email Address',
+          label: 'Email Address *',
           hintText: 'e.g., kaihao0303@gmail.com',
           icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
@@ -651,24 +709,72 @@ class RegisterForm extends StatelessWidget {
         const SizedBox(height: 16.0),
         AuthInputField(
           controller: phoneController,
-          label: 'Phone Number',
+          label: 'Phone Number *',
           hintText: 'e.g., 012-345 6789',
           icon: Icons.phone_outlined,
           keyboardType: TextInputType.phone,
           inputFormatters: [PhoneWithDashFormatter()],
         ),
-        const SizedBox(height: 16.0),
-        AddressAutocompleteField(
-          controller: addressController,
-          label: 'Address',
-          hintText: 'Search address in Malaysia (e.g., Subang Jaya, Penang)...',
-          icon: Icons.location_on_outlined,
+        const SizedBox(height: 24.0),
+
+        // Delivery Address Section
+        const Text(
+          'Delivery Address',
+          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.black87),
         ),
+        const SizedBox(height: 12.0),
+        AuthInputField(
+          controller: addressLine1Controller,
+          label: 'Address Line 1 *',
+          hintText: 'House/Unit No., Building, Street',
+          icon: Icons.home_outlined,
+        ),
+        const SizedBox(height: 12.0),
+        AuthInputField(
+          controller: addressLine2Controller,
+          label: 'Address Line 2 (Optional)',
+          hintText: 'Area, Taman, District',
+          icon: Icons.map_outlined,
+        ),
+        const SizedBox(height: 12.0),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 1,
+              child: AuthInputField(
+                controller: postcodeController,
+                label: 'Postcode *',
+                hintText: 'e.g., 11200',
+                icon: Icons.markunread_mailbox_outlined,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(5)],
+              ),
+            ),
+            const SizedBox(width: 12.0),
+            Expanded(
+              flex: 1,
+              child: SharedDropdownField(
+                label: 'State *',
+                hintText: 'Select State',
+                icon: Icons.location_city_outlined,
+                value: selectedStateName,
+                items: statesList.map((state) => state.name).toList(),
+                isLoading: isLoadingStates,
+                onChanged: onStateChanged,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 24.0),
+        const Divider(color: Color.fromARGB(255, 238, 238, 238), thickness: 1.5),
         const SizedBox(height: 16.0),
+
         AuthInputField(
           controller: passwordController,
-          label: 'Password',
-          hintText: 'Create your password (min. 8 characters)',
+          label: 'Password *',
+          hintText: 'Create your password (min. 8 chars)',
           icon: Icons.lock_outline,
           isPassword: true,
           obscureText: obscurePassword,
@@ -677,7 +783,7 @@ class RegisterForm extends StatelessWidget {
         const SizedBox(height: 16.0),
         AuthInputField(
           controller: confirmPasswordController,
-          label: 'Confirm Password',
+          label: 'Confirm Password *',
           hintText: 'Re-enter your password',
           icon: Icons.lock_outline,
           isPassword: true,
@@ -791,90 +897,26 @@ class AuthInputField extends StatelessWidget {
   }
 }
 
-class AddressAutocompleteField extends StatefulWidget {
-  final TextEditingController controller;
+// SharedDropdownField component
+class SharedDropdownField extends StatelessWidget {
   final String label;
   final String hintText;
   final IconData icon;
+  final String? value;
+  final List<String> items;
+  final bool isLoading;
+  final ValueChanged<String?> onChanged;
 
-  const AddressAutocompleteField({
+  const SharedDropdownField({
     super.key,
-    required this.controller,
     required this.label,
     required this.hintText,
     required this.icon,
+    required this.value,
+    required this.items,
+    this.isLoading = false,
+    required this.onChanged,
   });
-
-  @override
-  State<AddressAutocompleteField> createState() => _AddressAutocompleteFieldState();
-}
-
-class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
-  List<String> _suggestions = [];
-  bool _isLoading = false;
-  Timer? _debounce;
-  void _onSearchChanged(String query) {
-    widget.controller.text = query;
-
-    if (query.trim().length < 3) {
-      setState(() {
-        _suggestions = [];
-        _isLoading = false;
-      });
-      return;
-    }
-
-    if (_debounce?.isActive ?? false) _debounce?.cancel();
-
-    _debounce = Timer(const Duration(milliseconds: 400), () {
-      _fetchAddresses(query);
-    });
-  }
-
-  Future<void> _fetchAddresses(String query) async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final encodedQuery = Uri.encodeComponent(query);
-      final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/search?format=json&q=$encodedQuery&countrycodes=my&limit=5&addressdetails=1',
-      );
-
-      // for OSM req needed（User-Agent)
-      final response = await http.get(
-        url,
-        headers: {
-          'User-Agent': 'DoorDishFoodDeliveryApp/1.0 (student@taylors.edu.my)',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        setState(() {
-          _suggestions = data.map((item) => item['display_name'].toString()).toList();
-          _isLoading = false;
-        });
-      } else {
-        print('OSM API Status Code: ${response.statusCode}');
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      print('OSM Search Error: $e');
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -882,7 +924,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          widget.label,
+          label,
           style: const TextStyle(
             fontSize: 14.0,
             fontWeight: FontWeight.bold,
@@ -890,28 +932,20 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
           ),
         ),
         const SizedBox(height: 6.0),
-        TextField(
-          controller: widget.controller,
-          onChanged: _onSearchChanged,
-          keyboardType: TextInputType.streetAddress,
+        DropdownButtonFormField<String>(
+          value: value,
+          onChanged: isLoading ? null : onChanged,
+          icon: isLoading
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.keyboard_arrow_down, color: Color.fromARGB(255, 158, 158, 158)),
           style: const TextStyle(fontSize: 15.0, color: Color.fromARGB(221, 0, 0, 0)),
           decoration: InputDecoration(
-            hintText: widget.hintText,
+            hintText: isLoading ? 'Loading...' : hintText,
             hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
             filled: true,
             fillColor: const Color.fromARGB(255, 245, 245, 245),
-            prefixIcon: Icon(widget.icon, color: const Color.fromARGB(255, 117, 117, 117), size: 20),
-            suffixIcon: _isLoading
-                ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: Padding(
-                padding: EdgeInsets.all(12.0),
-                child: CircularProgressIndicator(strokeWidth: 2, color: Color.fromARGB(255, 255, 160, 122)),
-              ),
-            )
-                : null,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+            prefixIcon: Icon(icon, color: const Color.fromARGB(255, 117, 117, 117), size: 20),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
               borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
@@ -925,42 +959,14 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
               borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 1.5),
             ),
           ),
+          items: items.map((String item) {
+            return DropdownMenuItem<String>(
+              value: item,
+              child: Text(item, overflow: TextOverflow.ellipsis),
+            );
+          }).toList(),
+          isExpanded: true,
         ),
-        if (_suggestions.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.only(top: 6.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15.0),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color.fromARGB(25, 0, 0, 0),
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _suggestions.length,
-              itemBuilder: (context, index) {
-                final address = _suggestions[index];
-                return ListTile(
-                  title: Text(
-                    address,
-                    style: const TextStyle(fontSize: 13.0, color: Color.fromARGB(221, 0, 0, 0)),
-                  ),
-                  onTap: () {
-                    widget.controller.text = address;
-                    setState(() {
-                      _suggestions = [];
-                    });
-                  },
-                );
-              },
-            ),
-          ),
       ],
     );
   }

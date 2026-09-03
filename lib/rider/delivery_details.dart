@@ -586,18 +586,45 @@ class EvidenceCard extends StatelessWidget {
             child: proofPhotoLoading
                 ? const Center(child: CircularProgressIndicator())
                 : proofPhotoUrl != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      proofPhotoUrl!,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                      semanticLabel: 'Delivery proof photo',
-                      errorBuilder: (_, _, _) => _ProofPhotoFallback(
-                        message:
-                            proofPhotoError ??
-                            'Proof photo could not be loaded.',
+                ? GestureDetector(
+                    onTap: () =>
+                        _showFullScreenProofPhoto(context, proofPhotoUrl!),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(
+                            proofPhotoUrl!,
+                            fit: BoxFit.cover,
+                            semanticLabel: 'Delivery proof photo',
+                            errorBuilder: (_, _, _) => _ProofPhotoFallback(
+                              message:
+                                  proofPhotoError ??
+                                  'Proof photo could not be loaded.',
+                            ),
+                          ),
+                          const Align(
+                            alignment: Alignment.bottomRight,
+                            child: Padding(
+                              padding: EdgeInsets.all(8),
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Padding(
+                                  padding: EdgeInsets.all(6),
+                                  child: Icon(
+                                    Icons.fullscreen,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   )
@@ -625,6 +652,44 @@ class EvidenceCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showFullScreenProofPhoto(BuildContext context, String imageUrl) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) {
+        return Dialog.fullscreen(
+          backgroundColor: Colors.black,
+          child: SafeArea(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                InteractiveViewer(
+                  minScale: 0.8,
+                  maxScale: 4,
+                  child: Center(
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      semanticLabel: 'Full-size delivery proof photo',
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    tooltip: 'Close full-screen photo',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

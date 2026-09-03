@@ -1,13 +1,13 @@
-  import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'splash_screen.dart';
 
-  const String supabaseUrl =
-  String.fromEnvironment('SUPABASE_URL');
+const String supabaseUrl =
+String.fromEnvironment('SUPABASE_URL');
 
-  const String supabasePublishableKey =
-  String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+const String supabasePublishableKey =
+String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 
 SupabaseClient get supabase => Supabase.instance.client;
 

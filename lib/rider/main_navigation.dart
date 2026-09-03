@@ -6,6 +6,7 @@ import '../customer/main_navigation.dart';
 
 import '../shared/account.dart';
 import '../shared/profile.dart';
+import '../shared/user_role.dart';
 
 import 'deliveries.dart';
 import 'header.dart';
@@ -26,10 +27,43 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
   int _currentIndex = 0;
   AppUser? currentUser;
 
+  String _vehicleType = '';
+  String _vehiclePlate = '';
+  double _rating = 0.0;
+  bool _isOnline = false;
+
   @override
   void initState() {
     super.initState();
     currentUser = widget.user;
+    _fetchRiderData();
+  }
+
+  Future<void> _fetchRiderData() async {
+    final userId = currentUser?.id ?? supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      debugPrint('Fetching Rider Data for ID: $userId');
+      final response = await supabase
+          .from('riders')
+          .select()
+          .eq('id', userId)
+          .single();
+
+      debugPrint('Rider data fetched successfully: $response');
+
+      if (mounted) {
+        setState(() {
+          _vehicleType = response['vehicle']?.toString() ?? 'Not Available';
+          _vehiclePlate = response['plate']?.toString() ?? 'Not Available';
+          _rating = double.tryParse(response['rating']?.toString() ?? '0') ?? 0.0;
+          _isOnline = response['status'] == 'Online';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching rider data: $e');
+    }
   }
 
   RiderDeliveryRepository? _buildDeliveryRepository() {
@@ -43,13 +77,11 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
     );
   }
 
-  // Generate screens dynamically to pass context for navigation and snackbars
   List<Widget> _getScreens(BuildContext context) => [
     RiderDeliveries(repository: _buildDeliveryRepository()),
     _buildAccountScreen(context),
   ];
 
-  // Build the Rider account screen
   Widget _buildAccountScreen(BuildContext context) {
     return SharedAccountScreen(
       header: const RiderHeader(pageTitle: 'My Account'),
@@ -58,8 +90,27 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
       email: currentUser?.email ?? 'No Email',
       profileIcon: Icons.person,
       showEditIcon: true,
+      role: UserRole.rider,
+      vehicleType: _vehicleType,
+      vehiclePlate: _vehiclePlate,
+      rating: _rating,
+      isOnline: _isOnline,
+      onOnlineChanged: (bool value) async {
+        setState(() {
+          _isOnline = value;
+        });
+
+        try {
+          final userId = currentUser?.id ?? supabase.auth.currentUser!.id;
+          await supabase
+              .from('riders')
+              .update({'status': value ? 'Online' : 'Offline'})
+              .eq('id', userId);
+        } catch (e) {
+          debugPrint('Error updating online status: $e');
+        }
+      },
       onEditPressed: () {
-        // Navigate to the shared profile screen
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -161,7 +212,7 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
             MaterialPageRoute(
               builder: (context) => const CustomerMainNavigation(),
             ),
-            (route) => false,
+                (route) => false,
           );
         }
       },

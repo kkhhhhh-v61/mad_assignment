@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models.dart'; // 引入你的 States 模型
+import '../models.dart';
 
 class SavedAddressesScreen extends StatefulWidget {
   const SavedAddressesScreen({super.key});
@@ -23,20 +23,17 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
     _fetchAddresses();
   }
 
-  // 🌟 同时拉取 profiles 和 user_addresses
   Future<void> _fetchAddresses() async {
     setState(() => _isLoading = true);
     try {
       final userId = _supabase.auth.currentUser!.id;
 
-      // 1. 获取主地址 (profiles)
       final profileRes = await _supabase
           .from('profiles')
           .select('address')
           .eq('id', userId)
           .single();
 
-      // 2. 获取其他地址 (user_addresses)
       final otherRes = await _supabase
           .from('user_addresses')
           .select()
@@ -54,26 +51,67 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
     }
   }
 
-  // 删除其他地址
   Future<void> _deleteAddress(String addressId) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
+              SizedBox(width: 8),
+              Text('Delete Address', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
+          ),
+          content: const Text(
+            'Are you sure you want to delete this address? This action cannot be undone.',
+            style: TextStyle(color: Colors.black87, height: 1.4),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel', style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
     try {
       await _supabase.from('user_addresses').delete().eq('id', addressId);
-      _fetchAddresses(); // 刷新列表
+      _fetchAddresses();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Address deleted successfully'), backgroundColor: Color.fromARGB(255, 255, 160, 122)),
+          const SnackBar(
+            content: Text('Address deleted successfully', style: TextStyle(fontWeight: FontWeight.bold)),
+            backgroundColor: Color.fromARGB(255, 255, 160, 122),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e', style: const TextStyle(fontWeight: FontWeight.bold)), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating,),
         );
       }
     }
   }
 
-  // 跳转到表单页（用于新增或修改）
   void _navigateToForm({String? addressId, String? initialLabel, String? initialAddress}) async {
     final result = await Navigator.push(
       context,
@@ -86,7 +124,6 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
       ),
     );
 
-    // 如果表单页返回了 true (代表有数据更新)，则重新拉取数据刷新页面
     if (result == true) {
       _fetchAddresses();
     }
@@ -116,7 +153,6 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ===== 1. 主地址区块 =====
             const Text('Default Address', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.black54)),
             const SizedBox(height: 12.0),
             _buildAddressCard(
@@ -124,7 +160,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
               address: _mainAddress ?? 'No main address set',
               isMain: true,
               onEdit: () => _navigateToForm(
-                addressId: 'main', // 特殊标记，代表修改 profiles
+                addressId: 'main',
                 initialLabel: 'Main Address',
                 initialAddress: _mainAddress,
               ),
@@ -132,7 +168,6 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
 
             const SizedBox(height: 24.0),
 
-            // ===== 2. 其他地址区块 =====
             const Text('Other Saved Addresses', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.black54)),
             const SizedBox(height: 12.0),
             if (_otherAddresses.isEmpty)
@@ -160,7 +195,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                   address: addr['full_address'],
                   isMain: false,
                   onEdit: () => _navigateToForm(
-                    addressId: addr['id'], // 传入真实 ID
+                    addressId: addr['id'],
                     initialLabel: addr['label'],
                     initialAddress: addr['full_address'],
                   ),
@@ -172,7 +207,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
       ),
 
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _navigateToForm(), // 不传 ID，代表新增模式
+        onPressed: () => _navigateToForm(),
         backgroundColor: const Color.fromARGB(255, 255, 160, 122),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Add New', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -180,7 +215,6 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
     );
   }
 
-  // 统一的地址卡片 UI 组件
   Widget _buildAddressCard({
     required String label,
     required String address,
@@ -243,11 +277,8 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
   }
 }
 
-// ============================================================================
-// 地址表单页：支持 新增 / 修改 (通过解析字符串自动填充 4 栏)
-// ============================================================================
 class AddressFormScreen extends StatefulWidget {
-  final String? addressId; // 'main' = 改主地址, uuid = 改其他地址, null = 新增
+  final String? addressId;
   final String? initialLabel;
   final String? initialAddress;
 
@@ -275,7 +306,6 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     super.initState();
     _fetchStates();
 
-    // 如果是修改模式，尽力解析原地址字符串填入 4 个框中
     if (widget.initialLabel != null) {
       _labelController.text = widget.initialLabel!;
     }
@@ -284,14 +314,12 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     }
   }
 
-  // 智能解析拼接的字符串 (Line1, Line2, Postcode, State)
   void _parseAddress(String fullAddress) {
     List<String> parts = fullAddress.split(',').map((e) => e.trim()).toList();
     if (parts.length >= 3) {
-      _selectedStateName = parts.last; // 最后一部分通常是 State
-      _postcodeController.text = parts[parts.length - 2]; // 倒数第二部分通常是 Postcode
+      _selectedStateName = parts.last;
+      _postcodeController.text = parts[parts.length - 2];
 
-      // 剩下的部分还原给 Line 1 和 Line 2
       if (parts.length == 3) {
         _line1Controller.text = parts[0];
       } else {
@@ -299,7 +327,6 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
         _line2Controller.text = parts[parts.length - 3];
       }
     } else {
-      // 如果解析失败（格式不对），全部塞进 Line 1 让用户自己改
       _line1Controller.text = fullAddress;
     }
   }
@@ -310,7 +337,6 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
       setState(() {
         _statesList = (response as List).map((e) => States.fromJson(e)).toList();
 
-        // 校验解析出来的 State 是否真的存在于数据库列表中
         if (_selectedStateName != null && !_statesList.any((s) => s.name == _selectedStateName)) {
           _selectedStateName = null;
         }
@@ -346,7 +372,6 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     try {
       final userId = _supabase.auth.currentUser!.id;
 
-      // 拼接地址
       String line1 = _line1Controller.text.trim();
       String line2 = _line2Controller.text.trim();
       String postcode = _postcodeController.text.trim();
@@ -355,17 +380,14 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
       fullAddress += ', $postcode, $_selectedStateName';
 
       if (widget.addressId == 'main') {
-        // 1. 修改主地址 (存入 profiles)
         await _supabase.from('profiles').update({'address': fullAddress}).eq('id', userId);
       } else if (widget.addressId == null) {
-        // 2. 新增其他地址 (插入 user_addresses)
         await _supabase.from('user_addresses').insert({
           'user_id': userId,
           'label': _labelController.text.trim(),
           'full_address': fullAddress,
         });
       } else {
-        // 3. 修改其他地址 (更新 user_addresses)
         await _supabase.from('user_addresses').update({
           'label': _labelController.text.trim(),
           'full_address': fullAddress,
@@ -373,7 +395,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
       }
 
       if (mounted) {
-        Navigator.pop(context, true); // 传回 true，通知上一个页面刷新列表
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
@@ -405,12 +427,11 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 主地址的 Label 固定不可改，其他地址要求填 Label
-            Text('Address Label *', style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
+            const Text('Address Label *', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6.0),
             TextField(
               controller: _labelController,
-              readOnly: isMain, // 主地址锁定 Label
+              readOnly: isMain,
               decoration: InputDecoration(
                 hintText: 'e.g., Home, Office, Campus',
                 filled: true,
@@ -425,8 +446,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
             const Divider(color: Color.fromARGB(255, 238, 238, 238), thickness: 1.5),
             const SizedBox(height: 20.0),
 
-            // 完美的 4 栏地址复用
-            Text('Address Line 1 *', style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
+            const Text('Address Line 1 *', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6.0),
             TextField(
               controller: _line1Controller,
@@ -440,7 +460,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
             ),
             const SizedBox(height: 16.0),
 
-            Text('Address Line 2 (Optional)', style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
+            const Text('Address Line 2 (Optional)', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6.0),
             TextField(
               controller: _line2Controller,

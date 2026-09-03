@@ -8,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../main.dart';
 
-// Import role-specific navigations for RBAC routing
 import '../admin/main_navigation.dart';
 import '../rider/main_navigation.dart';
 
@@ -16,7 +15,6 @@ import '../services/auth_service.dart';
 import '../models.dart';
 
 class SharedAuthScreen extends StatefulWidget {
-  // Callback to trigger upon successful customer authentication
   final Function(AppUser)? onAuthSuccess;
 
   const SharedAuthScreen({super.key, this.onAuthSuccess});
@@ -26,21 +24,18 @@ class SharedAuthScreen extends StatefulWidget {
 }
 
 class _SharedAuthScreenState extends State<SharedAuthScreen> {
-  // Form toggle states
   bool _isLogin = true;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _rememberMe = false;
   bool _agreeTerms = false;
 
-  // Text controllers for basic input fields
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
-  // Address controllers and states
   final TextEditingController _addressLine1Controller = TextEditingController();
   final TextEditingController _addressLine2Controller = TextEditingController();
   final TextEditingController _postcodeController = TextEditingController();
@@ -67,7 +62,6 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
     }
   }
 
-  // Fetch states from Supabase for the dropdown
   Future<void> _fetchStates() async {
     try {
       final response = await supabase.from('states').select().order('name', ascending: true);
@@ -248,7 +242,6 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
     );
   }
 
-  // Handles authentication logic (Login/Register) and RBAC routing
   void _handleAuthAction() async {
     if (!_isLogin) {
       if (_nameController.text.trim().isEmpty ||
@@ -263,7 +256,6 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
         return;
       }
 
-      // verify name no have number
       if (RegExp(r'[0-9]').hasMatch(_nameController.text.trim())) {
         _showErrorSnackBar('Full Name cannot contain numbers.');
         return;
@@ -289,7 +281,6 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
         return;
       }
 
-      // Combine address fields
       String line1 = _addressLine1Controller.text.trim();
       String line2 = _addressLine2Controller.text.trim();
       String postcode = _postcodeController.text.trim();
@@ -303,7 +294,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
         password: _passwordController.text,
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
-        address: fullAddress, // Use the combined full address
+        address: fullAddress,
       );
 
       if (errorMessage == null) {
@@ -647,7 +638,6 @@ class RegisterForm extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController phoneController;
 
-  // Address parameters
   final TextEditingController addressLine1Controller;
   final TextEditingController addressLine2Controller;
   final TextEditingController postcodeController;
@@ -717,7 +707,6 @@ class RegisterForm extends StatelessWidget {
         ),
         const SizedBox(height: 24.0),
 
-        // Delivery Address Section
         const Text(
           'Delivery Address',
           style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.black87),
@@ -897,7 +886,6 @@ class AuthInputField extends StatelessWidget {
   }
 }
 
-// SharedDropdownField component
 class SharedDropdownField extends StatelessWidget {
   final String label;
   final String hintText;
@@ -1013,10 +1001,14 @@ class PhoneWithDashFormatter extends TextInputFormatter {
     }
 
     String text = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    bool is11Digits = text.startsWith('011');
+
+    int maxDigits = is11Digits ? 11 : 10;
+    if (text.length > maxDigits) {
+      text = text.substring(0, maxDigits);
+    }
 
     String formatted = '';
-    bool is11Digits = text.startsWith('011') && text.length > 3;
-
     for (int i = 0; i < text.length; i++) {
       if (i == 3) {
         formatted += '-';
@@ -1026,10 +1018,6 @@ class PhoneWithDashFormatter extends TextInputFormatter {
         formatted += ' ';
       }
       formatted += text[i];
-    }
-
-    if (formatted.length > 13) {
-      return oldValue;
     }
 
     return TextEditingValue(

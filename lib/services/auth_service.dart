@@ -1,11 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../main.dart'; //
-import '../models.dart'; //
+import '../main.dart';
+import '../models.dart';
 
-// login
 Future<AppUser?> loginUser(String email, String password) async {
   try {
-    // verify email and password from supabase
     final AuthResponse res = await supabase.auth.signInWithPassword(
       email: email,
       password: password,
@@ -13,12 +11,11 @@ Future<AppUser?> loginUser(String email, String password) async {
     final User? user = res.user;
 
     if (user != null) {
-      // get the data from profiles table
       final data = await supabase
           .from('profiles')
           .select()
           .eq('id', user.id)
-          .single(); // single() mean just get this record
+          .single();
 
       return AppUser.fromJson(data, user.email ?? '');
     }
@@ -29,7 +26,6 @@ Future<AppUser?> loginUser(String email, String password) async {
   return null;
 }
 
-// Register - Customer(def)
 Future<String?> registerCustomer({
   required String email,
   required String password,

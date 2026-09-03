@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:mad_assignment/customer/saved_addresses.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Import shared components
 import '../shared/account.dart';
 import '../shared/profile.dart';
 import '../main.dart';
 
-// Import customer pages
 import '../shared/auth.dart';
 import 'header.dart';
 import 'home.dart';
@@ -47,7 +45,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
     ),
     const CustomerOrders(),
     _isLoggedIn
-        ? _buildAccountScreen() // Build the account screen
+        ? _buildAccountScreen()
         : SharedAuthScreen(
       onAuthSuccess: (user) {
         setState(() {
@@ -58,7 +56,6 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
     ),
   ];
 
-  // Build the customer account screen with custom options
   Widget _buildAccountScreen() {
     return SharedAccountScreen(
       header: const CustomerHeader(
@@ -71,7 +68,6 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
       email: currentUser?.email ?? 'No Email',
       profileIcon: Icons.person,
       onEditPressed: () {
-        // Navigate to the shared profile screen
         Navigator.push(
           context,
           MaterialPageRoute(

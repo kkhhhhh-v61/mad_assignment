@@ -345,17 +345,33 @@ class _DeliveryTrackingState extends State<DeliveryTracking> {
               ),
             ),
           ),
-          DeliveryTrackingSheet(
-            delivery: _delivery,
-            currentLocation: _currentLocation,
-            locationLoading: _locationLoading,
-            locationMessage: _locationMessage,
-            roadRoute: _roadRoute,
-            roadRouteLoading: _roadRouteLoading,
-            roadRouteMessage: _roadRouteMessage,
-            actionLoading: _actionLoading,
-            onAdvanceStatus: _advanceStatus,
-            onComplete: _openCompletion,
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: DraggableScrollableSheet(
+                initialChildSize: 0.50,
+                minChildSize: 0.16,
+                maxChildSize: 0.86,
+                snap: true,
+                snapSizes: const [0.16, 0.50, 0.86],
+                expand: false,
+                builder: (context, scrollController) {
+                  return DeliveryTrackingSheet(
+                    scrollController: scrollController,
+                    delivery: _delivery,
+                    currentLocation: _currentLocation,
+                    locationLoading: _locationLoading,
+                    locationMessage: _locationMessage,
+                    roadRoute: _roadRoute,
+                    roadRouteLoading: _roadRouteLoading,
+                    roadRouteMessage: _roadRouteMessage,
+                    actionLoading: _actionLoading,
+                    onAdvanceStatus: _advanceStatus,
+                    onComplete: _openCompletion,
+                  );
+                },
+              ),
+            ),
           ),
         ],
       ),
@@ -364,6 +380,7 @@ class _DeliveryTrackingState extends State<DeliveryTracking> {
 }
 
 class DeliveryTrackingSheet extends StatelessWidget {
+  final ScrollController? scrollController;
   final RiderDelivery delivery;
   final RiderLocation? currentLocation;
   final bool locationLoading;
@@ -377,6 +394,7 @@ class DeliveryTrackingSheet extends StatelessWidget {
 
   const DeliveryTrackingSheet({
     super.key,
+    this.scrollController,
     required this.delivery,
     this.currentLocation,
     required this.locationLoading,
@@ -401,23 +419,30 @@ class DeliveryTrackingSheet extends StatelessWidget {
     final locationStale =
         lastUpdated != null &&
         DateTime.now().difference(lastUpdated) > const Duration(minutes: 2);
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 10,
-              offset: Offset(0, -5),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          top: false,
+    final eta = _etaValue(
+      status: status,
+      roadRoute: roadRoute,
+      roadRouteLoading: roadRouteLoading,
+    );
+    final etaTime = _etaTimeValue(status: status, roadRoute: roadRoute);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          controller: scrollController,
+          physics: const ClampingScrollPhysics(),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -448,15 +473,23 @@ class DeliveryTrackingSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        status == OrderStatus.delivering
-                            ? 'Unavailable'
-                            : 'Awaiting pickup',
+                        eta,
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: Color(0xdd000000),
                         ),
                       ),
+                      if (etaTime != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          etaTime,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xff757575),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   _StatusChip(status: status),
@@ -664,4 +697,28 @@ String _formatRouteDuration(Duration duration) {
   return remainingMinutes == 0
       ? '$hours hr'
       : '$hours hr $remainingMinutes min';
+}
+
+String _etaValue({
+  required OrderStatus status,
+  required RiderRoute? roadRoute,
+  required bool roadRouteLoading,
+}) {
+  if (status != OrderStatus.delivering) {
+    return status == OrderStatus.pickedUp
+        ? 'Awaiting delivery'
+        : 'Awaiting pickup';
+  }
+  if (roadRouteLoading) return 'Calculating...';
+  if (roadRoute == null) return 'Unavailable';
+  return _formatRouteDuration(roadRoute.duration);
+}
+
+String? _etaTimeValue({
+  required OrderStatus status,
+  required RiderRoute? roadRoute,
+}) {
+  if (status != OrderStatus.delivering || roadRoute == null) return null;
+  final eta = DateTime.now().add(roadRoute.duration).toLocal();
+  return 'Around ${DateFormat('h:mm a').format(eta)}';
 }

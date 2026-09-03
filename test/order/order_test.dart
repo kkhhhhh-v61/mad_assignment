@@ -108,4 +108,61 @@ void main() {
       throwsA(isA<InvalidOrderException>()),
     );
   });
+
+  test('delivery distance policy rejects addresses beyond 10 kilometres', () {
+    final farAddress = const DeliveryAddressSnapshot(
+      label: 'Far away',
+      formattedAddress: 'Far away from the branch',
+      stateCode: 'WPKL',
+      latitude: 3.239,
+      longitude: 101.6869,
+    );
+
+    expect(
+      DeliveryDistancePolicy.estimateKm(
+        branch: branch,
+        destination: farAddress,
+      ),
+      greaterThan(DeliveryDistancePolicy.maximumDistanceKm),
+    );
+    expect(
+      () => OrderSubmission(
+        orderNumber: 'ORD-1003',
+        paymentIdempotencyKey: 'payment-1003',
+        fulfilmentType: FulfilmentType.delivery,
+        branchSnapshot: branch,
+        deliveryAddressSnapshot: farAddress,
+        subtotalSen: 2500,
+        discountSen: 200,
+        deliveryFeeSen: 300,
+        totalSen: 2600,
+        items: [item],
+      ),
+      throwsA(isA<InvalidOrderException>()),
+    );
+  });
+
+  test('delivery distance policy requires coordinates for validation', () {
+    final addressWithoutCoordinates = const DeliveryAddressSnapshot(
+      label: 'Unknown',
+      formattedAddress: 'Coordinates not available',
+      stateCode: 'WPKL',
+    );
+
+    expect(
+      () => OrderSubmission(
+        orderNumber: 'ORD-1004',
+        paymentIdempotencyKey: 'payment-1004',
+        fulfilmentType: FulfilmentType.delivery,
+        branchSnapshot: branch,
+        deliveryAddressSnapshot: addressWithoutCoordinates,
+        subtotalSen: 2500,
+        discountSen: 200,
+        deliveryFeeSen: 300,
+        totalSen: 2600,
+        items: [item],
+      ),
+      throwsA(isA<InvalidOrderException>()),
+    );
+  });
 }

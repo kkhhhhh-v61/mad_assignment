@@ -254,6 +254,52 @@ class OrderItemSnapshot {
   };
 }
 
+class DeliveryDistancePolicy {
+  const DeliveryDistancePolicy._();
+
+  static const maximumDistanceKm = 10.0;
+
+  static double? estimateKm({
+    required BranchSnapshot branch,
+    required DeliveryAddressSnapshot destination,
+  }) {
+    final branchLatitude = branch.latitude;
+    final branchLongitude = branch.longitude;
+    final destinationLatitude = destination.latitude;
+    final destinationLongitude = destination.longitude;
+    if (branchLatitude == null ||
+        branchLongitude == null ||
+        destinationLatitude == null ||
+        destinationLongitude == null) {
+      return null;
+    }
+    return haversineDistanceKm(
+      startLatitude: branchLatitude,
+      startLongitude: branchLongitude,
+      endLatitude: destinationLatitude,
+      endLongitude: destinationLongitude,
+    );
+  }
+
+  static void ensureWithinLimit({
+    required BranchSnapshot branch,
+    required DeliveryAddressSnapshot destination,
+  }) {
+    final distanceKm = estimateKm(branch: branch, destination: destination);
+    if (distanceKm == null) {
+      throw const InvalidOrderException(
+        'Delivery coordinates are required to validate the delivery limit.',
+      );
+    }
+    if (distanceKm > maximumDistanceKm) {
+      throw InvalidOrderException(
+        'Delivery address is ${distanceKm.toStringAsFixed(1)} km from the branch; '
+        'the maximum allowed is ${maximumDistanceKm.toStringAsFixed(0)} km.',
+      );
+    }
+  }
+}
+
 class OrderSubmission {
   final String orderNumber;
   final String paymentIdempotencyKey;
@@ -318,6 +364,12 @@ class OrderSubmission {
         deliveryAddressSnapshot != null) {
       throw const InvalidOrderException(
         'Pickup orders cannot include a delivery address snapshot.',
+      );
+    }
+    if (fulfilmentType == FulfilmentType.delivery) {
+      DeliveryDistancePolicy.ensureWithinLimit(
+        branch: branchSnapshot,
+        destination: deliveryAddressSnapshot!,
       );
     }
   }

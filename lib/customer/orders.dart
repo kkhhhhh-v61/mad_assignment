@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+import '../Order/order.dart';
+import '../Order/order_repository.dart';
 import '../global.dart';
+import '../main.dart';
 import 'header.dart';
 import 'order_details.dart';
 import 'order_tracking.dart';
@@ -20,13 +24,58 @@ class _CustomerOrdersState extends State<CustomerOrders> {
     'Cancelled',
   ];
   String _selectedStatus = 'Preparing';
-  
-  final List<Map<String, dynamic>> _orders = [];
+
+  List<Map<String, dynamic>> _orders = [];
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    //TODO: Retrieve user orders dynamically from backend
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final customerId = supabase.auth.currentUser?.id;
+      if (customerId == null || customerId.trim().isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _error = 'Sign in to view your orders.';
+        });
+        return;
+      }
+
+      final repository = SupabaseOrderRepository(supabase);
+      final activeOrders = await repository.listCustomerOrders(
+        customerId: customerId,
+        activeOnly: true,
+      );
+      final completedOrders = await repository.listCustomerOrders(
+        customerId: customerId,
+        activeOnly: false,
+      );
+      final orders = [...activeOrders, ...completedOrders]
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      if (!mounted) return;
+      setState(() {
+        _orders = orders.map(_toCustomerOrderMap).toList(growable: false);
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Orders could not be loaded right now.';
+      });
+    }
   }
 
   @override
@@ -99,14 +148,100 @@ class _CustomerOrdersState extends State<CustomerOrders> {
         ),
         const SizedBox(height: 8.0),
         Expanded(
-          child: OrderList(
-            orders: filteredOrders,
-            selectedStatus: _selectedStatus,
-          ),
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+              ? _OrdersError(message: _error!, onRetry: _loadOrders)
+              : OrderList(
+                  orders: filteredOrders,
+                  selectedStatus: _selectedStatus,
+                ),
         ),
       ],
     );
   }
+}
+
+class _OrdersError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _OrdersError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.receipt_long_outlined,
+              size: 44,
+              color: Color(0xff9e9e9e),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xff757575)),
+            ),
+            const SizedBox(height: 12),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Map<String, dynamic> _toCustomerOrderMap(Order order) {
+  final displayStatus = _customerDisplayStatus(order.status);
+  final items = order.items
+      .map(
+        (item) => <String, dynamic>{
+          'name': item.name,
+          'quantity': item.quantity,
+          'price': item.unitPriceSen / 100,
+        },
+      )
+      .toList(growable: false);
+  final info = switch (order.status) {
+    OrderStatus.delivering => 'Rider is on the way',
+    OrderStatus.pickedUp => 'Rider picked up your order',
+    OrderStatus.delivered || OrderStatus.collected => 'Delivered',
+    OrderStatus.cancelled => 'Order cancelled',
+    _ => 'Preparing your order',
+  };
+
+  return {
+    'orderId': order.orderNumber,
+    'date': DateFormat('dd MMM yyyy, h:mm a').format(order.createdAt.toLocal()),
+    'status': displayStatus,
+    'items': items,
+    'subtotal': order.subtotalSen / 100,
+    'deliveryFee': order.deliveryFeeSen / 100,
+    'discount': order.discountSen / 100,
+    'totalPrice': 'RM ${(order.totalSen / 100).toStringAsFixed(2)}',
+    'info': info,
+    'icon':
+        order.status == OrderStatus.pickedUp ||
+            order.status == OrderStatus.delivering
+        ? Icons.delivery_dining
+        : Icons.fastfood,
+    'typedOrder': order,
+  };
+}
+
+String _customerDisplayStatus(OrderStatus status) {
+  return switch (status) {
+    OrderStatus.pickedUp => 'Delivering',
+    OrderStatus.delivering => 'Delivering',
+    OrderStatus.delivered || OrderStatus.collected => 'Completed',
+    OrderStatus.cancelled => 'Cancelled',
+    _ => 'Preparing',
+  };
 }
 
 class OrderList extends StatelessWidget {
@@ -366,7 +501,9 @@ class OrderCard extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10.0),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                            ),
                           ),
                           child: Text(
                             buttonText,
@@ -395,7 +532,9 @@ class OrderCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(10.0),
                             ),
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                            ),
                           ),
                           child: Text(
                             buttonText,

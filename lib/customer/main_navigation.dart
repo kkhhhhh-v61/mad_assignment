@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mad_assignment/customer/saved_addresses.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Import shared components
@@ -14,6 +15,7 @@ import 'menu.dart';
 import 'orders.dart';
 
 import '../models.dart';
+
 
 class CustomerMainNavigation extends StatefulWidget {
   const CustomerMainNavigation({super.key});
@@ -165,7 +167,18 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
         }
       },
       accountOptions: [
-        SharedOptionTile(icon: Icons.location_on_outlined, title: 'Saved Addresses', onTap: () {}),
+        SharedOptionTile(
+          icon: Icons.location_on_outlined,
+          title: 'Saved Addresses',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SavedAddressesScreen(),
+              ),
+            );
+          },
+        ),
         const Divider(height: 1, indent: 60, endIndent: 20.0),
         SharedOptionTile(icon: Icons.credit_card_outlined, title: 'Payment Methods', onTap: () {}),
         const Divider(height: 1, indent: 60, endIndent: 20.0),

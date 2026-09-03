@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../Order/order.dart';
 import '../Order/order_repository.dart';
@@ -10,12 +11,14 @@ import 'delivery_completion.dart';
 import 'osm_delivery_map.dart';
 import 'rider_delivery.dart';
 import 'rider_location_service.dart';
+import 'rider_route_service.dart';
 
 class DeliveryTracking extends StatefulWidget {
   final RiderDelivery delivery;
   final RiderLocationService? locationService;
   final RiderLocationRepository? locationRepository;
   final OrderRepository? orderRepository;
+  final OsrmRiderRouteService? routeService;
 
   const DeliveryTracking({
     super.key,
@@ -23,6 +26,7 @@ class DeliveryTracking extends StatefulWidget {
     this.locationService,
     this.locationRepository,
     this.orderRepository,
+    this.routeService,
   });
 
   @override
@@ -41,6 +45,15 @@ class _DeliveryTrackingState extends State<DeliveryTracking> {
   RiderLocationService? _resolvedLocationService;
   RiderLocationRepository? _resolvedLocationRepository;
   OrderRepository? _resolvedOrderRepository;
+  late OsrmRiderRouteService _resolvedRouteService;
+  bool _ownsRouteService = false;
+  RiderRoute? _roadRoute;
+  bool _roadRouteLoading = false;
+  String? _roadRouteMessage;
+  LatLng? _lastRouteOrigin;
+  DateTime? _lastRouteRequestedAt;
+  String? _lastRouteTargetKey;
+  int _routeRequestGeneration = 0;
 
   @override
   void initState() {
@@ -52,6 +65,8 @@ class _DeliveryTrackingState extends State<DeliveryTracking> {
         widget.locationRepository ?? _defaultLocationRepository();
     _resolvedOrderRepository =
         widget.orderRepository ?? _defaultOrderRepository();
+    _resolvedRouteService = widget.routeService ?? OsrmRiderRouteService();
+    _ownsRouteService = widget.routeService == null;
     _startTracking();
   }
 
@@ -106,6 +121,7 @@ class _DeliveryTrackingState extends State<DeliveryTracking> {
             _currentLocation = location;
             _locationMessage = 'Location sharing is active';
           });
+          _requestRoadRoute(location);
           try {
             await _locationUploader?.uploadIfDue(location);
           } catch (_) {
@@ -154,6 +170,7 @@ class _DeliveryTrackingState extends State<DeliveryTracking> {
         nextStatus: next,
       );
       if (!mounted) return;
+      _resetRoadRoute();
       setState(() {
         _delivery = RiderDelivery(
           order: updated,
@@ -190,6 +207,96 @@ class _DeliveryTrackingState extends State<DeliveryTracking> {
     _remoteLocationSubscription?.cancel();
     _locationSubscription = null;
     _remoteLocationSubscription = null;
+    _routeRequestGeneration++;
+    _roadRouteLoading = false;
+  }
+
+  void _resetRoadRoute() {
+    _routeRequestGeneration++;
+    _roadRoute = null;
+    _roadRouteLoading = false;
+    _roadRouteMessage = null;
+    _lastRouteOrigin = null;
+    _lastRouteRequestedAt = null;
+    _lastRouteTargetKey = null;
+  }
+
+  LatLng? _nextRouteTarget() {
+    final status = _delivery.order.status;
+    if (status != OrderStatus.pickedUp && status != OrderStatus.delivering) {
+      return null;
+    }
+    final destination = _delivery.order.deliveryAddressSnapshot;
+    return _validLatLng(destination?.latitude, destination?.longitude);
+  }
+
+  void _requestRoadRoute(RiderLocation location) {
+    final target = _nextRouteTarget();
+    if (target == null) return;
+    final origin = LatLng(location.latitude, location.longitude);
+    final targetKey = '${target.latitude},${target.longitude}';
+    if (_lastRouteTargetKey != targetKey) {
+      _resetRoadRoute();
+      _lastRouteTargetKey = targetKey;
+    }
+    final previousOrigin = _lastRouteOrigin;
+    final movedMetres = previousOrigin == null
+        ? double.infinity
+        : haversineDistanceKm(
+                startLatitude: previousOrigin.latitude,
+                startLongitude: previousOrigin.longitude,
+                endLatitude: origin.latitude,
+                endLongitude: origin.longitude,
+              ) *
+              1000;
+    final elapsed = _lastRouteRequestedAt == null
+        ? const Duration(days: 1)
+        : DateTime.now().difference(_lastRouteRequestedAt!);
+    if (_roadRouteLoading ||
+        (previousOrigin != null &&
+            movedMetres < 100 &&
+            elapsed < const Duration(seconds: 20))) {
+      return;
+    }
+    _lastRouteOrigin = origin;
+    _lastRouteRequestedAt = DateTime.now();
+    final generation = ++_routeRequestGeneration;
+    if (mounted) {
+      setState(() {
+        _roadRouteLoading = true;
+        _roadRouteMessage = null;
+      });
+    }
+    unawaited(
+      _loadRoadRoute(origin: origin, target: target, generation: generation),
+    );
+  }
+
+  Future<void> _loadRoadRoute({
+    required LatLng origin,
+    required LatLng target,
+    required int generation,
+  }) async {
+    try {
+      final route = await _resolvedRouteService.fetchRoute(
+        origin: origin,
+        destination: target,
+      );
+      if (!mounted || generation != _routeRequestGeneration) return;
+      setState(() {
+        _roadRoute = route;
+        _roadRouteLoading = false;
+        _roadRouteMessage = null;
+      });
+    } catch (_) {
+      if (!mounted || generation != _routeRequestGeneration) return;
+      setState(() {
+        _roadRoute = null;
+        _roadRouteLoading = false;
+        _roadRouteMessage =
+            'Road route unavailable; showing the straight-line estimate.';
+      });
+    }
   }
 
   void _showMessage(String message) {
@@ -202,6 +309,9 @@ class _DeliveryTrackingState extends State<DeliveryTracking> {
   @override
   void dispose() {
     _stopTracking();
+    if (_ownsRouteService) {
+      _resolvedRouteService.dispose();
+    }
     super.dispose();
   }
 
@@ -214,6 +324,8 @@ class _DeliveryTrackingState extends State<DeliveryTracking> {
             branch: _delivery.order.branchSnapshot,
             destination: _delivery.order.deliveryAddressSnapshot,
             riderLocation: _currentLocation,
+            roadRoute: _roadRoute?.points,
+            roadRouteLoading: _roadRouteLoading,
           ),
           Positioned(
             top: MediaQuery.paddingOf(context).top + 16,
@@ -238,6 +350,9 @@ class _DeliveryTrackingState extends State<DeliveryTracking> {
             currentLocation: _currentLocation,
             locationLoading: _locationLoading,
             locationMessage: _locationMessage,
+            roadRoute: _roadRoute,
+            roadRouteLoading: _roadRouteLoading,
+            roadRouteMessage: _roadRouteMessage,
             actionLoading: _actionLoading,
             onAdvanceStatus: _advanceStatus,
             onComplete: _openCompletion,
@@ -253,6 +368,9 @@ class DeliveryTrackingSheet extends StatelessWidget {
   final RiderLocation? currentLocation;
   final bool locationLoading;
   final String? locationMessage;
+  final RiderRoute? roadRoute;
+  final bool roadRouteLoading;
+  final String? roadRouteMessage;
   final bool actionLoading;
   final VoidCallback onAdvanceStatus;
   final VoidCallback onComplete;
@@ -263,6 +381,9 @@ class DeliveryTrackingSheet extends StatelessWidget {
     this.currentLocation,
     required this.locationLoading,
     required this.locationMessage,
+    required this.roadRoute,
+    required this.roadRouteLoading,
+    required this.roadRouteMessage,
     required this.actionLoading,
     required this.onAdvanceStatus,
     required this.onComplete,
@@ -414,6 +535,37 @@ class DeliveryTrackingSheet extends StatelessWidget {
                   ),
                 ),
               ],
+              if (roadRouteLoading ||
+                  roadRoute != null ||
+                  roadRouteMessage != null) ...[
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      roadRoute != null ? Icons.alt_route : Icons.info_outline,
+                      size: 16,
+                      color: roadRoute != null
+                          ? const Color(0xff1565c0)
+                          : const Color(0xff757575),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        roadRouteLoading
+                            ? 'Calculating real road route...'
+                            : roadRoute != null
+                            ? 'Road route: ${_formatRouteDistance(roadRoute!.distanceMetres)} · ${_formatRouteDuration(roadRoute!.duration)}'
+                            : roadRouteMessage!,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xff757575),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -480,4 +632,36 @@ class _StatusChip extends StatelessWidget {
       ),
     );
   }
+}
+
+LatLng? _validLatLng(double? latitude, double? longitude) {
+  if (latitude == null || longitude == null) return null;
+  if (!latitude.isFinite ||
+      !longitude.isFinite ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180) {
+    return null;
+  }
+  return LatLng(latitude, longitude);
+}
+
+String _formatRouteDistance(double metres) {
+  if (metres >= 1000) {
+    return '${(metres / 1000).toStringAsFixed(1)} km';
+  }
+  return '${metres.round()} m';
+}
+
+String _formatRouteDuration(Duration duration) {
+  final minutes = duration.inMinutes + (duration.inSeconds % 60 == 0 ? 0 : 1);
+  if (minutes < 60) {
+    return '${minutes < 1 ? 1 : minutes} min';
+  }
+  final hours = minutes ~/ 60;
+  final remainingMinutes = minutes % 60;
+  return remainingMinutes == 0
+      ? '$hours hr'
+      : '$hours hr $remainingMinutes min';
 }

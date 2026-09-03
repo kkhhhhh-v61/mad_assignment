@@ -17,6 +17,8 @@ class OsmDeliveryMap extends StatefulWidget {
   final BranchSnapshot branch;
   final DeliveryAddressSnapshot? destination;
   final RiderLocation? riderLocation;
+  final List<LatLng>? roadRoute;
+  final bool roadRouteLoading;
   final bool showEstimatedLine;
   final ValueChanged<Object>? onTileError;
 
@@ -25,6 +27,8 @@ class OsmDeliveryMap extends StatefulWidget {
     required this.branch,
     required this.destination,
     this.riderLocation,
+    this.roadRoute,
+    this.roadRouteLoading = false,
     this.showEstimatedLine = true,
     this.onTileError,
   });
@@ -34,7 +38,10 @@ class OsmDeliveryMap extends StatefulWidget {
 }
 
 class _OsmDeliveryMapState extends State<OsmDeliveryMap> {
+  final MapController _mapController = MapController();
   bool _hasTileError = false;
+  bool _followRider = true;
+  bool _mapReady = false;
 
   List<LatLng> get _estimatePoints {
     final points = <LatLng>[];
@@ -60,13 +67,70 @@ class _OsmDeliveryMapState extends State<OsmDeliveryMap> {
     return points;
   }
 
+  List<LatLng>? get _usableRoadRoute {
+    final route = widget.roadRoute;
+    return route != null && route.length > 1 ? route : null;
+  }
+
+  @override
+  void didUpdateWidget(covariant OsmDeliveryMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.riderLocation != oldWidget.riderLocation) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _moveToRider();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  void _handleMapReady() {
+    _mapReady = true;
+    if (widget.riderLocation != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _moveToRider(ensureGpsZoom: true);
+      });
+    }
+  }
+
+  void _handlePositionChanged(MapCamera camera, bool hasGesture) {
+    if (hasGesture && _followRider && mounted) {
+      setState(() => _followRider = false);
+    }
+  }
+
+  void _moveToRider({bool ensureGpsZoom = false}) {
+    if (!mounted || !_mapReady || !_followRider) return;
+    final location = widget.riderLocation;
+    if (location == null) return;
+    final zoom = ensureGpsZoom
+        ? _mapController.camera.zoom.clamp(15.0, 17.0).toDouble()
+        : _mapController.camera.zoom;
+    _mapController.move(
+      LatLng(location.latitude, location.longitude),
+      zoom,
+      id: 'rider-gps-follow',
+    );
+  }
+
+  void _centerOnRider() {
+    if (widget.riderLocation == null) return;
+    setState(() => _followRider = true);
+    _moveToRider(ensureGpsZoom: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final estimatePoints = _estimatePoints;
     final markerPoints = _markerPoints;
-    final cameraPoints = estimatePoints.length > 1
-        ? estimatePoints
-        : markerPoints;
+    final roadRoute = _usableRoadRoute;
+    final cameraPoints =
+        roadRoute ??
+        (estimatePoints.length > 1 ? estimatePoints : markerPoints);
     final initialCenter = cameraPoints.isEmpty
         ? OsmMapConfig.fallbackCenter
         : cameraPoints.first;
@@ -93,11 +157,14 @@ class _OsmDeliveryMapState extends State<OsmDeliveryMap> {
       fit: StackFit.expand,
       children: [
         FlutterMap(
+          mapController: _mapController,
           options: MapOptions(
             initialCenter: initialCenter,
             initialZoom: cameraPoints.length > 1 ? 13 : 12,
             initialCameraFit: fit,
             backgroundColor: const Color(0xffe0e0e0),
+            onMapReady: _handleMapReady,
+            onPositionChanged: _handlePositionChanged,
           ),
           children: [
             TileLayer(
@@ -110,7 +177,17 @@ class _OsmDeliveryMapState extends State<OsmDeliveryMap> {
                 widget.onTileError?.call(error);
               },
             ),
-            if (estimatePoints.length > 1 && widget.showEstimatedLine)
+            if (roadRoute != null)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: roadRoute,
+                    strokeWidth: 5,
+                    color: const Color(0xff1565c0),
+                  ),
+                ],
+              )
+            else if (estimatePoints.length > 1 && widget.showEstimatedLine)
               PolylineLayer(
                 polylines: [
                   Polyline(
@@ -188,7 +265,8 @@ class _OsmDeliveryMapState extends State<OsmDeliveryMap> {
               ),
             ),
           ),
-        if (estimatePoints.length > 1 && widget.showEstimatedLine)
+        if (roadRoute != null ||
+            (estimatePoints.length > 1 && widget.showEstimatedLine))
           Positioned(
             top: MediaQuery.paddingOf(context).top + 16,
             right: 16,
@@ -197,11 +275,40 @@ class _OsmDeliveryMapState extends State<OsmDeliveryMap> {
                 color: Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Padding(
+              child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 child: Text(
-                  'Straight-line estimate',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  roadRoute != null
+                      ? 'Road route'
+                      : widget.roadRouteLoading
+                      ? 'Calculating road route…'
+                      : 'Straight-line estimate',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        if (rider != null)
+          Positioned(
+            top: MediaQuery.paddingOf(context).top + 58,
+            right: 16,
+            child: Material(
+              color: Colors.white,
+              shape: const CircleBorder(),
+              elevation: 3,
+              child: IconButton(
+                tooltip: _followRider
+                    ? 'Following rider location'
+                    : 'Center on rider location',
+                onPressed: _centerOnRider,
+                icon: Icon(
+                  _followRider ? Icons.my_location : Icons.location_searching,
+                  color: _followRider
+                      ? const Color(0xff2196f3)
+                      : const Color(0xff616161),
                 ),
               ),
             ),

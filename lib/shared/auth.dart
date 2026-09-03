@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:mad_assignment/shared/update_password.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -48,6 +49,17 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
     super.initState();
     _loadRememberedUser();
     _fetchStates();
+    supabase.auth.onAuthStateChange.listen((data) {
+      final AuthChangeEvent event = data.event;
+      if (event == AuthChangeEvent.passwordRecovery) {
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const UpdatePasswordScreen()),
+          );
+        }
+      }
+    });
   }
 
   Future<void> _loadRememberedUser() async {
@@ -90,8 +102,6 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
 
   void _showForgotPasswordDialog() {
     final TextEditingController emailController = TextEditingController();
-    final TextEditingController phoneController = TextEditingController();
-    final TextEditingController newPasswordController = TextEditingController();
     bool isLoading = false;
 
     showDialog(
@@ -107,65 +117,32 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
               ),
               content: SingleChildScrollView(
                 child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Enter your registered email, phone number, and a new password.',
-                    style: TextStyle(fontSize: 13.0, color: Color.fromARGB(255, 117, 117, 117)),
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      hintText: 'Email Address',
-                      hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
-                      filled: true,
-                      fillColor: const Color.fromARGB(255, 245, 245, 245),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15.0),
-                        borderSide: BorderSide.none,
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Enter your registered email address. We will send you a link to reset your password.',
+                      style: TextStyle(fontSize: 13.0, color: Color.fromARGB(255, 117, 117, 117)),
+                    ),
+                    const SizedBox(height: 16.0),
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        hintText: 'Email Address',
+                        hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
+                        filled: true,
+                        fillColor: const Color.fromARGB(255, 245, 245, 245),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12.0),
-                  TextField(
-                    controller: phoneController,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [PhoneWithDashFormatter()],
-                    decoration: InputDecoration(
-                      hintText: 'Phone Number (e.g., 012-345 6789)',
-                      hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
-                      filled: true,
-                      fillColor: const Color.fromARGB(255, 245, 245, 245),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15.0),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12.0),
-                  TextField(
-                    controller: newPasswordController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      hintText: 'New Password (min. 8 chars)',
-                      hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
-                      filled: true,
-                      fillColor: const Color.fromARGB(255, 245, 245, 245),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15.0),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
               actions: [
                 TextButton(
                   onPressed: isLoading ? null : () => Navigator.pop(context),
@@ -179,13 +156,11 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                       ? null
                       : () async {
                     final email = emailController.text.trim();
-                    final phone = phoneController.text.trim();
-                    final newPassword = newPasswordController.text.trim();
 
-                    if (email.isEmpty || phone.isEmpty || newPassword.length < 8) {
+                    if (email.isEmpty || !email.contains('@')) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Please fill in all fields (password min. 8 chars).', style: TextStyle(fontWeight: FontWeight.bold)),
+                          content: Text('Please enter a valid email address.', style: TextStyle(fontWeight: FontWeight.bold)),
                           backgroundColor: Color.fromARGB(255, 239, 83, 80),
                         ),
                       );
@@ -195,18 +170,14 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                     setDialogState(() => isLoading = true);
 
                     try {
-                      await supabase.rpc('reset_password_by_email_and_phone', params: {
-                        'target_email': email,
-                        'target_phone': phone,
-                        'new_pass': newPassword,
-                      });
+                      await supabase.auth.resetPasswordForEmail(email,redirectTo: 'doordish://reset-password',);
 
                       if (context.mounted) {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Password updated successfully! Please log in.', style: TextStyle(fontWeight: FontWeight.bold)),
-                            backgroundColor: Color.fromARGB(255, 255, 160, 122),
+                            content: Text('Password reset link sent! Please check your email.', style: TextStyle(fontWeight: FontWeight.bold)),
+                            backgroundColor: Color.fromARGB(255, 76, 175, 80),
                           ),
                         );
                       }
@@ -214,9 +185,9 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                       setDialogState(() => isLoading = false);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Error: Email or phone not matched.', style: TextStyle(fontWeight: FontWeight.bold)),
-                            backgroundColor: Color.fromARGB(255, 239, 83, 80),
+                          SnackBar(
+                            content: Text('Error: ${e.toString()}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            backgroundColor: const Color.fromARGB(255, 239, 83, 80),
                           ),
                         );
                       }
@@ -234,7 +205,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
-                      : const Text('Update Password', style: TextStyle(fontWeight: FontWeight.bold)),
+                      : const Text('Send Link', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );

@@ -105,7 +105,8 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                 'Reset Password',
                 style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
               ),
-              content: Column(
+              content: SingleChildScrollView(
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -164,6 +165,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                   ),
                 ],
               ),
+            ),
               actions: [
                 TextButton(
                   onPressed: isLoading ? null : () => Navigator.pop(context),
@@ -577,7 +579,7 @@ class LoginForm extends StatelessWidget {
       children: [
         AuthInputField(
           controller: emailController,
-          label: 'Email or Phone Number',
+          label: 'Email',
           hintText: 'e.g., kaihao0303@gmail.com',
           icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,

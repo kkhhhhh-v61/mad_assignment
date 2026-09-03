@@ -305,6 +305,22 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
         return;
       }
 
+      try {
+        final profile = await supabase
+            .from('profiles')
+            .select('status')
+            .eq('id', loggedInUser.id)
+            .single();
+
+        if (profile['status'] == 'Inactive') {
+          await supabase.auth.signOut();
+          _showErrorSnackBar('Your account has been deactivated. Please contact support.');
+          return;
+        }
+      } catch (e) {
+        print('Error checking user status: $e');
+      }
+
       final prefs = await SharedPreferences.getInstance();
       if (_rememberMe) {
         await prefs.setBool('remember_me', true);

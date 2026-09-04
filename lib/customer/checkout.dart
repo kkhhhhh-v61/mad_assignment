@@ -1,11 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../Order/branch_repository.dart';
+import '../Order/delivery_fee.dart';
+import '../Order/order.dart';
 import '../global.dart';
+import '../rider/data_gov_my_fuel_price_repository.dart';
+import 'branch_selection.dart';
 import 'cart.dart';
 import 'order_confirmation.dart';
 
 class CustomerCheckout extends StatefulWidget {
-  const CustomerCheckout({super.key});
+  final BranchSnapshot? branchSnapshot;
+  final DeliveryAddressSnapshot? deliveryAddressSnapshot;
+  final RoadDeliveryFeeService? deliveryFeeService;
+  final BranchRepository? branchRepository;
+  final bool enableBranchSelection;
+  final bool returnRequired;
+
+  const CustomerCheckout({
+    super.key,
+    this.branchSnapshot,
+    this.deliveryAddressSnapshot,
+    this.deliveryFeeService,
+    this.branchRepository,
+    this.enableBranchSelection = true,
+    this.returnRequired = false,
+  });
 
   @override
   State<CustomerCheckout> createState() => _CustomerCheckoutState();
@@ -20,12 +42,33 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
   Map<String, dynamic>? _appliedVoucher;
   late double _deliveryFee;
   late List<Map<String, dynamic>> _availableVouchers;
+  DeliveryFeeQuote? _deliveryFeeQuote;
+  bool _deliveryFeeLoading = false;
+  String? _deliveryFeeError;
+  RoadDeliveryFeeService? _ownedDeliveryFeeService;
+  OsrmDeliveryRoadRouteProvider? _ownedRouteProvider;
+  DataGovMyFuelPriceRepository? _ownedFuelPriceRepository;
+  BranchRepository? _ownedBranchRepository;
+  List<BranchRecord> _branches = [];
+  BranchRecord? _selectedBranch;
+  bool _branchesLoading = false;
+  String? _branchesError;
+  int _deliveryFeeRequestGeneration = 0;
+
+  BranchSnapshot? get _effectiveBranchSnapshot =>
+      _selectedBranch?.snapshot ?? widget.branchSnapshot;
+
+  bool get _routedFeeEnabled =>
+      widget.branchSnapshot != null ||
+      widget.deliveryAddressSnapshot != null ||
+      widget.deliveryFeeService != null ||
+      (widget.enableBranchSelection && _selectedBranch != null);
 
   @override
   void initState() {
     super.initState();
     _cartItems = [];
-    _selectedAddress = '';
+    _selectedAddress = widget.deliveryAddressSnapshot?.formattedAddress ?? '';
     _addresses = [];
     _selectedPaymentMethod = '';
     _availablePaymentMethods = [];
@@ -34,6 +77,234 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     _availableVouchers = [];
 
     //TODO: Retrieve checkout items, available addresses, payment methods, and vouchers dynamically from backend
+    if (widget.enableBranchSelection) {
+      _loadBranches();
+    }
+    if (widget.branchSnapshot != null ||
+        widget.deliveryAddressSnapshot != null ||
+        widget.deliveryFeeService != null) {
+      _loadRoutedDeliveryFee();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomerCheckout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.branchSnapshot != widget.branchSnapshot ||
+        oldWidget.deliveryAddressSnapshot != widget.deliveryAddressSnapshot ||
+        oldWidget.deliveryFeeService != widget.deliveryFeeService ||
+        oldWidget.branchRepository != widget.branchRepository ||
+        oldWidget.enableBranchSelection != widget.enableBranchSelection ||
+        oldWidget.returnRequired != widget.returnRequired) {
+      if (oldWidget.branchSnapshot?.branchId !=
+          widget.branchSnapshot?.branchId) {
+        _selectedBranch = null;
+      }
+      if (widget.enableBranchSelection) {
+        _loadBranches();
+      }
+      if (_routedFeeEnabled) {
+        _selectedAddress =
+            widget.deliveryAddressSnapshot?.formattedAddress ?? '';
+        _loadRoutedDeliveryFee();
+      } else {
+        _deliveryFeeQuote = null;
+        _deliveryFeeLoading = false;
+        _deliveryFeeError = null;
+        _deliveryFee = 0.0;
+      }
+    }
+  }
+
+  BranchRepository? _resolveBranchRepository() {
+    final supplied = widget.branchRepository;
+    if (supplied != null) return supplied;
+    final existing = _ownedBranchRepository;
+    if (existing != null) return existing;
+
+    try {
+      final repository = SupabaseBranchRepository(Supabase.instance.client);
+      _ownedBranchRepository = repository;
+      return repository;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadBranches() async {
+    if (!widget.enableBranchSelection) return;
+
+    final repository = _resolveBranchRepository();
+    if (!mounted) return;
+    if (repository == null) {
+      setState(() {
+        _branchesLoading = false;
+        _branchesError = 'Supabase is not ready. Branches could not be loaded.';
+      });
+      return;
+    }
+
+    setState(() {
+      _branchesLoading = true;
+      _branchesError = null;
+    });
+
+    try {
+      final branches = await repository.fetchActiveBranches();
+      if (!mounted) return;
+      BranchRecord? selected = _selectedBranch;
+      final fallbackId = widget.branchSnapshot?.branchId;
+      if (selected == null && fallbackId != null) {
+        for (final branch in branches) {
+          if (branch.id == fallbackId) {
+            selected = branch;
+            break;
+          }
+        }
+      }
+      setState(() {
+        _branches = branches;
+        _selectedBranch = selected;
+        _branchesLoading = false;
+        _branchesError = null;
+      });
+      if (widget.deliveryAddressSnapshot != null &&
+          _effectiveBranchSnapshot != null) {
+        _loadRoutedDeliveryFee();
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _branchesLoading = false;
+        _branchesError = error is BranchRepositoryException
+            ? error.message
+            : 'Unable to load restaurant branches.';
+      });
+    }
+  }
+
+  Future<void> _showBranchSelectionDialog(BuildContext context) async {
+    final selected = await showModalBottomSheet<BranchRecord>(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (context) => BranchSelectionBottomSheet(
+        branches: _branches,
+        selectedBranch: _selectedBranch,
+        onSelected: (branch) => Navigator.pop(context, branch),
+      ),
+    );
+    if (!mounted || selected == null) return;
+    setState(() {
+      _selectedBranch = selected;
+      _deliveryFeeQuote = null;
+      _deliveryFeeError = null;
+      _deliveryFee = 0.0;
+    });
+    if (widget.deliveryAddressSnapshot != null) {
+      _loadRoutedDeliveryFee();
+    }
+  }
+
+  Future<RoadDeliveryFeeService?> _resolveDeliveryFeeService() async {
+    final supplied = widget.deliveryFeeService;
+    if (supplied != null) {
+      return supplied;
+    }
+    final existing = _ownedDeliveryFeeService;
+    if (existing != null) {
+      return existing;
+    }
+
+    final preferences = await SharedPreferences.getInstance();
+    if (!mounted) return null;
+    final routeProvider = OsrmDeliveryRoadRouteProvider();
+    final fuelRepository = DataGovMyFuelPriceRepository(
+      preferences: preferences,
+    );
+    _ownedRouteProvider = routeProvider;
+    _ownedFuelPriceRepository = fuelRepository;
+    final service = RoadDeliveryFeeService(
+      routeProvider: routeProvider,
+      fuelPriceRepository: fuelRepository,
+    );
+    _ownedDeliveryFeeService = service;
+    return service;
+  }
+
+  Future<void> _loadRoutedDeliveryFee() async {
+    final generation = ++_deliveryFeeRequestGeneration;
+    setState(() {
+      _deliveryFeeLoading = true;
+      _deliveryFeeError = null;
+      _deliveryFeeQuote = null;
+      _deliveryFee = 0.0;
+    });
+
+    final branch = _effectiveBranchSnapshot;
+    final destination = widget.deliveryAddressSnapshot;
+    if (branch == null || destination == null) {
+      if (!mounted || generation != _deliveryFeeRequestGeneration) return;
+      setState(() {
+        _deliveryFeeLoading = false;
+        _deliveryFeeError =
+            'A branch and delivery address are required to calculate the road fee.';
+      });
+      return;
+    }
+
+    try {
+      final service = await _resolveDeliveryFeeService();
+      if (!mounted || generation != _deliveryFeeRequestGeneration) return;
+      if (service == null) return;
+      final quote = await service.quote(
+        branch: branch,
+        destination: destination,
+        returnRequired: widget.returnRequired,
+      );
+      if (!mounted || generation != _deliveryFeeRequestGeneration) return;
+      setState(() {
+        _deliveryFeeLoading = false;
+        _deliveryFeeError = null;
+        _deliveryFeeQuote = quote;
+        _deliveryFee = quote.deliveryFeeSen / 100.0;
+      });
+    } on DeliveryDistanceLimitException catch (error) {
+      if (!mounted || generation != _deliveryFeeRequestGeneration) return;
+      setState(() {
+        _deliveryFeeLoading = false;
+        _deliveryFeeError = error.message;
+      });
+    } on DeliveryFeeException catch (error) {
+      if (!mounted || generation != _deliveryFeeRequestGeneration) return;
+      setState(() {
+        _deliveryFeeLoading = false;
+        _deliveryFeeError = error.message;
+      });
+    } on InvalidOrderException catch (error) {
+      if (!mounted || generation != _deliveryFeeRequestGeneration) return;
+      setState(() {
+        _deliveryFeeLoading = false;
+        _deliveryFeeError = error.message;
+      });
+    } catch (_) {
+      if (!mounted || generation != _deliveryFeeRequestGeneration) return;
+      setState(() {
+        _deliveryFeeLoading = false;
+        _deliveryFeeError = 'Delivery route could not be calculated.';
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _deliveryFeeRequestGeneration++;
+    _ownedRouteProvider?.dispose();
+    _ownedFuelPriceRepository?.dispose();
+    super.dispose();
   }
 
   void _showAddressSelectionDialog(BuildContext context) {
@@ -191,6 +462,14 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
       ),
       body: CheckoutLayout(
         cartItems: _cartItems,
+        branchSelectionEnabled: widget.enableBranchSelection,
+        selectedBranch: _selectedBranch,
+        fallbackBranchSnapshot: widget.branchSnapshot,
+        branches: _branches,
+        branchLoading: _branchesLoading,
+        branchError: _branchesError,
+        onBranchTap: () => _showBranchSelectionDialog(context),
+        onRetryBranches: _loadBranches,
         selectedAddress: _selectedAddress,
         onAddressTap: () => _showAddressSelectionDialog(context),
         selectedPaymentMethod: _selectedPaymentMethod,
@@ -202,6 +481,11 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         },
         appliedVoucher: _appliedVoucher,
         deliveryFee: _deliveryFee,
+        deliveryFeeQuote: _deliveryFeeQuote,
+        deliveryFeeRequired: _routedFeeEnabled,
+        deliveryFeeLoading: _deliveryFeeLoading,
+        deliveryFeeError: _deliveryFeeError,
+        onRetryDeliveryFee: _loadRoutedDeliveryFee,
         availableVouchers: _availableVouchers,
         onVoucherApplied: (voucher) {
           setState(() {
@@ -220,6 +504,14 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
 
 class CheckoutLayout extends StatelessWidget {
   final List<CartItem> cartItems;
+  final bool branchSelectionEnabled;
+  final BranchRecord? selectedBranch;
+  final BranchSnapshot? fallbackBranchSnapshot;
+  final List<BranchRecord> branches;
+  final bool branchLoading;
+  final String? branchError;
+  final VoidCallback onBranchTap;
+  final VoidCallback onRetryBranches;
   final String selectedAddress;
   final VoidCallback onAddressTap;
   final String selectedPaymentMethod;
@@ -227,6 +519,11 @@ class CheckoutLayout extends StatelessWidget {
   final Function(String) onPaymentMethodChanged;
   final Map<String, dynamic>? appliedVoucher;
   final double deliveryFee;
+  final DeliveryFeeQuote? deliveryFeeQuote;
+  final bool deliveryFeeRequired;
+  final bool deliveryFeeLoading;
+  final String? deliveryFeeError;
+  final VoidCallback? onRetryDeliveryFee;
   final List<Map<String, dynamic>> availableVouchers;
   final Function(Map<String, dynamic>?) onVoucherApplied;
   final VoidCallback onPlaceOrder;
@@ -234,6 +531,14 @@ class CheckoutLayout extends StatelessWidget {
   const CheckoutLayout({
     super.key,
     required this.cartItems,
+    this.branchSelectionEnabled = false,
+    this.selectedBranch,
+    this.fallbackBranchSnapshot,
+    this.branches = const [],
+    this.branchLoading = false,
+    this.branchError,
+    this.onBranchTap = _noop,
+    this.onRetryBranches = _noop,
     required this.selectedAddress,
     required this.onAddressTap,
     required this.selectedPaymentMethod,
@@ -241,6 +546,11 @@ class CheckoutLayout extends StatelessWidget {
     required this.onPaymentMethodChanged,
     required this.appliedVoucher,
     required this.deliveryFee,
+    this.deliveryFeeQuote,
+    this.deliveryFeeRequired = false,
+    this.deliveryFeeLoading = false,
+    this.deliveryFeeError,
+    this.onRetryDeliveryFee,
     required this.availableVouchers,
     required this.onVoucherApplied,
     required this.onPlaceOrder,
@@ -248,16 +558,6 @@ class CheckoutLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (cartItems.isEmpty) {
-      return const Center(
-        child: FallbackMessage(
-          icon: Icons.shopping_bag_outlined,
-          title: 'No Items to Checkout',
-          description: 'Please add items to your cart first.',
-        ),
-      );
-    }
-
     double subtotal = 0;
     for (var item in cartItems) {
       double customTotal = item.customizations.fold(
@@ -279,6 +579,14 @@ class CheckoutLayout extends StatelessWidget {
     double total = subtotal + deliveryFee - discount;
     if (total < 0) total = 0;
 
+    final branchReady =
+        !branchSelectionEnabled ||
+        selectedBranch != null ||
+        fallbackBranchSnapshot != null;
+    final feeReady =
+        (!deliveryFeeRequired && !deliveryFeeLoading) ||
+        (deliveryFeeQuote != null && deliveryFeeError == null);
+
     return Column(
       children: [
         Expanded(
@@ -287,6 +595,18 @@ class CheckoutLayout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (branchSelectionEnabled) ...[
+                  BranchSelection(
+                    selectedBranch: selectedBranch,
+                    fallbackSnapshot: fallbackBranchSnapshot,
+                    branches: branches,
+                    isLoading: branchLoading,
+                    error: branchError,
+                    onTap: onBranchTap,
+                    onRetry: onRetryBranches,
+                  ),
+                  const SizedBox(height: 20.0),
+                ],
                 AddressSelection(
                   address: selectedAddress,
                   onTap: onAddressTap,
@@ -307,6 +627,14 @@ class CheckoutLayout extends StatelessWidget {
                   onPaymentMethodChanged: onPaymentMethodChanged,
                 ),
                 const SizedBox(height: 20.0),
+                if (deliveryFeeRequired)
+                  DeliveryFeeStatus(
+                    quote: deliveryFeeQuote,
+                    isLoading: deliveryFeeLoading,
+                    error: deliveryFeeError,
+                    onRetry: onRetryDeliveryFee ?? () {},
+                  ),
+                if (deliveryFeeRequired) const SizedBox(height: 20.0),
                 CheckoutSummary(
                   subtotal: subtotal,
                   deliveryFee: deliveryFee,
@@ -318,11 +646,17 @@ class CheckoutLayout extends StatelessWidget {
             ),
           ),
         ),
-        CheckoutBottomBar(total: total, onPlaceOrder: onPlaceOrder),
+        CheckoutBottomBar(
+          total: total,
+          onPlaceOrder: onPlaceOrder,
+          placeOrderEnabled: cartItems.isNotEmpty && branchReady && feeReady,
+        ),
       ],
     );
   }
 }
+
+void _noop() {}
 
 class AddressSelection extends StatelessWidget {
   final String address;
@@ -401,6 +735,14 @@ class CheckoutOrderItems extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (cartItems.isEmpty) {
+      return const FallbackMessage(
+        icon: Icons.shopping_bag_outlined,
+        title: 'No Items to Checkout',
+        description: 'Please add items to your cart first.',
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -940,6 +1282,93 @@ class PaymentSelectionBottomSheet extends StatelessWidget {
   }
 }
 
+class DeliveryFeeStatus extends StatelessWidget {
+  final DeliveryFeeQuote? quote;
+  final bool isLoading;
+  final String? error;
+  final VoidCallback onRetry;
+
+  const DeliveryFeeStatus({
+    super.key,
+    required this.quote,
+    required this.isLoading,
+    required this.error,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const _DeliveryFeeStatusCard(
+        color: Color(0xffe3f2fd),
+        icon: CircularProgressIndicator(strokeWidth: 2),
+        message: 'Calculating the real road delivery fee…',
+      );
+    }
+
+    final failure = error;
+    if (failure != null) {
+      return _DeliveryFeeStatusCard(
+        color: const Color(0xffffebee),
+        icon: const Icon(Icons.error_outline, color: Colors.redAccent),
+        message: failure,
+        action: TextButton(onPressed: onRetry, child: const Text('Retry')),
+      );
+    }
+
+    final result = quote;
+    if (result == null) return const SizedBox.shrink();
+    final routeType = result.returnRequired ? 'return route' : 'one-way route';
+    return _DeliveryFeeStatusCard(
+      color: const Color(0xffe8f5e9),
+      icon: const Icon(Icons.route, color: Colors.green),
+      message:
+          'Road distance: ${result.chargedRoadDistanceKm.toStringAsFixed(2)} km '
+          '($routeType) · RON95 RM ${result.fuelPrice.ron95RinggitPerLitre.toStringAsFixed(2)}/L',
+    );
+  }
+}
+
+class _DeliveryFeeStatusCard extends StatelessWidget {
+  final Color color;
+  final Widget icon;
+  final String message;
+  final Widget? action;
+
+  const _DeliveryFeeStatusCard({
+    required this.color,
+    required this.icon,
+    required this.message,
+    this.action,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14.0),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 24.0, height: 24.0, child: Center(child: icon)),
+          const SizedBox(width: 10.0),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(fontSize: 13.0, height: 1.3),
+            ),
+          ),
+          if (action != null) ...[const SizedBox(width: 4.0), action!],
+        ],
+      ),
+    );
+  }
+}
+
 class CheckoutSummary extends StatelessWidget {
   final double subtotal;
   final double deliveryFee;
@@ -1049,11 +1478,13 @@ class CheckoutSummary extends StatelessWidget {
 class CheckoutBottomBar extends StatelessWidget {
   final double total;
   final VoidCallback onPlaceOrder;
+  final bool placeOrderEnabled;
 
   const CheckoutBottomBar({
     super.key,
     required this.total,
     required this.onPlaceOrder,
+    this.placeOrderEnabled = true,
   });
 
   @override
@@ -1074,16 +1505,19 @@ class CheckoutBottomBar extends StatelessWidget {
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: () {
-            //TODO: Submit order details to backend API and handle response
-            onPlaceOrder();
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CustomerOrderConfirmation(totalPaid: total),
-              ),
-            );
-          },
+          onPressed: placeOrderEnabled
+              ? () {
+                  //TODO: Submit order details to backend API and handle response
+                  onPlaceOrder();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          CustomerOrderConfirmation(totalPaid: total),
+                    ),
+                  );
+                }
+              : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color.fromARGB(255, 255, 160, 122),
             foregroundColor: Colors.white,

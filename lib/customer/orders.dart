@@ -225,6 +225,8 @@ Map<String, dynamic> _toCustomerOrderMap(Order order) {
     'discount': order.discountSen / 100,
     'totalPrice': 'RM ${(order.totalSen / 100).toStringAsFixed(2)}',
     'info': info,
+    'proofPhotoPath': order.proofPhotoPath,
+    'deliveryComments': order.deliveryComments,
     'icon':
         order.status == OrderStatus.pickedUp ||
             order.status == OrderStatus.delivering

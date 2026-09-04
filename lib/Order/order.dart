@@ -78,6 +78,10 @@ class InvalidOrderTransitionException extends OrderDataException {
   const InvalidOrderTransitionException(super.message);
 }
 
+class DeliveryDistanceLimitException extends InvalidOrderException {
+  const DeliveryDistanceLimitException(super.message);
+}
+
 class BranchSnapshot {
   final String branchId;
   final String name;
@@ -281,6 +285,18 @@ class DeliveryDistancePolicy {
     );
   }
 
+  static void ensureRoadDistanceWithinLimit({required double roadDistanceKm}) {
+    if (!roadDistanceKm.isFinite || roadDistanceKm < 0) {
+      throw const InvalidOrderException('Road distance must be non-negative.');
+    }
+    if (roadDistanceKm > maximumDistanceKm) {
+      throw DeliveryDistanceLimitException(
+        'Road delivery distance is ${roadDistanceKm.toStringAsFixed(2)} km; '
+        'the maximum allowed is ${maximumDistanceKm.toStringAsFixed(0)} km.',
+      );
+    }
+  }
+
   static void ensureWithinLimit({
     required BranchSnapshot branch,
     required DeliveryAddressSnapshot destination,
@@ -310,6 +326,7 @@ class OrderSubmission {
   final int discountSen;
   final int deliveryFeeSen;
   final int totalSen;
+  final double? roadDistanceKm;
   final List<OrderItemSnapshot> items;
 
   OrderSubmission({
@@ -322,6 +339,7 @@ class OrderSubmission {
     required this.discountSen,
     required this.deliveryFeeSen,
     required this.totalSen,
+    this.roadDistanceKm,
     required List<OrderItemSnapshot> items,
   }) : items = List.unmodifiable(items) {
     if (orderNumber.trim().isEmpty || paymentIdempotencyKey.trim().isEmpty) {
@@ -366,11 +384,23 @@ class OrderSubmission {
         'Pickup orders cannot include a delivery address snapshot.',
       );
     }
-    if (fulfilmentType == FulfilmentType.delivery) {
-      DeliveryDistancePolicy.ensureWithinLimit(
-        branch: branchSnapshot,
-        destination: deliveryAddressSnapshot!,
+    if (fulfilmentType == FulfilmentType.pickup && roadDistanceKm != null) {
+      throw const InvalidOrderException(
+        'Pickup orders cannot include a road delivery distance.',
       );
+    }
+    if (fulfilmentType == FulfilmentType.delivery) {
+      final routedDistance = roadDistanceKm;
+      if (routedDistance != null) {
+        DeliveryDistancePolicy.ensureRoadDistanceWithinLimit(
+          roadDistanceKm: routedDistance,
+        );
+      } else {
+        DeliveryDistancePolicy.ensureWithinLimit(
+          branch: branchSnapshot,
+          destination: deliveryAddressSnapshot!,
+        );
+      }
     }
   }
 

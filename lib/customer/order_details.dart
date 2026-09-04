@@ -1,23 +1,54 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../Order/order.dart';
+import 'customer_proof_photo_repository.dart';
 import 'order_tracking.dart';
 
 class OrderDetails extends StatelessWidget {
   final Map<String, dynamic> order;
+  final CustomerProofPhotoRepository? proofPhotoRepository;
 
-  const OrderDetails({super.key, required this.order});
+  const OrderDetails({
+    super.key,
+    required this.order,
+    this.proofPhotoRepository,
+  });
 
   String get orderId => order['orderId'] as String;
   String get date => order['date'] as String;
   String get status => order['status'] as String;
-  List<Map<String, Object>> get itemsList =>
-      (order['items'] as List).cast<Map<String, Object>>();
+  List<Map<String, Object>> get itemsList {
+    final rawItems = order['items'];
+    if (rawItems is! List) return const [];
+    return rawItems
+        .map((item) => Map<String, Object>.from(item as Map))
+        .toList(growable: false);
+  }
+
   double get subtotal => (order['subtotal'] as num).toDouble();
   double get deliveryFee => (order['deliveryFee'] as num).toDouble();
   double get discount => (order['discount'] as num).toDouble();
   String get totalPrice => order['totalPrice'] as String;
   String get info => order['info'] as String;
   IconData? get icon => order['icon'] as IconData?;
+  String? get proofPhotoPath {
+    final value = order['proofPhotoPath'] ?? order['proof_photo_path'];
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+    final typedOrder = order['typedOrder'];
+    if (typedOrder is Order) return typedOrder.proofPhotoPath;
+    return null;
+  }
+
+  String? get deliveryComments {
+    final value = order['deliveryComments'] ?? order['delivery_comments'];
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+    final typedOrder = order['typedOrder'];
+    if (typedOrder is Order) return typedOrder.deliveryComments;
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -187,6 +218,14 @@ class OrderDetails extends StatelessWidget {
                       discount: discount,
                       totalPrice: totalPrice,
                     ),
+                    if (proofPhotoPath != null) ...[
+                      const SizedBox(height: 20.0),
+                      CustomerProofPhotoCard(
+                        proofPhotoPath: proofPhotoPath!,
+                        deliveryComments: deliveryComments,
+                        repository: proofPhotoRepository,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -474,6 +513,232 @@ class OrderReceiptRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class CustomerProofPhotoCard extends StatefulWidget {
+  final String proofPhotoPath;
+  final String? deliveryComments;
+  final CustomerProofPhotoRepository? repository;
+
+  const CustomerProofPhotoCard({
+    super.key,
+    required this.proofPhotoPath,
+    this.deliveryComments,
+    this.repository,
+  });
+
+  @override
+  State<CustomerProofPhotoCard> createState() => _CustomerProofPhotoCardState();
+}
+
+class _CustomerProofPhotoCardState extends State<CustomerProofPhotoCard> {
+  String? _photoUrl;
+  String? _error;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadPhoto());
+  }
+
+  Future<void> _loadPhoto() async {
+    final repository = widget.repository ?? _defaultRepository();
+    if (repository == null) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Proof photo access is not configured.';
+      });
+      return;
+    }
+
+    try {
+      final signedUrl = await repository.createSignedUrl(widget.proofPhotoPath);
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _photoUrl = signedUrl;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Proof photo could not be loaded.';
+      });
+    }
+  }
+
+  CustomerProofPhotoRepository? _defaultRepository() {
+    try {
+      return SupabaseCustomerProofPhotoRepository(Supabase.instance.client);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20.0),
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromARGB(8, 0, 0, 0),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Delivery Proof',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18.0,
+              color: Color.fromARGB(221, 0, 0, 0),
+            ),
+          ),
+          const SizedBox(height: 16.0),
+          SizedBox(
+            width: double.infinity,
+            height: 180.0,
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _photoUrl != null
+                ? GestureDetector(
+                    onTap: () => _showFullScreenPhoto(context, _photoUrl!),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12.0),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(
+                            _photoUrl!,
+                            fit: BoxFit.cover,
+                            semanticLabel: 'Delivery proof photo',
+                            errorBuilder: (_, _, _) => _CustomerPhotoFallback(
+                              message:
+                                  _error ?? 'Proof photo could not be loaded.',
+                            ),
+                          ),
+                          const Align(
+                            alignment: Alignment.bottomRight,
+                            child: Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Padding(
+                                  padding: EdgeInsets.all(6.0),
+                                  child: Icon(
+                                    Icons.fullscreen,
+                                    color: Colors.white,
+                                    size: 18.0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : _CustomerPhotoFallback(
+                    message: _error ?? 'Proof photo is unavailable.',
+                  ),
+          ),
+          if (widget.deliveryComments != null) ...[
+            const SizedBox(height: 16.0),
+            const Text(
+              'Rider Comments',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14.0,
+                color: Color.fromARGB(221, 0, 0, 0),
+              ),
+            ),
+            const SizedBox(height: 8.0),
+            Text(
+              widget.deliveryComments!,
+              style: const TextStyle(
+                fontSize: 14.0,
+                color: Color.fromARGB(255, 117, 117, 117),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showFullScreenPhoto(BuildContext context, String imageUrl) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) {
+        return Dialog.fullscreen(
+          backgroundColor: Colors.black,
+          child: SafeArea(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                InteractiveViewer(
+                  minScale: 0.8,
+                  maxScale: 4.0,
+                  child: Center(
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      semanticLabel: 'Full-size delivery proof photo',
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    tooltip: 'Close full-screen photo',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CustomerPhotoFallback extends StatelessWidget {
+  final String message;
+
+  const _CustomerPhotoFallback({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xfff5f5f5),
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      child: Center(
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Color(0xff9e9e9e), fontSize: 14.0),
+        ),
+      ),
     );
   }
 }

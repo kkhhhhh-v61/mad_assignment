@@ -165,4 +165,23 @@ void main() {
       throwsA(isA<InvalidOrderException>()),
     );
   });
+
+  test('routed submissions reject road routes beyond 10 kilometres', () {
+    expect(
+      () => OrderSubmission(
+        orderNumber: 'ORD-1005',
+        paymentIdempotencyKey: 'payment-1005',
+        fulfilmentType: FulfilmentType.delivery,
+        branchSnapshot: branch,
+        deliveryAddressSnapshot: address,
+        subtotalSen: 2500,
+        discountSen: 200,
+        deliveryFeeSen: 300,
+        totalSen: 2600,
+        roadDistanceKm: 10.01,
+        items: [item],
+      ),
+      throwsA(isA<DeliveryDistanceLimitException>()),
+    );
+  });
 }

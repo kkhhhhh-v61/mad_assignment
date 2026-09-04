@@ -9,6 +9,7 @@ import '../shared/profile.dart';
 import 'header.dart';
 import 'food_management.dart';
 import 'rider_management.dart';
+import 'customer_management.dart';
 
 import '../models.dart';
 
@@ -159,7 +160,12 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
         SharedOptionTile(
           icon: Icons.people_outline,
           title: 'Manage Customers',
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminCustomerManagement()),
+            );
+          },
         ),
         SharedOptionTile(
           icon: Icons.bar_chart,

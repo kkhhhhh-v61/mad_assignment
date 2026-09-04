@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../global.dart';
-import 'header.dart';
 import 'rider_creation.dart';
 import 'rider_details.dart';
 
@@ -17,10 +16,19 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
   List<Map<String, dynamic>> _riderItems = [];
   bool _isLoading = true;
 
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
     _fetchRiders();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchRiders() async {
@@ -55,6 +63,25 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
     }
   }
 
+  List<Map<String, dynamic>> get _filteredRiders {
+    if (_searchQuery.isEmpty) return _riderItems;
+
+    return _riderItems.where((rider) {
+      final name = (rider['name'] ?? '').toString().toLowerCase();
+      final email = (rider['email'] ?? '').toString().toLowerCase();
+      final phone = (rider['phone'] ?? '').toString().toLowerCase();
+      final vehicle = (rider['vehicle'] ?? '').toString().toLowerCase();
+      final plate = (rider['plate'] ?? '').toString().toLowerCase();
+      final query = _searchQuery.toLowerCase();
+
+      return name.contains(query) ||
+          email.contains(query) ||
+          phone.contains(query) ||
+          vehicle.contains(query) ||
+          plate.contains(query);
+    }).toList();
+  }
+
   void _showFilterOverlay() {
     showModalBottomSheet(
       context: context,
@@ -69,7 +96,7 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color.fromARGB(255, 249, 250, 251),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color.fromARGB(255, 255, 160, 122),
         child: const Icon(Icons.add, color: Colors.white, size: 28),
@@ -84,20 +111,97 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
       ),
       body: Column(
         children: [
-          AdminHeader(
-            pageTitle: 'Rider Management',
-            showSearch: true,
-            showFilter: true,
-            onFilterTap: _showFilterOverlay,
+          Container(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 16.0,
+              left: 20.0,
+              right: 20.0,
+              bottom: 20.0,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(25.0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Color.fromARGB(15, 0, 0, 0),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Rider Management',
+                  style: TextStyle(
+                    fontSize: 24.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 16.0),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Search name, phone, plate...',
+                          hintStyle: const TextStyle(color: Colors.grey, fontSize: 14.0),
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                            icon: const Icon(Icons.cancel, color: Colors.grey, size: 20),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                              : null,
+                          filled: true,
+                          fillColor: const Color.fromARGB(255, 245, 245, 245),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15.0),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12.0),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.tune, color: Color.fromARGB(255, 255, 160, 122)),
+                        onPressed: _showFilterOverlay,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
+
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 255, 160, 122)))
                 : SingleChildScrollView(
               child: Column(
                 children: [
-                  const SizedBox(height: 20.0),
-                  RiderList(items: _riderItems, onRefresh: _fetchRiders),
+                  const SizedBox(height: 16.0),
+                  RiderList(items: _filteredRiders, onRefresh: _fetchRiders),
                   const SizedBox(height: 80.0),
                 ],
               ),
@@ -144,14 +248,14 @@ class RiderList extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.electric_moped_outlined,
+                  Icons.search_off_rounded,
                   size: 48,
                   color: Color.fromARGB(255, 255, 160, 122),
                 ),
               ),
               const SizedBox(height: 24.0),
               const Text(
-                'No Records Found',
+                'No Riders Found',
                 style: TextStyle(
                   fontSize: 18.0,
                   fontWeight: FontWeight.bold,
@@ -160,7 +264,7 @@ class RiderList extends StatelessWidget {
               ),
               const SizedBox(height: 8.0),
               const Text(
-                'There are currently no riders available.',
+                'Try adjusting your search criteria.',
                 style: TextStyle(
                   color: Colors.black54,
                   fontSize: 14.0,

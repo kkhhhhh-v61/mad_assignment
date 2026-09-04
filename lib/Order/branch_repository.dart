@@ -2,6 +2,88 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'order.dart';
 
+const branchSelectColumns =
+    'id,branch_code,name,state_id,state_code,address,latitude,longitude,is_active';
+
+class BranchStateOption {
+  final int id;
+  final String name;
+
+  const BranchStateOption({required this.id, required this.name});
+
+  String get code => id.toString().padLeft(2, '0');
+}
+
+const branchStateOptions = <BranchStateOption>[
+  BranchStateOption(id: 1, name: 'Johor'),
+  BranchStateOption(id: 2, name: 'Kedah'),
+  BranchStateOption(id: 3, name: 'Kelantan'),
+  BranchStateOption(id: 4, name: 'Melaka'),
+  BranchStateOption(id: 5, name: 'Negeri Sembilan'),
+  BranchStateOption(id: 6, name: 'Pahang'),
+  BranchStateOption(id: 7, name: 'Pulau Pinang'),
+  BranchStateOption(id: 8, name: 'Perak'),
+  BranchStateOption(id: 9, name: 'Perlis'),
+  BranchStateOption(id: 10, name: 'Sabah'),
+  BranchStateOption(id: 11, name: 'Sarawak'),
+  BranchStateOption(id: 12, name: 'Selangor'),
+  BranchStateOption(id: 13, name: 'Terengganu'),
+  BranchStateOption(id: 14, name: 'Kuala Lumpur'),
+  BranchStateOption(id: 15, name: 'Labuan'),
+  BranchStateOption(id: 16, name: 'Putrajaya'),
+];
+
+class BranchDraft {
+  final String branchCode;
+  final String name;
+  final int stateId;
+  final String stateCode;
+  final String address;
+  final double latitude;
+  final double longitude;
+  final bool isActive;
+
+  BranchDraft({
+    required this.branchCode,
+    required this.name,
+    required this.stateId,
+    required this.stateCode,
+    required this.address,
+    required this.latitude,
+    required this.longitude,
+    required this.isActive,
+  }) {
+    if (branchCode.trim().isEmpty ||
+        name.trim().isEmpty ||
+        stateCode.trim().isEmpty ||
+        address.trim().isEmpty) {
+      throw const BranchRepositoryException(
+        'Branch code, name, state code, and address are required.',
+      );
+    }
+    if (stateId <= 0) {
+      throw const BranchRepositoryException('Branch state is invalid.');
+    }
+    if (!latitude.isFinite || latitude < -90 || latitude > 90) {
+      throw const BranchRepositoryException('Branch latitude is invalid.');
+    }
+    if (!longitude.isFinite || longitude < -180 || longitude > 180) {
+      throw const BranchRepositoryException('Branch longitude is invalid.');
+    }
+  }
+
+  Map<String, dynamic> toJson() => {
+    'branch_code': branchCode.trim(),
+    'name': name.trim(),
+    'state_id': stateId,
+    'state_code': stateCode.trim(),
+    'address': address.trim(),
+    'latitude': latitude,
+    'longitude': longitude,
+    'is_active': isActive,
+  };
+}
+
 class BranchRecord {
   final String id;
   final String branchCode;
@@ -61,6 +143,19 @@ abstract interface class BranchRepository {
   Future<List<BranchRecord>> fetchActiveBranches();
 }
 
+abstract interface class BranchAdminRepository {
+  Future<List<BranchRecord>> fetchAllBranches();
+
+  Future<BranchRecord> createBranch(BranchDraft draft);
+
+  Future<BranchRecord> updateBranch({
+    required String branchId,
+    required BranchDraft draft,
+  });
+
+  Future<void> deleteBranch(String branchId);
+}
+
 class BranchRepositoryException implements Exception {
   final String message;
   final Object? cause;
@@ -81,10 +176,7 @@ class SupabaseBranchRepository implements BranchRepository {
     try {
       final response = await client
           .from('branches')
-          .select(
-            'id,branch_code,name,state_id,state_code,address,'
-            'latitude,longitude,is_active',
-          )
+          .select(branchSelectColumns)
           .eq('is_active', true)
           .order('state_id')
           .order('name');
@@ -100,6 +192,84 @@ class SupabaseBranchRepository implements BranchRepository {
         'Unable to load restaurant branches.',
         error,
       );
+    }
+  }
+}
+
+class SupabaseBranchAdminRepository implements BranchAdminRepository {
+  final SupabaseClient client;
+
+  const SupabaseBranchAdminRepository(this.client);
+
+  @override
+  Future<List<BranchRecord>> fetchAllBranches() async {
+    try {
+      final response = await client
+          .from('branches')
+          .select(branchSelectColumns)
+          .order('state_id')
+          .order('name');
+      return response
+          .map((row) => BranchRecord.fromJson(row))
+          .toList(growable: false);
+    } on BranchRepositoryException {
+      rethrow;
+    } catch (error) {
+      throw BranchRepositoryException(
+        'Unable to load all restaurant branches.',
+        error,
+      );
+    }
+  }
+
+  @override
+  Future<BranchRecord> createBranch(BranchDraft draft) async {
+    try {
+      final response = await client
+          .from('branches')
+          .insert(draft.toJson())
+          .select(branchSelectColumns)
+          .single();
+      return BranchRecord.fromJson(response);
+    } on BranchRepositoryException {
+      rethrow;
+    } catch (error) {
+      throw BranchRepositoryException('Unable to create the branch.', error);
+    }
+  }
+
+  @override
+  Future<BranchRecord> updateBranch({
+    required String branchId,
+    required BranchDraft draft,
+  }) async {
+    if (branchId.trim().isEmpty) {
+      throw const BranchRepositoryException('Branch ID is required.');
+    }
+    try {
+      final response = await client
+          .from('branches')
+          .update(draft.toJson())
+          .eq('id', branchId)
+          .select(branchSelectColumns)
+          .single();
+      return BranchRecord.fromJson(response);
+    } on BranchRepositoryException {
+      rethrow;
+    } catch (error) {
+      throw BranchRepositoryException('Unable to update the branch.', error);
+    }
+  }
+
+  @override
+  Future<void> deleteBranch(String branchId) async {
+    if (branchId.trim().isEmpty) {
+      throw const BranchRepositoryException('Branch ID is required.');
+    }
+    try {
+      await client.from('branches').delete().eq('id', branchId);
+    } catch (error) {
+      throw BranchRepositoryException('Unable to delete the branch.', error);
     }
   }
 }

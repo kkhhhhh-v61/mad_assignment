@@ -50,4 +50,57 @@ void main() {
       throwsA(isA<BranchRepositoryException>()),
     );
   });
+
+  test('branch draft emits the admin CRUD payload', () {
+    final draft = BranchDraft(
+      branchCode: ' DD-14-03 ',
+      name: ' DoorDish KL ',
+      stateId: 14,
+      stateCode: '14',
+      address: ' 1 Jalan Test, Kuala Lumpur ',
+      latitude: 3.139,
+      longitude: 101.6869,
+      isActive: true,
+    );
+
+    expect(draft.toJson(), {
+      'branch_code': 'DD-14-03',
+      'name': 'DoorDish KL',
+      'state_id': 14,
+      'state_code': '14',
+      'address': '1 Jalan Test, Kuala Lumpur',
+      'latitude': 3.139,
+      'longitude': 101.6869,
+      'is_active': true,
+    });
+  });
+
+  test('branch draft rejects invalid coordinates and required fields', () {
+    expect(
+      () => BranchDraft(
+        branchCode: '',
+        name: 'DoorDish KL',
+        stateId: 14,
+        stateCode: '14',
+        address: '1 Jalan Test',
+        latitude: 3.139,
+        longitude: 101.6869,
+        isActive: true,
+      ),
+      throwsA(isA<BranchRepositoryException>()),
+    );
+    expect(
+      () => BranchDraft(
+        branchCode: 'DD-14-03',
+        name: 'DoorDish KL',
+        stateId: 14,
+        stateCode: '14',
+        address: '1 Jalan Test',
+        latitude: 91,
+        longitude: 101.6869,
+        isActive: true,
+      ),
+      throwsA(isA<BranchRepositoryException>()),
+    );
+  });
 }

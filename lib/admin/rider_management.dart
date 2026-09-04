@@ -19,6 +19,10 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  String _currentSort = 'Name (A-Z)';
+  String _currentVehicleFilter = 'All';
+  String _currentStatusFilter = 'All';
+
   @override
   void initState() {
     super.initState();
@@ -36,7 +40,7 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
     try {
       final data = await _supabase
           .from('riders')
-          .select('*, profiles(name, phone, email)')
+          .select('*, profiles(name, phone, email, avatar_url)')
           .order('created_at', ascending: false)
           .timeout(const Duration(seconds: 10));
 
@@ -49,6 +53,7 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
           flattenedItem['name'] = profile['name'];
           flattenedItem['phone'] = profile['phone'];
           flattenedItem['email'] = profile['email'];
+          flattenedItem['avatar_url'] = profile['avatar_url'];
 
           return flattenedItem;
         }).toList();
@@ -64,33 +69,63 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
   }
 
   List<Map<String, dynamic>> get _filteredRiders {
-    if (_searchQuery.isEmpty) return _riderItems;
+    List<Map<String, dynamic>> result = List.from(_riderItems);
 
-    return _riderItems.where((rider) {
-      final name = (rider['name'] ?? '').toString().toLowerCase();
-      final email = (rider['email'] ?? '').toString().toLowerCase();
-      final phone = (rider['phone'] ?? '').toString().toLowerCase();
-      final vehicle = (rider['vehicle'] ?? '').toString().toLowerCase();
-      final plate = (rider['plate'] ?? '').toString().toLowerCase();
+    if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
+      result = result.where((rider) {
+        final name = (rider['name'] ?? '').toString().toLowerCase();
+        final email = (rider['email'] ?? '').toString().toLowerCase();
+        final phone = (rider['phone'] ?? '').toString().toLowerCase();
+        final vehicle = (rider['vehicle'] ?? '').toString().toLowerCase();
+        final plate = (rider['plate'] ?? '').toString().toLowerCase();
+        return name.contains(query) || email.contains(query) ||
+            phone.contains(query) || vehicle.contains(query) || plate.contains(query);
+      }).toList();
+    }
 
-      return name.contains(query) ||
-          email.contains(query) ||
-          phone.contains(query) ||
-          vehicle.contains(query) ||
-          plate.contains(query);
-    }).toList();
+    if (_currentVehicleFilter != 'All') {
+      result = result.where((rider) => rider['vehicle'] == _currentVehicleFilter).toList();
+    }
+
+    if (_currentStatusFilter != 'All') {
+      result = result.where((rider) => rider['status'] == _currentStatusFilter).toList();
+    }
+
+    if (_currentSort == 'Name (A-Z)') {
+      result.sort((a, b) => (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString()));
+    } else if (_currentSort == 'Rating (High to Low)') {
+      result.sort((a, b) {
+        double ratingA = double.tryParse((a['rating'] ?? '0').toString()) ?? 0.0;
+        double ratingB = double.tryParse((b['rating'] ?? '0').toString()) ?? 0.0;
+        return ratingB.compareTo(ratingA);
+      });
+    }
+
+    return result;
   }
 
-  void _showFilterOverlay() {
-    showModalBottomSheet(
+  void _showFilterOverlay() async {
+    final result = await showModalBottomSheet<Map<String, String>>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20.0))),
       builder: (BuildContext context) {
-        return const RiderFilterSheet();
+        return RiderFilterSheet(
+          initialSort: _currentSort,
+          initialVehicle: _currentVehicleFilter,
+          initialStatus: _currentStatusFilter,
+        );
       },
     );
+
+    if (result != null) {
+      setState(() {
+        _currentSort = result['sort']!;
+        _currentVehicleFilter = result['vehicle']!;
+        _currentStatusFilter = result['status']!;
+      });
+    }
   }
 
   @override
@@ -328,12 +363,20 @@ class RiderItemCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: const Color.fromARGB(255, 245, 245, 245),
                   borderRadius: BorderRadius.circular(15.0),
+                  image: item['avatar_url'] != null && item['avatar_url'].toString().isNotEmpty
+                      ? DecorationImage(
+                    image: NetworkImage(item['avatar_url']),
+                    fit: BoxFit.cover,
+                  )
+                      : null,
                 ),
-                child: Icon(
-                  item['icon'] as IconData? ?? Icons.person,
+                child: item['avatar_url'] == null || item['avatar_url'].toString().isEmpty
+                    ? const Icon(
+                  Icons.person,
                   size: 40,
-                  color: const Color.fromARGB(255, 158, 158, 158),
-                ),
+                  color: Color.fromARGB(255, 158, 158, 158),
+                )
+                    : null,
               ),
               const SizedBox(width: 16.0),
               Expanded(
@@ -400,21 +443,37 @@ class RiderItemCard extends StatelessWidget {
 }
 
 class RiderFilterSheet extends StatefulWidget {
-  const RiderFilterSheet({super.key});
+  final String initialSort;
+  final String initialVehicle;
+  final String initialStatus;
+
+  const RiderFilterSheet({
+    super.key,
+    required this.initialSort,
+    required this.initialVehicle,
+    required this.initialStatus
+  });
 
   @override
   State<RiderFilterSheet> createState() => _RiderFilterSheetState();
 }
 
 class _RiderFilterSheetState extends State<RiderFilterSheet> {
-  String selectedSort = 'Name (A-Z)';
-  final List<String> sortOptions = ['Name (A-Z)', 'Rating (High to Low)', 'Most Deliveries'];
+  late String selectedSort;
+  late String selectedVehicle;
+  late String selectedStatus;
 
-  String selectedVehicle = 'All';
+  final List<String> sortOptions = ['Name (A-Z)', 'Rating (High to Low)'];
   final List<String> vehicleOptions = ['All', 'Motorcycle', 'Car', 'Bicycle'];
-
-  String selectedStatus = 'All';
   final List<String> statusOptions = ['All', 'Online', 'Offline', 'On Delivery'];
+
+  @override
+  void initState() {
+    super.initState();
+    selectedSort = widget.initialSort;
+    selectedVehicle = widget.initialVehicle;
+    selectedStatus = widget.initialStatus;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -433,8 +492,7 @@ class _RiderFilterSheetState extends State<RiderFilterSheet> {
             children: [
               Center(
                 child: Container(
-                  width: 40,
-                  height: 4,
+                  width: 40, height: 4,
                   decoration: BoxDecoration(color: const Color.fromARGB(255, 224, 224, 224), borderRadius: BorderRadius.circular(2)),
                 ),
               ),
@@ -470,11 +528,7 @@ class _RiderFilterSheetState extends State<RiderFilterSheet> {
                       return DropdownMenuItem<String>(value: value, child: Text(value));
                     }).toList(),
                     onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          selectedSort = newValue;
-                        });
-                      }
+                      if (newValue != null) setState(() => selectedSort = newValue);
                     },
                   ),
                 ),
@@ -483,26 +537,15 @@ class _RiderFilterSheetState extends State<RiderFilterSheet> {
               const Text('Vehicle Type', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8.0),
               Wrap(
-                spacing: 8.0,
-                runSpacing: 8.0,
+                spacing: 8.0, runSpacing: 8.0,
                 children: vehicleOptions.map((String type) {
                   final isSelected = selectedVehicle == type;
                   return ChoiceChip(
-                    label: Text(
-                      type,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : const Color.fromARGB(221, 0, 0, 0),
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      ),
-                    ),
+                    label: Text(type, style: TextStyle(color: isSelected ? Colors.white : const Color.fromARGB(221, 0, 0, 0), fontWeight: isSelected ? FontWeight.bold : FontWeight.w500)),
                     selected: isSelected,
                     selectedColor: const Color.fromARGB(255, 255, 160, 122),
                     backgroundColor: const Color.fromARGB(255, 245, 245, 245),
-                    onSelected: (bool selected) {
-                      setState(() {
-                        selectedVehicle = type;
-                      });
-                    },
+                    onSelected: (bool selected) => setState(() => selectedVehicle = type),
                   );
                 }).toList(),
               ),
@@ -510,36 +553,28 @@ class _RiderFilterSheetState extends State<RiderFilterSheet> {
               const Text('Status', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8.0),
               Wrap(
-                spacing: 8.0,
-                runSpacing: 8.0,
+                spacing: 8.0, runSpacing: 8.0,
                 children: statusOptions.map((String status) {
                   final isSelected = selectedStatus == status;
                   return ChoiceChip(
-                    label: Text(
-                      status,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : const Color.fromARGB(221, 0, 0, 0),
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      ),
-                    ),
+                    label: Text(status, style: TextStyle(color: isSelected ? Colors.white : const Color.fromARGB(221, 0, 0, 0), fontWeight: isSelected ? FontWeight.bold : FontWeight.w500)),
                     selected: isSelected,
                     selectedColor: const Color.fromARGB(255, 255, 160, 122),
                     backgroundColor: const Color.fromARGB(255, 245, 245, 245),
-                    onSelected: (bool selected) {
-                      setState(() {
-                        selectedStatus = status;
-                      });
-                    },
+                    onSelected: (bool selected) => setState(() => selectedStatus = status),
                   );
                 }).toList(),
               ),
               const SizedBox(height: 32.0),
               SizedBox(
-                width: double.infinity,
-                height: 50,
+                width: double.infinity, height: 50,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context);
+                    Navigator.pop(context, {
+                      'sort': selectedSort,
+                      'vehicle': selectedVehicle,
+                      'status': selectedStatus,
+                    });
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 255, 160, 122),

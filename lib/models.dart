@@ -23,6 +23,7 @@ class AppUser {
   final String name;
   final String phone;
   final String address;
+  final String? avatarUrl;
 
   AppUser({
     required this.id,
@@ -31,6 +32,7 @@ class AppUser {
     required this.name,
     required this.phone,
     required this.address,
+    this.avatarUrl,
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json, String email) {
@@ -41,6 +43,7 @@ class AppUser {
       name: json['name']?.toString() ?? "",
       phone: json['phone']?.toString() ?? "",
       address: json['address']?.toString() ?? "",
+      avatarUrl: json['avatar_url']?.toString(),
     );
   }
 }

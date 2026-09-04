@@ -292,8 +292,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
   final _supabase = Supabase.instance.client;
 
   final _labelController = TextEditingController();
-  final _line1Controller = TextEditingController();
-  final _line2Controller = TextEditingController();
+  final _streetAddressController = TextEditingController();
   final _postcodeController = TextEditingController();
 
   String? _selectedStateName;
@@ -319,15 +318,9 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     if (parts.length >= 3) {
       _selectedStateName = parts.last;
       _postcodeController.text = parts[parts.length - 2];
-
-      if (parts.length == 3) {
-        _line1Controller.text = parts[0];
-      } else {
-        _line1Controller.text = parts.sublist(0, parts.length - 3).join(', ');
-        _line2Controller.text = parts[parts.length - 3];
-      }
+      _streetAddressController.text = parts.sublist(0, parts.length - 2).join(', ');
     } else {
-      _line1Controller.text = fullAddress;
+      _streetAddressController.text = fullAddress;
     }
   }
 
@@ -350,14 +343,13 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
   @override
   void dispose() {
     _labelController.dispose();
-    _line1Controller.dispose();
-    _line2Controller.dispose();
+    _streetAddressController.dispose();
     _postcodeController.dispose();
     super.dispose();
   }
 
   Future<void> _saveAddress() async {
-    if (_line1Controller.text.trim().isEmpty || _postcodeController.text.trim().isEmpty || _selectedStateName == null) {
+    if (_streetAddressController.text.trim().isEmpty || _postcodeController.text.trim().isEmpty || _selectedStateName == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all required fields'), backgroundColor: Colors.red));
       return;
     }
@@ -372,12 +364,9 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     try {
       final userId = _supabase.auth.currentUser!.id;
 
-      String line1 = _line1Controller.text.trim();
-      String line2 = _line2Controller.text.trim();
+      String street = _streetAddressController.text.trim();
       String postcode = _postcodeController.text.trim();
-      String fullAddress = line1;
-      if (line2.isNotEmpty) fullAddress += ', $line2';
-      fullAddress += ', $postcode, $_selectedStateName';
+      String fullAddress = '$street, $postcode, $_selectedStateName';
 
       if (widget.addressId == 'main') {
         await _supabase.from('profiles').update({'address': fullAddress}).eq('id', userId);
@@ -449,26 +438,12 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
             const Text('Address Line 1 *', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6.0),
             TextField(
-              controller: _line1Controller,
+              controller: _streetAddressController,
               decoration: InputDecoration(
                 hintText: 'House/Unit No., Building, Street',
                 filled: true,
                 fillColor: const Color.fromARGB(255, 245, 245, 245),
                 prefixIcon: const Icon(Icons.home_outlined, color: Colors.black54, size: 20),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15.0), borderSide: BorderSide.none),
-              ),
-            ),
-            const SizedBox(height: 16.0),
-
-            const Text('Address Line 2 (Optional)', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6.0),
-            TextField(
-              controller: _line2Controller,
-              decoration: InputDecoration(
-                hintText: 'Area, Taman, District',
-                filled: true,
-                fillColor: const Color.fromARGB(255, 245, 245, 245),
-                prefixIcon: const Icon(Icons.map_outlined, color: Colors.black54, size: 20),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15.0), borderSide: BorderSide.none),
               ),
             ),

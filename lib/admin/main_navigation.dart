@@ -45,6 +45,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
       subtitle: currentUser?.phone ?? 'Administrator',
       email: currentUser?.email ?? 'No Email',
       profileIcon: Icons.admin_panel_settings,
+      avatarUrl: currentUser?.avatarUrl,
 
       showEditIcon: true,
 
@@ -57,6 +58,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
               initialName: currentUser?.name ?? '',
               initialEmail: currentUser?.email ?? '',
               initialPhone: currentUser?.phone ?? '',
+              initialAvatarUrl: currentUser?.avatarUrl,
               onSave: (name, email, phone, password) async {
                 try {
                   final userId = supabase.auth.currentUser!.id;
@@ -82,6 +84,8 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
                     await supabase.auth.updateUser(UserAttributes(password: password));
                   }
 
+                  final updatedProfile = await supabase.from('profiles').select().eq('id', currentUser!.id).single();
+
                   setState(() {
                     currentUser = AppUser(
                       id: currentUser!.id,
@@ -90,6 +94,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
                       email: email,
                       phone: phone,
                       address: currentUser!.address,
+                      avatarUrl: updatedProfile['avatar_url'],
                     );
                   });
 

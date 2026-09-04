@@ -37,8 +37,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
-  final TextEditingController _addressLine1Controller = TextEditingController();
-  final TextEditingController _addressLine2Controller = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
   final TextEditingController _postcodeController = TextEditingController();
   String? _selectedStateName;
   List<States> _statesList = [];
@@ -94,8 +93,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _confirmPasswordController.dispose();
-    _addressLine1Controller.dispose();
-    _addressLine2Controller.dispose();
+    _addressController.dispose();
     _postcodeController.dispose();
     super.dispose();
   }
@@ -220,7 +218,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
       if (_nameController.text.trim().isEmpty ||
           _emailController.text.trim().isEmpty ||
           _phoneController.text.trim().isEmpty ||
-          _addressLine1Controller.text.trim().isEmpty ||
+          _addressController.text.trim().isEmpty ||
           _postcodeController.text.trim().isEmpty ||
           _selectedStateName == null ||
           _passwordController.text.isEmpty ||
@@ -254,13 +252,10 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
         return;
       }
 
-      String line1 = _addressLine1Controller.text.trim();
-      String line2 = _addressLine2Controller.text.trim();
+      String address = _addressController.text.trim();
       String postcode = _postcodeController.text.trim();
 
-      String fullAddress = line1;
-      if (line2.isNotEmpty) fullAddress += ', $line2';
-      fullAddress += ', $postcode, $_selectedStateName';
+      String fullAddress = '$address, $postcode, $_selectedStateName';
 
       String? errorMessage = await registerCustomer(
         email: _emailController.text.trim(),
@@ -282,8 +277,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
           _nameController.clear();
           _emailController.clear();
           _phoneController.clear();
-          _addressLine1Controller.clear();
-          _addressLine2Controller.clear();
+          _addressController.clear();
           _postcodeController.clear();
           _selectedStateName = null;
           _passwordController.clear();
@@ -437,8 +431,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                     nameController: _nameController,
                     emailController: _emailController,
                     phoneController: _phoneController,
-                    addressLine1Controller: _addressLine1Controller,
-                    addressLine2Controller: _addressLine2Controller,
+                    addressController: _addressController,
                     postcodeController: _postcodeController,
                     selectedStateName: _selectedStateName,
                     statesList: _statesList,
@@ -627,8 +620,7 @@ class RegisterForm extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController phoneController;
 
-  final TextEditingController addressLine1Controller;
-  final TextEditingController addressLine2Controller;
+  final TextEditingController addressController;
   final TextEditingController postcodeController;
   final String? selectedStateName;
   final List<States> statesList;
@@ -649,8 +641,7 @@ class RegisterForm extends StatelessWidget {
     required this.nameController,
     required this.emailController,
     required this.phoneController,
-    required this.addressLine1Controller,
-    required this.addressLine2Controller,
+    required this.addressController,
     required this.postcodeController,
     required this.selectedStateName,
     required this.statesList,
@@ -702,17 +693,10 @@ class RegisterForm extends StatelessWidget {
         ),
         const SizedBox(height: 12.0),
         AuthInputField(
-          controller: addressLine1Controller,
-          label: 'Address Line 1 *',
-          hintText: 'House/Unit No., Building, Street',
+          controller: addressController,
+          label: 'Street Address *',
+          hintText: 'House/Unit No., Building, Street, Area',
           icon: Icons.home_outlined,
-        ),
-        const SizedBox(height: 12.0),
-        AuthInputField(
-          controller: addressLine2Controller,
-          label: 'Address Line 2 (Optional)',
-          hintText: 'Area, Taman, District',
-          icon: Icons.map_outlined,
         ),
         const SizedBox(height: 12.0),
         Row(

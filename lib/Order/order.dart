@@ -82,6 +82,42 @@ class DeliveryDistanceLimitException extends InvalidOrderException {
   const DeliveryDistanceLimitException(super.message);
 }
 
+const supportedPaymentTypes = <String>{'COD', 'Card', 'PayPal'};
+const supportedPaymentStatuses = <String>{'Pending', 'Completed', 'Failed'};
+
+void validatePaymentFields({
+  required String? paymentType,
+  required String? paymentStatus,
+  required String? paymentMethodId,
+}) {
+  final hasPaymentFields =
+      paymentType != null || paymentStatus != null || paymentMethodId != null;
+  if (!hasPaymentFields) return;
+
+  if (paymentType == null || !supportedPaymentTypes.contains(paymentType)) {
+    throw const InvalidOrderException('Payment type is invalid.');
+  }
+  if (paymentStatus == null ||
+      !supportedPaymentStatuses.contains(paymentStatus)) {
+    throw const InvalidOrderException('Payment status is invalid.');
+  }
+
+  if (paymentMethodId != null && paymentMethodId.trim().isEmpty) {
+    throw const InvalidOrderException('Payment method ID cannot be blank.');
+  }
+  final hasPaymentMethod = paymentMethodId != null;
+  if (paymentType == 'Card' && !hasPaymentMethod) {
+    throw const InvalidOrderException(
+      'Card payments require a payment method ID.',
+    );
+  }
+  if (paymentType != 'Card' && hasPaymentMethod) {
+    throw const InvalidOrderException(
+      'Only card payments may include a payment method ID.',
+    );
+  }
+}
+
 class BranchSnapshot {
   final String branchId;
   final String name;
@@ -319,6 +355,9 @@ class DeliveryDistancePolicy {
 class OrderSubmission {
   final String orderNumber;
   final String paymentIdempotencyKey;
+  final String? paymentType;
+  final String? paymentStatus;
+  final String? paymentMethodId;
   final FulfilmentType fulfilmentType;
   final BranchSnapshot branchSnapshot;
   final DeliveryAddressSnapshot? deliveryAddressSnapshot;
@@ -332,6 +371,9 @@ class OrderSubmission {
   OrderSubmission({
     required this.orderNumber,
     required this.paymentIdempotencyKey,
+    this.paymentType,
+    this.paymentStatus,
+    this.paymentMethodId,
     required this.fulfilmentType,
     required this.branchSnapshot,
     required this.deliveryAddressSnapshot,
@@ -352,6 +394,11 @@ class OrderSubmission {
         'An order must contain at least one item.',
       );
     }
+    validatePaymentFields(
+      paymentType: paymentType,
+      paymentStatus: paymentStatus,
+      paymentMethodId: paymentMethodId,
+    );
     if (subtotalSen < 0 ||
         discountSen < 0 ||
         deliveryFeeSen < 0 ||
@@ -404,6 +451,9 @@ class OrderSubmission {
     }
   }
 
+  bool get hasPaymentDetails =>
+      paymentType != null || paymentStatus != null || paymentMethodId != null;
+
   Map<String, dynamic> toRpcParams() => {
     'p_order_number': orderNumber,
     'p_payment_idempotency_key': paymentIdempotencyKey,
@@ -416,12 +466,27 @@ class OrderSubmission {
     'p_total_sen': totalSen,
     'p_items': items.map((item) => item.toJson()).toList(growable: false),
   };
+
+  Map<String, dynamic> toPaymentRpcParams() {
+    if (!hasPaymentDetails) {
+      throw const InvalidOrderException('Payment details are required.');
+    }
+    return {
+      ...toRpcParams(),
+      'p_payment_type': paymentType,
+      'p_payment_status': paymentStatus,
+      'p_payment_method_id': paymentMethodId,
+    };
+  }
 }
 
 class Order {
   final String id;
   final String orderNumber;
   final String paymentIdempotencyKey;
+  final String? paymentType;
+  final String? paymentStatus;
+  final String? paymentMethodId;
   final String customerId;
   final String? riderId;
   final FulfilmentType fulfilmentType;
@@ -443,6 +508,9 @@ class Order {
     required this.id,
     required this.orderNumber,
     required this.paymentIdempotencyKey,
+    this.paymentType,
+    this.paymentStatus,
+    this.paymentMethodId,
     required this.customerId,
     required this.riderId,
     required this.fulfilmentType,
@@ -465,6 +533,11 @@ class Order {
         customerId.trim().isEmpty) {
       throw const InvalidOrderException('Order identity fields are required.');
     }
+    validatePaymentFields(
+      paymentType: paymentType,
+      paymentStatus: paymentStatus,
+      paymentMethodId: paymentMethodId,
+    );
     if (subtotalSen < 0 ||
         discountSen < 0 ||
         deliveryFeeSen < 0 ||
@@ -522,6 +595,15 @@ class Order {
         'payment_idempotency_key',
         'paymentIdempotencyKey',
       ], 'paymentIdempotencyKey'),
+      paymentType: _optionalString(json, const ['payment_type', 'paymentType']),
+      paymentStatus: _optionalString(json, const [
+        'payment_status',
+        'paymentStatus',
+      ]),
+      paymentMethodId: _optionalString(json, const [
+        'payment_method_id',
+        'paymentMethodId',
+      ]),
       customerId: _requiredString(json, const [
         'customer_id',
         'customerId',
@@ -597,6 +679,9 @@ class Order {
     'id': id,
     'order_number': orderNumber,
     'payment_idempotency_key': paymentIdempotencyKey,
+    'payment_type': paymentType,
+    'payment_status': paymentStatus,
+    'payment_method_id': paymentMethodId,
     'customer_id': customerId,
     'rider_id': riderId,
     'fulfilment_type': fulfilmentType.databaseValue,

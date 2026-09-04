@@ -10,6 +10,7 @@ import 'header.dart';
 import 'food_management.dart';
 import 'rider_management.dart';
 import 'customer_management.dart';
+import 'branch_management.dart';
 
 import '../models.dart';
 
@@ -33,6 +34,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
   List<Widget> _getPages(BuildContext context) => [
     const AdminFoodManagement(),
     const AdminRiderManagement(),
+    const AdminBranchManagement(),
     _buildAccountScreen(context),
   ];
 
@@ -224,6 +226,11 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
                 icon: Icon(Icons.electric_moped_outlined),
                 activeIcon: Icon(Icons.electric_moped),
                 label: 'Riders',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.store_outlined),
+                activeIcon: Icon(Icons.store),
+                label: 'Branches',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.account_circle_outlined),

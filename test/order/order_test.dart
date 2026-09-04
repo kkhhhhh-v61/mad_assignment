@@ -46,6 +46,116 @@ void main() {
     expect(submission.toRpcParams()['p_total_sen'], 2600);
   });
 
+  test('card payment uses the exact values and method reference', () {
+    const paymentMethodId = '11111111-1111-1111-1111-111111111111';
+    final submission = OrderSubmission(
+      orderNumber: 'ORD-1006',
+      paymentIdempotencyKey: 'payment-1006',
+      paymentType: 'Card',
+      paymentStatus: 'Completed',
+      paymentMethodId: paymentMethodId,
+      fulfilmentType: FulfilmentType.delivery,
+      branchSnapshot: branch,
+      deliveryAddressSnapshot: address,
+      subtotalSen: 2500,
+      discountSen: 200,
+      deliveryFeeSen: 300,
+      totalSen: 2600,
+      items: [item],
+    );
+
+    expect(submission.hasPaymentDetails, isTrue);
+    expect(
+      submission.toPaymentRpcParams(),
+      containsPair('p_payment_type', 'Card'),
+    );
+    expect(
+      submission.toPaymentRpcParams(),
+      containsPair('p_payment_status', 'Completed'),
+    );
+    expect(
+      submission.toPaymentRpcParams(),
+      containsPair('p_payment_method_id', paymentMethodId),
+    );
+  });
+
+  test('COD payment keeps payment method reference null', () {
+    final submission = OrderSubmission(
+      orderNumber: 'ORD-1007',
+      paymentIdempotencyKey: 'payment-1007',
+      paymentType: 'COD',
+      paymentStatus: 'Pending',
+      fulfilmentType: FulfilmentType.delivery,
+      branchSnapshot: branch,
+      deliveryAddressSnapshot: address,
+      subtotalSen: 2500,
+      discountSen: 200,
+      deliveryFeeSen: 300,
+      totalSen: 2600,
+      items: [item],
+    );
+
+    expect(
+      submission.toPaymentRpcParams(),
+      containsPair('p_payment_method_id', isNull),
+    );
+  });
+
+  test('payment contract rejects unsupported or inconsistent values', () {
+    expect(
+      () => OrderSubmission(
+        orderNumber: 'ORD-1008',
+        paymentIdempotencyKey: 'payment-1008',
+        paymentType: 'Cash',
+        paymentStatus: 'Pending',
+        fulfilmentType: FulfilmentType.delivery,
+        branchSnapshot: branch,
+        deliveryAddressSnapshot: address,
+        subtotalSen: 2500,
+        discountSen: 200,
+        deliveryFeeSen: 300,
+        totalSen: 2600,
+        items: [item],
+      ),
+      throwsA(isA<InvalidOrderException>()),
+    );
+    expect(
+      () => OrderSubmission(
+        orderNumber: 'ORD-1009',
+        paymentIdempotencyKey: 'payment-1009',
+        paymentType: 'Card',
+        paymentStatus: 'Completed',
+        fulfilmentType: FulfilmentType.delivery,
+        branchSnapshot: branch,
+        deliveryAddressSnapshot: address,
+        subtotalSen: 2500,
+        discountSen: 200,
+        deliveryFeeSen: 300,
+        totalSen: 2600,
+        items: [item],
+      ),
+      throwsA(isA<InvalidOrderException>()),
+    );
+    expect(
+      () => OrderSubmission(
+        orderNumber: 'ORD-1010',
+        paymentIdempotencyKey: 'payment-1010',
+        paymentType: 'PayPal',
+        paymentStatus: 'Pending',
+        paymentMethodId: '11111111-1111-1111-1111-111111111111',
+        fulfilmentType: FulfilmentType.delivery,
+        branchSnapshot: branch,
+        deliveryAddressSnapshot: address,
+        subtotalSen: 2500,
+        discountSen: 200,
+        deliveryFeeSen: 300,
+        totalSen: 2600,
+        items: [item],
+      ),
+      throwsA(isA<InvalidOrderException>()),
+    );
+  });
+
   test('invalid total is rejected before a repository call', () {
     expect(
       () => OrderSubmission(

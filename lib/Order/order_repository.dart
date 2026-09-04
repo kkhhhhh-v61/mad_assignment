@@ -56,9 +56,14 @@ class SupabaseOrderRepository implements OrderRepository {
   @override
   Future<Order> createOrder(OrderSubmission submission) async {
     try {
+      final usesPaymentRpc = submission.hasPaymentDetails;
       final response = await client.rpc(
-        'create_order_with_items',
-        params: submission.toRpcParams(),
+        usesPaymentRpc
+            ? 'create_order_with_payment'
+            : 'create_order_with_items',
+        params: usesPaymentRpc
+            ? submission.toPaymentRpcParams()
+            : submission.toRpcParams(),
       );
       return Order.fromJson(_asOrderMap(response));
     } on OrderDataException {

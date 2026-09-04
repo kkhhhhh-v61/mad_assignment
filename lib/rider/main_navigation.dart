@@ -89,6 +89,7 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
       subtitle: currentUser?.phone ?? 'No Phone',
       email: currentUser?.email ?? 'No Email',
       profileIcon: Icons.person,
+      avatarUrl: currentUser?.avatarUrl,
       showEditIcon: true,
       role: UserRole.rider,
       vehicleType: _vehicleType,
@@ -119,6 +120,8 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
               initialName: currentUser?.name ?? '',
               initialEmail: currentUser?.email ?? '',
               initialPhone: currentUser?.phone ?? '',
+              initialAvatarUrl: currentUser?.avatarUrl,
+
               onSave: (name, email, phone, password) async {
                 try {
                   final userId = supabase.auth.currentUser!.id;
@@ -147,6 +150,8 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
                     );
                   }
 
+                  final updatedProfile = await supabase.from('profiles').select().eq('id', currentUser!.id).single();
+
                   setState(() {
                     currentUser = AppUser(
                       id: currentUser!.id,
@@ -155,6 +160,7 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
                       email: email,
                       phone: phone,
                       address: currentUser!.address,
+                      avatarUrl: updatedProfile['avatar_url'],
                     );
                   });
 

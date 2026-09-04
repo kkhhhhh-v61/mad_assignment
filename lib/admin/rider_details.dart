@@ -52,22 +52,10 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
   }
 
   Future<void> _updateRiderDetails() async {
-    final name = _nameController.text.trim();
-    final phone = _phoneController.text.trim();
     final plate = _plateController.text.trim();
 
-    if (name.isEmpty || phone.isEmpty || plate.isEmpty || _selectedVehicle == null) {
+    if (plate.isEmpty || _selectedVehicle == null) {
       _showSnackBar('Please fill in all editable fields.', Colors.red);
-      return;
-    }
-
-    if (RegExp(r'[0-9@#\$%^&*()_=+\[\]{}|\\;:"<>\?]').hasMatch(name)) {
-      _showSnackBar('Name cannot contain numbers or special characters.', Colors.red);
-      return;
-    }
-
-    if (phone.length < 10) {
-      _showSnackBar('Please enter a valid phone number.', Colors.red);
       return;
     }
 
@@ -81,19 +69,12 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
     try {
       final riderId = widget.rider['id'];
 
-      await _supabase.from('profiles').update({
-        'name': name,
-        'phone': phone,
-      }).eq('id', riderId);
-
       await _supabase.from('riders').update({
         'vehicle': _selectedVehicle,
         'plate': plate.toUpperCase(),
       }).eq('id', riderId);
 
       setState(() {
-        widget.rider['name'] = name;
-        widget.rider['phone'] = phone;
         widget.rider['vehicle'] = _selectedVehicle;
         widget.rider['plate'] = plate.toUpperCase();
         _isEditing = false;
@@ -102,11 +83,11 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
       });
 
       if (mounted) {
-        _showSnackBar('Rider details updated successfully!', const Color.fromARGB(255, 76, 175, 80));
+        _showSnackBar('Vehicle details updated successfully!', const Color.fromARGB(255, 76, 175, 80));
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Error updating rider: $e', Colors.red);
+        _showSnackBar('Error updating vehicle: $e', Colors.red);
         setState(() => _isSaving = false);
       }
     }
@@ -239,7 +220,7 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _ImageDisplay(existingIcon: widget.rider['icon'] as IconData?),
+                      _ImageDisplay(avatarUrl: widget.rider['avatar_url']?.toString()),
                       const SizedBox(height: 32.0),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,16 +229,16 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
                             label: 'Rider Name',
                             controller: _nameController,
                             icon: Icons.person_outline,
-                            readOnly: !_isEditing,
+                            readOnly: true,
+                            isLocked: _isEditing,
                           ),
                           const SizedBox(height: 16.0),
                           _DetailField(
                             label: 'Phone Number',
                             controller: _phoneController,
                             icon: Icons.phone_outlined,
-                            readOnly: !_isEditing,
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: _isEditing ? [PhoneWithDashFormatter()] : null,
+                            readOnly: true,
+                            isLocked: _isEditing,
                           ),
                           const SizedBox(height: 16.0),
                           _DetailField(
@@ -350,11 +331,9 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
 }
 
 class _ImageDisplay extends StatelessWidget {
-  final IconData? existingIcon;
+  final String? avatarUrl;
+  const _ImageDisplay({this.avatarUrl});
 
-  const _ImageDisplay({this.existingIcon});
-
-  @override
   Widget build(BuildContext context) {
     return Container(
       height: 120,
@@ -363,12 +342,20 @@ class _ImageDisplay extends StatelessWidget {
         color: const Color.fromARGB(255, 245, 245, 245),
         borderRadius: BorderRadius.circular(20.0),
         border: Border.all(color: const Color.fromARGB(255, 224, 224, 224), width: 2.0),
+        image: avatarUrl != null && avatarUrl!.isNotEmpty
+            ? DecorationImage(
+          image: NetworkImage(avatarUrl!),
+          fit: BoxFit.cover,
+        )
+            : null,
       ),
-      child: Icon(
-        existingIcon ?? Icons.image_outlined,
+      child: avatarUrl == null || avatarUrl!.isEmpty
+          ? const Icon(
+        Icons.person,
         size: 50,
-        color: const Color.fromARGB(255, 158, 158, 158),
-      ),
+        color: Color.fromARGB(255, 158, 158, 158),
+      )
+          : null,
     );
   }
 }

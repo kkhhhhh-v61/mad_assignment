@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -21,6 +23,24 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+
+  File? _selectedImage;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 80,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -91,12 +111,26 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
 
       await Future.delayed(const Duration(milliseconds: 1500));
 
+      String? avatarUrl;
+      if (_selectedImage != null) {
+        final fileExt = _selectedImage!.path.split('.').last;
+        final fileName = '$newUserId/avatar_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+
+        await adminClient.storage.from('avatars').upload(
+          fileName,
+          _selectedImage!,
+          fileOptions: const FileOptions(upsert: true),
+        );
+        avatarUrl = adminClient.storage.from('avatars').getPublicUrl(fileName);
+      }
+
       await adminClient.from('profiles').upsert({
         'id': newUserId,
         'name': name,
         'phone': phone,
         'email': email,
         'role': 'rider',
+        if (avatarUrl != null) 'avatar_url': avatarUrl,
       });
 
       await adminClient.from('riders').insert({
@@ -152,7 +186,7 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const _ImagePlaceholder(),
+                    _ImagePlaceholder(selectedImage: _selectedImage, onTap: _pickImage,),
                     const SizedBox(height: 32.0),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,7 +298,10 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
 }
 
 class _ImagePlaceholder extends StatelessWidget {
-  const _ImagePlaceholder();
+  final File? selectedImage;
+  final VoidCallback onTap;
+
+  const _ImagePlaceholder({this.selectedImage, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -278,8 +315,16 @@ class _ImagePlaceholder extends StatelessWidget {
             color: const Color.fromARGB(255, 245, 245, 245),
             borderRadius: BorderRadius.circular(20.0),
             border: Border.all(color: const Color.fromARGB(255, 224, 224, 224), width: 2.0),
+            image: selectedImage != null
+                ? DecorationImage(
+              image: FileImage(selectedImage!),
+              fit: BoxFit.cover,
+            )
+                : null,
           ),
-          child: const Icon(Icons.person_outline, size: 50, color: Color.fromARGB(255, 158, 158, 158)),
+          child: selectedImage == null
+              ? const Icon(Icons.person_outline, size: 50, color: Color.fromARGB(255, 158, 158, 158))
+              : null,
         ),
         Container(
           height: 36,
@@ -292,7 +337,7 @@ class _ImagePlaceholder extends StatelessWidget {
           child: IconButton(
             padding: EdgeInsets.zero,
             icon: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
-            onPressed: () {},
+            onPressed: onTap,
           ),
         ),
       ],

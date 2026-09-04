@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'user_role.dart';
 
@@ -6,6 +9,7 @@ class SharedProfileScreen extends StatefulWidget {
   final String initialName;
   final String initialEmail;
   final String initialPhone;
+  final String? initialAvatarUrl;
   final Function(
       String name,
       String email,
@@ -24,6 +28,7 @@ class SharedProfileScreen extends StatefulWidget {
     this.initialName = '',
     this.initialEmail = '',
     this.initialPhone = '',
+    this.initialAvatarUrl,
     required this.onSave,
     this.onUpdatePicture,
     this.role = UserRole.customer,
@@ -45,6 +50,10 @@ class _SharedProfileScreenState
   late TextEditingController _passwordController;
   late TextEditingController _confirmPasswordController;
 
+  String? _avatarUrl;
+  bool _isUploading = false;
+  final _supabase = Supabase.instance.client;
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
@@ -54,6 +63,8 @@ class _SharedProfileScreenState
   @override
   void initState() {
     super.initState();
+
+    _avatarUrl = widget.initialAvatarUrl;
 
     _nameController =
         TextEditingController(text: widget.initialName);
@@ -73,6 +84,56 @@ class _SharedProfileScreenState
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final XFile? pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 80,
+    );
+
+    if (pickedFile == null) return;
+
+    setState(() => _isUploading = true);
+
+    try {
+      final file = File(pickedFile.path);
+      final fileExt = pickedFile.path.split('.').last;
+      final userId = _supabase.auth.currentUser!.id;
+      final fileName = '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+
+      await _supabase.storage.from('avatars').upload(
+        fileName,
+        file,
+        fileOptions: const FileOptions(upsert: true),
+      );
+
+      final imageUrl = _supabase.storage.from('avatars').getPublicUrl(fileName);
+
+      await _supabase.from('profiles').update({
+        'avatar_url': imageUrl
+      }).eq('id', userId);
+
+      if (mounted) {
+        setState(() {
+          _avatarUrl = imageUrl;
+          _isUploading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile picture updated successfully!'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isUploading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
@@ -114,7 +175,9 @@ class _SharedProfileScreenState
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SharedProfilePicture(
-                      onUpdatePicture: widget.onUpdatePicture,
+                      avatarUrl: _avatarUrl,
+                      isUploading: _isUploading,
+                      onUpdatePicture: _isUploading ? null : _pickAndUploadAvatar,
                     ),
                     const SizedBox(height: 32.0),
                     Column(
@@ -335,10 +398,14 @@ class _SharedProfileScreenState
 
 class SharedProfilePicture extends StatelessWidget {
   final VoidCallback? onUpdatePicture;
+  final String? avatarUrl;
+  final bool isUploading;
 
   const SharedProfilePicture({
     super.key,
     this.onUpdatePicture,
+    this.avatarUrl,
+    this.isUploading = false,
   });
 
   @override
@@ -349,55 +416,44 @@ class SharedProfilePicture extends StatelessWidget {
           height: 100.0,
           width: 100.0,
           decoration: BoxDecoration(
-            color: const Color.fromARGB(
-              255,
-              255,
-              160,
-              122,
-            ).withValues(alpha: 0.2),
+            color: const Color.fromARGB(255, 255, 160, 122).withOpacity(0.2),
             shape: BoxShape.circle,
+            image: avatarUrl != null
+                ? DecorationImage(
+              image: NetworkImage(avatarUrl!),
+              fit: BoxFit.cover,
+            )
+                : null,
           ),
-          child: const Icon(
+          child: isUploading
+              ? const CircularProgressIndicator(color: Color.fromARGB(255, 255, 160, 122))
+              : (avatarUrl == null
+              ? const Icon(
             Icons.person,
             size: 60.0,
-            color: Color.fromARGB(
-              255,
-              255,
-              160,
-              122,
+            color: Color.fromARGB(255, 255, 160, 122),
+          )
+              : null),
+        ),
+        if (!isUploading)
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              height: 36.0,
+              width: 36.0,
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 255, 160, 122),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 3.0),
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.camera_alt, color: Colors.white, size: 20.0),
+                onPressed: onUpdatePicture,
+              ),
             ),
           ),
-        ),
-        Positioned(
-          bottom: 0,
-          right: 0,
-          child: Container(
-            height: 36.0,
-            width: 36.0,
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(
-                255,
-                255,
-                160,
-                122,
-              ),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white,
-                width: 3.0,
-              ),
-            ),
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              icon: const Icon(
-                Icons.camera_alt,
-                color: Colors.white,
-                size: 20.0,
-              ),
-              onPressed: onUpdatePicture ?? () {},
-            ),
-          ),
-        ),
       ],
     );
   }

@@ -7,6 +7,7 @@ class SharedAccountScreen extends StatefulWidget {
   final String email;
   final String subtitle;
   final IconData profileIcon;
+  final String? avatarUrl;
   final bool showEditIcon;
   final VoidCallback? onEditPressed;
   final VoidCallback onLogout;
@@ -25,6 +26,7 @@ class SharedAccountScreen extends StatefulWidget {
     required this.email,
     required this.subtitle,
     required this.profileIcon,
+    this.avatarUrl,
     this.showEditIcon = true,
     this.onEditPressed,
     required this.onLogout,
@@ -125,12 +127,20 @@ class _SharedAccountScreenState extends State<SharedAccountScreen> {
               color: const Color.fromARGB(255, 255, 160, 122)
                   .withValues(alpha: 0.2),
               shape: BoxShape.circle,
+            image: widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
+                ? DecorationImage(
+              image: NetworkImage(widget.avatarUrl!),
+              fit: BoxFit.cover,
+            )
+                : null,
             ),
-            child: Icon(
+            child: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
+                ? Icon(
               widget.profileIcon,
               size: 40,
               color: const Color.fromARGB(255, 255, 160, 122),
-            ),
+            )
+                : null,
           ),
           const SizedBox(width: 20.0),
           Expanded(

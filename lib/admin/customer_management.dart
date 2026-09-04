@@ -180,6 +180,7 @@ class _AdminCustomerManagementState extends State<AdminCustomerManagement> {
                 final customer = _filteredCustomers[index];
                 final String status = customer['status'] ?? 'Active';
                 final bool isInactive = status == 'Inactive';
+                final String? avatarUrl = customer['avatar_url']?.toString();
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12.0),
@@ -192,8 +193,13 @@ class _AdminCustomerManagementState extends State<AdminCustomerManagement> {
                       backgroundColor: isInactive
                           ? Colors.grey.withOpacity(0.2)
                           : const Color.fromARGB(255, 255, 160, 122).withOpacity(0.2),
-                      child: Icon(isInactive ? Icons.person_off : Icons.person,
-                          color: isInactive ? Colors.grey : const Color.fromARGB(255, 255, 160, 122)),
+                      backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                          ? NetworkImage(avatarUrl)
+                          : null,
+                      child: avatarUrl == null || avatarUrl.isEmpty
+                          ? Icon(isInactive ? Icons.person_off : Icons.person,
+                          color: isInactive ? Colors.grey : const Color.fromARGB(255, 255, 160, 122))
+                          : null,
                     ),
                     title: Row(
                       children: [

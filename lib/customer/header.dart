@@ -10,6 +10,10 @@ class CustomerHeader extends StatefulWidget {
   final String pageTitle;
   final bool showActions;
   final VoidCallback? onFilterTap;
+  final TextEditingController? searchController;
+  final ValueChanged<String>? onSearchChanged;
+  final VoidCallback? onSearchClear;
+  final String? searchHint;
 
   const CustomerHeader({
     super.key,
@@ -19,6 +23,10 @@ class CustomerHeader extends StatefulWidget {
     this.showActions = true,
     this.pageTitle = 'DoorDish',
     this.onFilterTap,
+    this.searchController,
+    this.onSearchChanged,
+    this.onSearchClear,
+    this.searchHint,
   });
 
   @override
@@ -89,7 +97,12 @@ class _CustomerHeaderState extends State<CustomerHeader> {
               children: [
                 Expanded(
                   child: widget.showSearch
-                      ? const HeaderSearchBar()
+                      ? HeaderSearchBar(
+                          controller: widget.searchController,
+                          onChanged: widget.onSearchChanged,
+                          onClear: widget.onSearchClear,
+                          hintText: widget.searchHint ?? 'Search...',
+                        )
                       : const SizedBox.shrink(),
                 ),
                 if (widget.showFilter) const SizedBox(width: 12.0),
@@ -267,7 +280,18 @@ class HeaderIconWithBadge extends StatelessWidget {
 }
 
 class HeaderSearchBar extends StatelessWidget {
-  const HeaderSearchBar({super.key});
+  final TextEditingController? controller;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onClear;
+  final String hintText;
+
+  const HeaderSearchBar({
+    super.key,
+    this.controller,
+    this.onChanged,
+    this.onClear,
+    this.hintText = 'Search...',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -277,24 +301,45 @@ class HeaderSearchBar extends StatelessWidget {
         color: const Color.fromARGB(255, 245, 245, 245),
         borderRadius: BorderRadius.circular(25.0),
       ),
-      child: const TextField(
-        textAlignVertical: TextAlignVertical.center,
-        //TODO: Handle search query submission to backend
-        decoration: InputDecoration(
-          isDense: true,
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 12.0),
-          hintText: 'Search...',
-          hintStyle: TextStyle(
-            color: Color.fromARGB(255, 158, 158, 158),
-            fontSize: 16.0,
-          ),
-          prefixIcon: Icon(
-            Icons.search,
-            color: Color.fromARGB(255, 158, 158, 158),
-            size: 20,
-          ),
-        ),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller ?? ValueNotifier(const TextEditingValue()),
+        builder: (context, value, child) {
+          final hasText = value.text.isNotEmpty;
+          return TextField(
+            controller: controller,
+            onChanged: onChanged,
+            textAlignVertical: TextAlignVertical.center,
+            decoration: InputDecoration(
+              isDense: true,
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12.0),
+              hintText: hintText,
+              hintStyle: const TextStyle(
+                color: Color.fromARGB(255, 158, 158, 158),
+                fontSize: 16.0,
+              ),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: Color.fromARGB(255, 158, 158, 158),
+                size: 20,
+              ),
+              suffixIcon: hasText
+                  ? IconButton(
+                      icon: const Icon(
+                        Icons.clear,
+                        color: Color.fromARGB(255, 158, 158, 158),
+                        size: 18,
+                      ),
+                      onPressed: () {
+                        controller?.clear();
+                        onChanged?.call('');
+                        onClear?.call();
+                      },
+                    )
+                  : null,
+            ),
+          );
+        },
       ),
     );
   }

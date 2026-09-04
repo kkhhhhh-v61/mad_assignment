@@ -5,6 +5,10 @@ class AdminHeader extends StatelessWidget {
   final bool showSearch;
   final bool showFilter;
   final VoidCallback? onFilterTap;
+  final TextEditingController? searchController;
+  final ValueChanged<String>? onSearchChanged;
+  final VoidCallback? onSearchClear;
+  final String? searchHint;
 
   const AdminHeader({
     super.key,
@@ -12,6 +16,10 @@ class AdminHeader extends StatelessWidget {
     this.showSearch = false,
     this.showFilter = false,
     this.onFilterTap,
+    this.searchController,
+    this.onSearchChanged,
+    this.onSearchClear,
+    this.searchHint,
   });
 
   @override
@@ -56,7 +64,15 @@ class AdminHeader extends StatelessWidget {
             const SizedBox(height: 16.0),
             Row(
               children: [
-                if (showSearch) const Expanded(child: AdminSearchBar()),
+                if (showSearch)
+                  Expanded(
+                    child: AdminSearchBar(
+                      controller: searchController,
+                      onChanged: onSearchChanged,
+                      onClear: onSearchClear,
+                      hintText: searchHint ?? 'Search food items...',
+                    ),
+                  ),
                 if (showSearch && showFilter) const SizedBox(width: 12.0),
                 if (showFilter) AdminFilterButton(onFilterTap: onFilterTap),
               ],
@@ -69,7 +85,18 @@ class AdminHeader extends StatelessWidget {
 }
 
 class AdminSearchBar extends StatelessWidget {
-  const AdminSearchBar({super.key});
+  final TextEditingController? controller;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onClear;
+  final String hintText;
+
+  const AdminSearchBar({
+    super.key,
+    this.controller,
+    this.onChanged,
+    this.onClear,
+    this.hintText = 'Search...',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -79,24 +106,45 @@ class AdminSearchBar extends StatelessWidget {
         color: const Color.fromARGB(255, 245, 245, 245),
         borderRadius: BorderRadius.circular(25.0),
       ),
-      child: const TextField(
-        textAlignVertical: TextAlignVertical.center,
-        //TODO: Handle search query submission to backend for admin
-        decoration: InputDecoration(
-          isDense: true,
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 12.0),
-          hintText: 'Search...',
-          hintStyle: TextStyle(
-            color: Color.fromARGB(255, 158, 158, 158),
-            fontSize: 16.0,
-          ),
-          prefixIcon: Icon(
-            Icons.search,
-            color: Color.fromARGB(255, 158, 158, 158),
-            size: 20,
-          ),
-        ),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller ?? ValueNotifier(const TextEditingValue()),
+        builder: (context, value, child) {
+          final hasText = value.text.isNotEmpty;
+          return TextField(
+            controller: controller,
+            onChanged: onChanged,
+            textAlignVertical: TextAlignVertical.center,
+            decoration: InputDecoration(
+              isDense: true,
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12.0),
+              hintText: hintText,
+              hintStyle: const TextStyle(
+                color: Color.fromARGB(255, 158, 158, 158),
+                fontSize: 16.0,
+              ),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: Color.fromARGB(255, 158, 158, 158),
+                size: 20,
+              ),
+              suffixIcon: hasText
+                  ? IconButton(
+                      icon: const Icon(
+                        Icons.clear,
+                        color: Color.fromARGB(255, 158, 158, 158),
+                        size: 18,
+                      ),
+                      onPressed: () {
+                        controller?.clear();
+                        onChanged?.call('');
+                        onClear?.call();
+                      },
+                    )
+                  : null,
+            ),
+          );
+        },
       ),
     );
   }

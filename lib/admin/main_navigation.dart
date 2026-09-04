@@ -30,14 +30,12 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
     currentUser = widget.user;
   }
 
-  // Generate pages dynamically to pass context for the logout function
   List<Widget> _getPages(BuildContext context) => [
     const AdminFoodManagement(),
     const AdminRiderManagement(),
     _buildAccountScreen(context),
   ];
 
-  // Build the Admin account screen
   Widget _buildAccountScreen(BuildContext context) {
     return SharedAccountScreen(
       header: const AdminHeader(pageTitle: 'Account'),

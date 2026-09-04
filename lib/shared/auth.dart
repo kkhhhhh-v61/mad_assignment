@@ -36,12 +36,81 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
-
+  final TextEditingController _unitController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _postcodeController = TextEditingController();
+
   String? _selectedStateName;
   List<States> _statesList = [];
   bool _isLoadingStates = true;
+
+  List<dynamic> _osmSuggestions = [];
+  bool _isSearchingOsm = false;
+  Timer? _debounce;
+
+  void _searchOsmAddress(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 600), () async {
+      if (query.trim().length < 3) {
+        setState(() => _osmSuggestions = []);
+        return;
+      }
+      setState(() => _isSearchingOsm = true);
+      try {
+        final url = Uri.parse(
+          'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&countrycodes=my&limit=5',
+        );
+        final response = await http.get(url, headers: {'User-Agent': 'DoorDishApp/1.0'});
+        if (response.statusCode == 200) {
+          setState(() {
+            _osmSuggestions = json.decode(response.body);
+            _isSearchingOsm = false;
+          });
+        } else {
+          setState(() => _isSearchingOsm = false);
+        }
+      } catch (e) {
+        print('OSM Search Error: $e');
+        setState(() => _isSearchingOsm = false);
+      }
+    });
+  }
+
+  void _onSelectOsmSuggestion(Map<String, dynamic> item) {
+    final addressDetails = item['address'] ?? {};
+    final displayName = item['display_name']?.toString() ?? '';
+
+    String postcode = addressDetails['postcode'] ?? '';
+    String stateFromOsm = addressDetails['state'] ?? '';
+
+    List<String> parts = displayName.split(',').map((e) => e.trim()).toList();
+    List<String> filteredParts = parts.where((part) {
+      if (RegExp(r'^\d{5}$').hasMatch(part)) return false;
+      if (stateFromOsm.isNotEmpty && part.toLowerCase().contains(stateFromOsm.toLowerCase())) return false;
+      if (part.toLowerCase() == 'malaysia') return false;
+      return true;
+    }).toList();
+
+    String fullStreetAddress = filteredParts.join(', ');
+
+    setState(() {
+      _addressController.text = fullStreetAddress;
+      _postcodeController.text = postcode;
+      _osmSuggestions = [];
+    });
+
+    if (stateFromOsm.isNotEmpty) {
+      for (var s in _statesList) {
+        if (stateFromOsm.toLowerCase().contains(s.name.toLowerCase()) ||
+            s.name.toLowerCase().contains(stateFromOsm.toLowerCase())) {
+          setState(() {
+            _selectedStateName = s.name;
+          });
+          break;
+        }
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -93,6 +162,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _confirmPasswordController.dispose();
+    _unitController.dispose();
     _addressController.dispose();
     _postcodeController.dispose();
     super.dispose();
@@ -218,6 +288,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
       if (_nameController.text.trim().isEmpty ||
           _emailController.text.trim().isEmpty ||
           _phoneController.text.trim().isEmpty ||
+          _unitController.text.trim().isEmpty ||
           _addressController.text.trim().isEmpty ||
           _postcodeController.text.trim().isEmpty ||
           _selectedStateName == null ||
@@ -252,10 +323,11 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
         return;
       }
 
-      String address = _addressController.text.trim();
+      String unit = _unitController.text.trim();
+      String street = _addressController.text.trim();
       String postcode = _postcodeController.text.trim();
 
-      String fullAddress = '$address, $postcode, $_selectedStateName';
+      String fullAddress = '$unit, $street, $postcode, $_selectedStateName';
 
       String? errorMessage = await registerCustomer(
         email: _emailController.text.trim(),
@@ -277,6 +349,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
           _nameController.clear();
           _emailController.clear();
           _phoneController.clear();
+          _unitController.clear();
           _addressController.clear();
           _postcodeController.clear();
           _selectedStateName = null;
@@ -431,12 +504,17 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
                     nameController: _nameController,
                     emailController: _emailController,
                     phoneController: _phoneController,
+                    unitController: _unitController,
                     addressController: _addressController,
                     postcodeController: _postcodeController,
                     selectedStateName: _selectedStateName,
                     statesList: _statesList,
                     isLoadingStates: _isLoadingStates,
                     onStateChanged: (value) => setState(() => _selectedStateName = value),
+                    onAddressChanged: (val) => _searchOsmAddress(val),
+                    osmSuggestions: _osmSuggestions,
+                    isSearchingOsm: _isSearchingOsm,
+                    onSelectSuggestion: (item) => _onSelectOsmSuggestion(item),
                     passwordController: _passwordController,
                     confirmPasswordController: _confirmPasswordController,
                     obscurePassword: _obscurePassword,
@@ -620,12 +698,19 @@ class RegisterForm extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController phoneController;
 
+  final TextEditingController unitController;
   final TextEditingController addressController;
   final TextEditingController postcodeController;
+
   final String? selectedStateName;
   final List<States> statesList;
   final bool isLoadingStates;
   final ValueChanged<String?> onStateChanged;
+
+  final Function(String) onAddressChanged;
+  final List<dynamic> osmSuggestions;
+  final bool isSearchingOsm;
+  final Function(Map<String, dynamic>) onSelectSuggestion;
 
   final TextEditingController passwordController;
   final TextEditingController confirmPasswordController;
@@ -641,12 +726,17 @@ class RegisterForm extends StatelessWidget {
     required this.nameController,
     required this.emailController,
     required this.phoneController,
+    required this.unitController,
     required this.addressController,
     required this.postcodeController,
     required this.selectedStateName,
     required this.statesList,
     required this.isLoadingStates,
     required this.onStateChanged,
+    required this.onAddressChanged,
+    required this.osmSuggestions,
+    required this.isSearchingOsm,
+    required this.onSelectSuggestion,
     required this.passwordController,
     required this.confirmPasswordController,
     required this.obscurePassword,
@@ -693,12 +783,65 @@ class RegisterForm extends StatelessWidget {
         ),
         const SizedBox(height: 12.0),
         AuthInputField(
-          controller: addressController,
-          label: 'Street Address *',
-          hintText: 'House/Unit No., Building, Street, Area',
-          icon: Icons.home_outlined,
+          controller: unitController,
+          label: 'Unit / House No. *',
+          hintText: 'e.g., No. 12, Block A',
+          icon: Icons.home_work_outlined,
         ),
-        const SizedBox(height: 12.0),
+        const SizedBox(height: 16.0),
+
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Street / Area (OSM Search) *',
+              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Color.fromARGB(221, 0, 0, 0)),
+            ),
+            const SizedBox(height: 6.0),
+            TextField(
+              controller: addressController,
+              onChanged: onAddressChanged,
+              decoration: InputDecoration(
+                hintText: 'Type street name (e.g., Jalan Timur)',
+                hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
+                filled: true,
+                fillColor: const Color.fromARGB(255, 245, 245, 245),
+                prefixIcon: const Icon(Icons.search, color: Color.fromARGB(255, 117, 117, 117), size: 20),
+                suffixIcon: isSearchingOsm
+                    ? const SizedBox(width: 20, height: 20, child: Padding(padding: EdgeInsets.all(12.0), child: CircularProgressIndicator(strokeWidth: 2)))
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15.0), borderSide: BorderSide.none),
+              ),
+            ),
+
+            if (osmSuggestions.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 4.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12.0),
+                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3))],
+                ),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: osmSuggestions.length,
+                  itemBuilder: (context, index) {
+                    final item = osmSuggestions[index];
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.location_on, color: Color.fromARGB(255, 255, 160, 122), size: 18),
+                      title: Text(item['display_name'] ?? '', style: const TextStyle(fontSize: 13.0)),
+                      onTap: () => onSelectSuggestion(item),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+
+        const SizedBox(height: 16.0),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -707,7 +850,7 @@ class RegisterForm extends StatelessWidget {
               child: AuthInputField(
                 controller: postcodeController,
                 label: 'Postcode *',
-                hintText: 'e.g., 11200',
+                hintText: 'Auto-filled',
                 icon: Icons.markunread_mailbox_outlined,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(5)],
@@ -718,7 +861,7 @@ class RegisterForm extends StatelessWidget {
               flex: 1,
               child: SharedDropdownField(
                 label: 'State *',
-                hintText: 'Select State',
+                hintText: 'Auto-selected',
                 icon: Icons.location_city_outlined,
                 value: selectedStateName,
                 items: statesList.map((state) => state.name).toList(),

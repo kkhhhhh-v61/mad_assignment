@@ -1,5 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models.dart';
 
@@ -292,6 +295,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
   final _supabase = Supabase.instance.client;
 
   final _labelController = TextEditingController();
+  final _unitController = TextEditingController();
   final _streetAddressController = TextEditingController();
   final _postcodeController = TextEditingController();
 
@@ -299,6 +303,10 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
   List<States> _statesList = [];
   bool _isLoadingStates = true;
   bool _isSaving = false;
+
+  List<dynamic> _osmSuggestions = [];
+  bool _isSearchingOsm = false;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -315,12 +323,101 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
 
   void _parseAddress(String fullAddress) {
     List<String> parts = fullAddress.split(',').map((e) => e.trim()).toList();
-    if (parts.length >= 3) {
+    if (parts.isEmpty) return;
+
+    if (parts.length >= 1) {
       _selectedStateName = parts.last;
-      _postcodeController.text = parts[parts.length - 2];
-      _streetAddressController.text = parts.sublist(0, parts.length - 2).join(', ');
+    }
+
+    int postcodeIndex = -1;
+    for (int i = 0; i < parts.length - 1; i++) {
+      if (RegExp(r'^\d{5}$').hasMatch(parts[i])) {
+        postcodeIndex = i;
+        break;
+      }
+    }
+
+    if (postcodeIndex != -1) {
+      _postcodeController.text = parts[postcodeIndex];
+      if (postcodeIndex >= 1) {
+        _unitController.text = parts[0];
+      }
+      if (postcodeIndex >= 2) {
+        _streetAddressController.text = parts.sublist(1, postcodeIndex).join(', ');
+      }
     } else {
-      _streetAddressController.text = fullAddress;
+      if (parts.length >= 3) {
+        _unitController.text = parts[0];
+        _streetAddressController.text = parts.sublist(1, parts.length - 1).join(', ');
+      } else if (parts.length == 2) {
+        _unitController.text = parts[0];
+        _streetAddressController.text = parts[1];
+      } else {
+        _streetAddressController.text = fullAddress;
+      }
+    }
+  }
+
+  void _searchOsmAddress(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 600), () async {
+      if (query.trim().length < 3) {
+        setState(() => _osmSuggestions = []);
+        return;
+      }
+      setState(() => _isSearchingOsm = true);
+      try {
+        final url = Uri.parse(
+          'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&countrycodes=my&limit=5',
+        );
+        final response = await http.get(url, headers: {'User-Agent': 'DoorDishApp/1.0'});
+        if (response.statusCode == 200) {
+          setState(() {
+            _osmSuggestions = json.decode(response.body);
+            _isSearchingOsm = false;
+          });
+        } else {
+          setState(() => _isSearchingOsm = false);
+        }
+      } catch (e) {
+        setState(() => _isSearchingOsm = false);
+      }
+    });
+  }
+
+  void _onSelectOsmSuggestion(Map<String, dynamic> item) {
+    final addressDetails = item['address'] ?? {};
+    final displayName = item['display_name']?.toString() ?? '';
+
+    String postcode = addressDetails['postcode'] ?? '';
+    String stateFromOsm = addressDetails['state'] ?? '';
+
+    List<String> parts = displayName.split(',').map((e) => e.trim()).toList();
+    List<String> filteredParts = parts.where((part) {
+      if (RegExp(r'^\d{5}$').hasMatch(part)) return false;
+      if (stateFromOsm.isNotEmpty && part.toLowerCase().contains(stateFromOsm.toLowerCase())) return false;
+      if (part.toLowerCase() == 'malaysia') return false;
+      return true;
+    }).toList();
+
+    String fullStreetAddress = filteredParts.join(', ');
+
+    setState(() {
+      _streetAddressController.text = fullStreetAddress;
+      _postcodeController.text = postcode;
+      _osmSuggestions = [];
+    });
+
+    if (stateFromOsm.isNotEmpty) {
+      for (var s in _statesList) {
+        if (stateFromOsm.toLowerCase().contains(s.name.toLowerCase()) ||
+            s.name.toLowerCase().contains(stateFromOsm.toLowerCase())) {
+          setState(() {
+            _selectedStateName = s.name;
+          });
+          break;
+        }
+      }
     }
   }
 
@@ -343,13 +440,15 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
   @override
   void dispose() {
     _labelController.dispose();
+    _unitController.dispose();
     _streetAddressController.dispose();
     _postcodeController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
   Future<void> _saveAddress() async {
-    if (_streetAddressController.text.trim().isEmpty || _postcodeController.text.trim().isEmpty || _selectedStateName == null) {
+    if (_unitController.text.trim().isEmpty || _streetAddressController.text.trim().isEmpty || _postcodeController.text.trim().isEmpty || _selectedStateName == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all required fields'), backgroundColor: Colors.red));
       return;
     }
@@ -364,9 +463,11 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     try {
       final userId = _supabase.auth.currentUser!.id;
 
+      String unit = _unitController.text.trim();
       String street = _streetAddressController.text.trim();
       String postcode = _postcodeController.text.trim();
-      String fullAddress = '$street, $postcode, $_selectedStateName';
+
+      String fullAddress = '$unit, $street, $postcode, $_selectedStateName';
 
       if (widget.addressId == 'main') {
         await _supabase.from('profiles').update({'address': fullAddress}).eq('id', userId);
@@ -435,18 +536,61 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
             const Divider(color: Color.fromARGB(255, 238, 238, 238), thickness: 1.5),
             const SizedBox(height: 20.0),
 
-            const Text('Address Line 1 *', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
+            const Text('Unit / House No. *', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6.0),
             TextField(
-              controller: _streetAddressController,
+              controller: _unitController,
               decoration: InputDecoration(
-                hintText: 'House/Unit No., Building, Street',
+                hintText: 'e.g., No. 12, Block A',
                 filled: true,
                 fillColor: const Color.fromARGB(255, 245, 245, 245),
-                prefixIcon: const Icon(Icons.home_outlined, color: Colors.black54, size: 20),
+                prefixIcon: const Icon(Icons.home_work_outlined, color: Colors.black54, size: 20),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15.0), borderSide: BorderSide.none),
               ),
             ),
+            const SizedBox(height: 16.0),
+
+            const Text('Street / Area (OSM Search) *', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6.0),
+            TextField(
+              controller: _streetAddressController,
+              onChanged: _searchOsmAddress,
+              decoration: InputDecoration(
+                hintText: 'Type street name (e.g., Granito, Lintang Lembah)',
+                filled: true,
+                fillColor: const Color.fromARGB(255, 245, 245, 245),
+                prefixIcon: const Icon(Icons.search, color: Colors.black54, size: 20),
+                suffixIcon: _isSearchingOsm
+                    ? const SizedBox(width: 20, height: 20, child: Padding(padding: EdgeInsets.all(12.0), child: CircularProgressIndicator(strokeWidth: 2)))
+                    : null,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15.0), borderSide: BorderSide.none),
+              ),
+            ),
+
+            if (_osmSuggestions.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 4.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12.0),
+                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3))],
+                ),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _osmSuggestions.length,
+                  itemBuilder: (context, index) {
+                    final item = _osmSuggestions[index];
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.location_on, color: Color.fromARGB(255, 255, 160, 122), size: 18),
+                      title: Text(item['display_name'] ?? '', style: const TextStyle(fontSize: 13.0)),
+                      onTap: () => _onSelectOsmSuggestion(item),
+                    );
+                  },
+                ),
+              ),
+
             const SizedBox(height: 16.0),
 
             Row(
@@ -462,7 +606,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
                         keyboardType: TextInputType.number,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(5)],
                         decoration: InputDecoration(
-                          hintText: '11200',
+                          hintText: 'Auto-filled',
                           filled: true,
                           fillColor: const Color.fromARGB(255, 245, 245, 245),
                           prefixIcon: const Icon(Icons.markunread_mailbox_outlined, color: Colors.black54, size: 20),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mad_assignment/customer/payment_methods.dart';
 import 'package:mad_assignment/customer/saved_addresses.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -181,7 +182,17 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
           },
         ),
         const Divider(height: 1, indent: 60, endIndent: 20.0),
-        SharedOptionTile(icon: Icons.credit_card_outlined, title: 'Payment Methods', onTap: () {}),
+        SharedOptionTile(
+            icon: Icons.credit_card_outlined,
+            title: 'Payment Methods',
+            onTap: () {
+              Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PaymentMethodsScreen()),
+              );
+            }
+            ),
+
         const Divider(height: 1, indent: 60, endIndent: 20.0),
         SharedOptionTile(icon: Icons.local_offer_outlined, title: 'Vouchers & Offers', onTap: () {}),
         const Divider(height: 1, indent: 60, endIndent: 20.0),

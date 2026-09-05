@@ -169,4 +169,37 @@ void main() {
     await tester.pump();
     expect(called, isTrue);
   });
+
+  testWidgets('order card displays the first food image when available', (
+    tester,
+  ) async {
+    final order = _order(fulfilmentType: FulfilmentType.pickup);
+    final map = <String, dynamic>{
+      'orderId': order.orderNumber,
+      'date': '05 Sep 2026, 12:00 PM',
+      'status': 'Completed',
+      'items': [
+        {
+          'name': 'Spicy Noodles',
+          'quantity': 1,
+          'price': 7.0,
+          'imageUrl': 'https://example.com/spicy-noodles.jpg',
+        },
+      ],
+      'totalPrice': 'RM 7.00',
+      'info': 'Delivered',
+      'icon': Icons.fastfood,
+      'typedOrder': order,
+    };
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: OrderCard(order: map),
+        ),
+      ),
+    );
+
+    expect(find.byType(Image), findsOneWidget);
+  });
 }

@@ -241,17 +241,22 @@ class _AdminVoucherManagementState extends State<AdminVoucherManagement> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isActive ? const Color.fromARGB(255, 255, 160, 122) : Colors.grey.shade400,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              v['code'].toString().toUpperCase(),
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.2),
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isActive ? const Color.fromARGB(255, 255, 160, 122) : Colors.grey.shade400,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                v['code'].toString().toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.2),
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 8),
                           PopupMenuButton<String>(
                             padding: EdgeInsets.zero,
                             icon: const Icon(Icons.more_vert, color: Colors.grey),

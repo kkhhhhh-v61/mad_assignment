@@ -65,10 +65,13 @@ class _CustomerOrdersState extends State<CustomerOrders> {
       );
       final orders = [...activeOrders, ...completedOrders]
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final foodImageUrls = await _loadFoodImageUrls(orders);
 
       if (!mounted) return;
       setState(() {
-        _orders = orders.map(_toCustomerOrderMap).toList(growable: false);
+        _orders = orders
+            .map((order) => _toCustomerOrderMap(order, foodImageUrls))
+            .toList(growable: false);
         _loading = false;
       });
     } catch (_) {
@@ -77,6 +80,33 @@ class _CustomerOrdersState extends State<CustomerOrders> {
         _loading = false;
         _error = 'Orders could not be loaded right now.';
       });
+    }
+  }
+
+  Future<Map<String, String>> _loadFoodImageUrls(List<Order> orders) async {
+    final foodIds = orders
+        .expand((order) => order.items)
+        .map((item) => item.foodId.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (foodIds.isEmpty) return const {};
+
+    try {
+      final response = await supabase
+          .from('food_items')
+          .select('id,image_url')
+          .inFilter('id', foodIds);
+      final imageUrls = <String, String>{};
+      for (final row in response) {
+        final imageUrl = row['image_url']?.toString().trim() ?? '';
+        if (imageUrl.isNotEmpty) {
+          imageUrls[row['id'].toString()] = imageUrl;
+        }
+      }
+      return imageUrls;
+    } catch (_) {
+      return const {};
     }
   }
 
@@ -249,7 +279,10 @@ class _OrdersError extends StatelessWidget {
   }
 }
 
-Map<String, dynamic> _toCustomerOrderMap(Order order) {
+Map<String, dynamic> _toCustomerOrderMap(
+  Order order, [
+  Map<String, String> foodImageUrls = const {},
+]) {
   final displayStatus = _customerDisplayStatus(order.status);
   final items = order.items
       .map(
@@ -257,6 +290,7 @@ Map<String, dynamic> _toCustomerOrderMap(Order order) {
           'name': item.name,
           'quantity': item.quantity,
           'price': item.unitPriceSen / 100,
+          'imageUrl': foodImageUrls[item.foodId.trim()],
         },
       )
       .toList(growable: false);
@@ -367,6 +401,9 @@ class OrderCard extends StatelessWidget {
     final String totalPrice = order['totalPrice'] as String? ?? '';
     final String info = order['info'] as String? ?? '';
     final IconData? icon = order['icon'] as IconData?;
+    final String? imageUrl = itemsList.isNotEmpty
+        ? itemsList.first['imageUrl']?.toString()
+        : null;
     final typedOrder = order['typedOrder'];
     final canCancel =
         typedOrder is Order &&
@@ -509,11 +546,30 @@ class OrderCard extends StatelessWidget {
                       color: const Color.fromARGB(255, 245, 245, 245),
                       borderRadius: BorderRadius.circular(12.0),
                     ),
-                    child: Icon(
-                      icon,
-                      color: const Color.fromARGB(255, 158, 158, 158),
-                      size: 30,
-                    ),
+                    child: imageUrl != null && imageUrl.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12.0),
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Icon(
+                                    icon,
+                                    color: const Color.fromARGB(
+                                      255,
+                                      158,
+                                      158,
+                                      158,
+                                    ),
+                                    size: 30,
+                                  ),
+                            ),
+                          )
+                        : Icon(
+                            icon,
+                            color: const Color.fromARGB(255, 158, 158, 158),
+                            size: 30,
+                          ),
                   ),
                   const SizedBox(width: 16.0),
                 ],

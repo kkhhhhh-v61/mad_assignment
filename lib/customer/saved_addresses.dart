@@ -133,7 +133,6 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
       _fetchAddresses();
 
       if (mounted) {
-        // 判断是新增还是编辑 (如果有 addressId 就是 Edit)
         final isEdit = addressId != null;
 
         ScaffoldMessenger.of(context).showSnackBar(

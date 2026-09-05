@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../global.dart';
 import 'rider_creation.dart';
 import 'rider_details.dart';
 
@@ -94,12 +93,8 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
 
     if (_currentSort == 'Name (A-Z)') {
       result.sort((a, b) => (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString()));
-    } else if (_currentSort == 'Rating (High to Low)') {
-      result.sort((a, b) {
-        double ratingA = double.tryParse((a['rating'] ?? '0').toString()) ?? 0.0;
-        double ratingB = double.tryParse((b['rating'] ?? '0').toString()) ?? 0.0;
-        return ratingB.compareTo(ratingA);
-      });
+    } else if (_currentSort == 'Name (Z-A)') {
+      result.sort((a, b) => (b['name'] ?? '').toString().compareTo((a['name'] ?? '').toString()));
     }
 
     return result;
@@ -391,15 +386,8 @@ class RiderItemCard extends StatelessWidget {
                     const SizedBox(height: 8.0),
                     Row(
                       children: [
-                        const Icon(Icons.star, color: Color.fromARGB(255, 255, 193, 7), size: 16),
-                        const SizedBox(width: 4.0),
-                        Text(
-                          item['rating'] as String? ?? 'N/A',
-                          style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600, color: Color.fromARGB(255, 117, 117, 117)),
-                        ),
-                        const SizedBox(width: 12.0),
                         const Icon(Icons.delivery_dining, color: Color.fromARGB(255, 158, 158, 158), size: 16),
-                        const SizedBox(width: 4.0),
+                        const SizedBox(width: 6.0),
                         Expanded(
                           child: Text(
                             '${item['vehicle'] ?? 'N/A'} - ${item['plate'] ?? 'N/A'}',
@@ -463,7 +451,7 @@ class _RiderFilterSheetState extends State<RiderFilterSheet> {
   late String selectedVehicle;
   late String selectedStatus;
 
-  final List<String> sortOptions = ['Name (A-Z)', 'Rating (High to Low)'];
+  final List<String> sortOptions = ['Name (A-Z)', 'Name (Z-A)'];
   final List<String> vehicleOptions = ['All', 'Motorcycle', 'Car', 'Bicycle'];
   final List<String> statusOptions = ['All', 'Online', 'Offline', 'On Delivery'];
 

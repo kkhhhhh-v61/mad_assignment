@@ -20,7 +20,6 @@ class SharedProfileScreen extends StatefulWidget {
   final UserRole role;
   final String vehicleType;
   final String vehiclePlate;
-  final double rating;
 
   const SharedProfileScreen({
     super.key,
@@ -34,16 +33,13 @@ class SharedProfileScreen extends StatefulWidget {
     this.role = UserRole.customer,
     this.vehicleType = '',
     this.vehiclePlate = '',
-    this.rating = 0.0,
   });
 
   @override
-  State<SharedProfileScreen> createState() =>
-      _SharedProfileScreenState();
+  State<SharedProfileScreen> createState() => _SharedProfileScreenState();
 }
 
-class _SharedProfileScreenState
-    extends State<SharedProfileScreen> {
+class _SharedProfileScreenState extends State<SharedProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
@@ -63,15 +59,10 @@ class _SharedProfileScreenState
   @override
   void initState() {
     super.initState();
-
     _avatarUrl = widget.initialAvatarUrl;
-
-    _nameController =
-        TextEditingController(text: widget.initialName);
-    _emailController =
-        TextEditingController(text: widget.initialEmail);
-    _phoneController =
-        TextEditingController(text: widget.initialPhone);
+    _nameController = TextEditingController(text: widget.initialName);
+    _emailController = TextEditingController(text: widget.initialEmail);
+    _phoneController = TextEditingController(text: widget.initialPhone);
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
   }
@@ -139,8 +130,7 @@ class _SharedProfileScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-      const Color.fromARGB(255, 249, 250, 251),
+      backgroundColor: const Color.fromARGB(255, 249, 250, 251),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -181,20 +171,14 @@ class _SharedProfileScreenState
                     ),
                     const SizedBox(height: 32.0),
                     Column(
-                      crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
                           'Basic Information',
                           style: TextStyle(
                             fontSize: 16.0,
                             fontWeight: FontWeight.bold,
-                            color: Color.fromARGB(
-                              221,
-                              0,
-                              0,
-                              0,
-                            ),
+                            color: Color.fromARGB(221, 0, 0, 0),
                           ),
                         ),
                         const SizedBox(height: 16.0),
@@ -210,28 +194,21 @@ class _SharedProfileScreenState
                           label: 'Email Address',
                           hintText: 'Email cannot be changed',
                           icon: Icons.email_outlined,
-                          keyboardType:
-                          TextInputType.emailAddress,
+                          keyboardType: TextInputType.emailAddress,
                           readOnly: true,
                         ),
                         const SizedBox(height: 16.0),
                         SharedInputField(
                           controller: _phoneController,
                           label: 'Phone Number',
-                          hintText:
-                          'Enter your new phone number',
+                          hintText: 'Enter your new phone number',
                           icon: Icons.phone_outlined,
                           keyboardType: TextInputType.phone,
                         ),
                         if (_isRider) ...[
                           const SizedBox(height: 32.0),
                           const Divider(
-                            color: Color.fromARGB(
-                              255,
-                              238,
-                              238,
-                              238,
-                            ),
+                            color: Color.fromARGB(255, 238, 238, 238),
                             thickness: 1.5,
                           ),
                           const SizedBox(height: 24.0),
@@ -240,19 +217,13 @@ class _SharedProfileScreenState
                             style: TextStyle(
                               fontSize: 16.0,
                               fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(
-                                221,
-                                0,
-                                0,
-                                0,
-                              ),
+                              color: Color.fromARGB(221, 0, 0, 0),
                             ),
                           ),
                           const SizedBox(height: 16.0),
                           SharedReadOnlyField(
                             label: 'Vehicle Type',
-                            value:
-                            widget.vehicleType.isNotEmpty
+                            value: widget.vehicleType.isNotEmpty
                                 ? widget.vehicleType
                                 : 'Not Available',
                             icon: Icons.two_wheeler_outlined,
@@ -260,26 +231,15 @@ class _SharedProfileScreenState
                           const SizedBox(height: 16.0),
                           SharedReadOnlyField(
                             label: 'Vehicle Plate',
-                            value:
-                            widget.vehiclePlate.isNotEmpty
+                            value: widget.vehiclePlate.isNotEmpty
                                 ? widget.vehiclePlate
                                 : 'Not Available',
-                            icon: Icons
-                                .confirmation_number_outlined,
-                          ),
-                          const SizedBox(height: 16.0),
-                          SharedRatingField(
-                            rating: widget.rating,
+                            icon: Icons.confirmation_number_outlined,
                           ),
                         ],
                         const SizedBox(height: 32.0),
                         const Divider(
-                          color: Color.fromARGB(
-                            255,
-                            238,
-                            238,
-                            238,
-                          ),
+                          color: Color.fromARGB(255, 238, 238, 238),
                           thickness: 1.5,
                         ),
                         const SizedBox(height: 24.0),
@@ -288,45 +248,34 @@ class _SharedProfileScreenState
                           style: TextStyle(
                             fontSize: 16.0,
                             fontWeight: FontWeight.bold,
-                            color: Color.fromARGB(
-                              221,
-                              0,
-                              0,
-                              0,
-                            ),
+                            color: Color.fromARGB(221, 0, 0, 0),
                           ),
                         ),
                         const SizedBox(height: 16.0),
                         SharedInputField(
                           controller: _passwordController,
                           label: 'New Password',
-                          hintText:
-                          'Leave blank to keep current password',
+                          hintText: 'Leave blank to keep current password',
                           icon: Icons.lock_outline,
                           isPassword: true,
                           obscureText: _obscurePassword,
                           onTogglePassword: () {
                             setState(() {
-                              _obscurePassword =
-                              !_obscurePassword;
+                              _obscurePassword = !_obscurePassword;
                             });
                           },
                         ),
                         const SizedBox(height: 16.0),
                         SharedInputField(
-                          controller:
-                          _confirmPasswordController,
+                          controller: _confirmPasswordController,
                           label: 'Confirm New Password',
-                          hintText:
-                          'Re-enter your new password',
+                          hintText: 'Re-enter your new password',
                           icon: Icons.lock_outline,
                           isPassword: true,
-                          obscureText:
-                          _obscureConfirmPassword,
+                          obscureText: _obscureConfirmPassword,
                           onTogglePassword: () {
                             setState(() {
-                              _obscureConfirmPassword =
-                              !_obscureConfirmPassword;
+                              _obscureConfirmPassword = !_obscureConfirmPassword;
                             });
                           },
                         ),
@@ -337,33 +286,21 @@ class _SharedProfileScreenState
               ),
             ),
             Padding(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: SharedSaveButton(
                 isLoading: _isLoading,
                 onPressed: () async {
-                  final password =
-                  _passwordController.text.trim();
-                  final confirmPassword =
-                  _confirmPasswordController.text.trim();
+                  final password = _passwordController.text.trim();
+                  final confirmPassword = _confirmPasswordController.text.trim();
 
-                  if (password.isNotEmpty &&
-                      password != confirmPassword) {
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
+                  if (password.isNotEmpty && password != confirmPassword) {
+                    ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
                           'Passwords do not match. Please check again.',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        backgroundColor: Color.fromARGB(
-                          255,
-                          239,
-                          83,
-                          80,
-                        ),
+                        backgroundColor: Color.fromARGB(255, 239, 83, 80),
                       ),
                     );
                     return;
@@ -505,51 +442,21 @@ class SharedInputField extends StatelessWidget {
           style: TextStyle(
             fontSize: 15.0,
             color: readOnly
-                ? const Color.fromARGB(
-              255,
-              158,
-              158,
-              158,
-            )
-                : const Color.fromARGB(
-              221,
-              0,
-              0,
-              0,
-            ),
+                ? const Color.fromARGB(255, 158, 158, 158)
+                : const Color.fromARGB(221, 0, 0, 0),
           ),
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: const TextStyle(
-              color: Color.fromARGB(
-                255,
-                158,
-                158,
-                158,
-              ),
+              color: Color.fromARGB(255, 158, 158, 158),
             ),
             filled: true,
             fillColor: readOnly
-                ? const Color.fromARGB(
-              255,
-              238,
-              238,
-              238,
-            )
-                : const Color.fromARGB(
-              255,
-              245,
-              245,
-              245,
-            ),
+                ? const Color.fromARGB(255, 238, 238, 238)
+                : const Color.fromARGB(255, 245, 245, 245),
             prefixIcon: Icon(
               icon,
-              color: const Color.fromARGB(
-                255,
-                117,
-                117,
-                117,
-              ),
+              color: const Color.fromARGB(255, 117, 117, 117),
               size: 20.0,
             ),
             suffixIcon: isPassword
@@ -558,12 +465,7 @@ class SharedInputField extends StatelessWidget {
                 obscureText
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
-                color: const Color.fromARGB(
-                  255,
-                  117,
-                  117,
-                  117,
-                ),
+                color: const Color.fromARGB(255, 117, 117, 117),
                 size: 20.0,
               ),
               onPressed: onTogglePassword,
@@ -572,22 +474,15 @@ class SharedInputField extends StatelessWidget {
                 ? const Icon(
               Icons.lock_outline,
               size: 18.0,
-              color: Color.fromARGB(
-                255,
-                158,
-                158,
-                158,
-              ),
+              color: Color.fromARGB(255, 158, 158, 158),
             )
                 : null,
-            contentPadding:
-            const EdgeInsets.symmetric(
+            contentPadding: const EdgeInsets.symmetric(
               horizontal: 16.0,
               vertical: 14.0,
             ),
             border: OutlineInputBorder(
-              borderRadius:
-              BorderRadius.circular(15.0),
+              borderRadius: BorderRadius.circular(15.0),
               borderSide: BorderSide.none,
             ),
           ),
@@ -612,8 +507,7 @@ class SharedReadOnlyField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-      CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -626,31 +520,19 @@ class SharedReadOnlyField extends StatelessWidget {
         const SizedBox(height: 6.0),
         Container(
           width: double.infinity,
-          padding:
-          const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 16.0,
             vertical: 14.0,
           ),
           decoration: BoxDecoration(
-            color: const Color.fromARGB(
-              255,
-              238,
-              238,
-              238,
-            ),
-            borderRadius:
-            BorderRadius.circular(15.0),
+            color: const Color.fromARGB(255, 238, 238, 238),
+            borderRadius: BorderRadius.circular(15.0),
           ),
           child: Row(
             children: [
               Icon(
                 icon,
-                color: const Color.fromARGB(
-                  255,
-                  117,
-                  117,
-                  117,
-                ),
+                color: const Color.fromARGB(255, 117, 117, 117),
                 size: 20.0,
               ),
               const SizedBox(width: 12.0),
@@ -659,126 +541,14 @@ class SharedReadOnlyField extends StatelessWidget {
                   value,
                   style: const TextStyle(
                     fontSize: 15.0,
-                    color: Color.fromARGB(
-                      255,
-                      117,
-                      117,
-                      117,
-                    ),
+                    color: Color.fromARGB(255, 117, 117, 117),
                   ),
                 ),
               ),
               const Icon(
                 Icons.lock_outline,
                 size: 18.0,
-                color: Color.fromARGB(
-                  255,
-                  158,
-                  158,
-                  158,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class SharedRatingField extends StatelessWidget {
-  final double rating;
-
-  const SharedRatingField({
-    super.key,
-    required this.rating,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment:
-      CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Rating',
-          style: TextStyle(
-            fontSize: 14.0,
-            fontWeight: FontWeight.bold,
-            color: Color.fromARGB(221, 0, 0, 0),
-          ),
-        ),
-        const SizedBox(height: 6.0),
-        Container(
-          width: double.infinity,
-          padding:
-          const EdgeInsets.symmetric(
-            horizontal: 16.0,
-            vertical: 14.0,
-          ),
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(
-              255,
-              238,
-              238,
-              238,
-            ),
-            borderRadius:
-            BorderRadius.circular(15.0),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.star,
-                color: Color.fromARGB(
-                  255,
-                  255,
-                  193,
-                  7,
-                ),
-                size: 22.0,
-              ),
-              const SizedBox(width: 10.0),
-              Text(
-                rating > 0
-                    ? rating.toStringAsFixed(1)
-                    : 'No Rating',
-                style: const TextStyle(
-                  fontSize: 15.0,
-                  fontWeight: FontWeight.w600,
-                  color: Color.fromARGB(
-                    255,
-                    117,
-                    117,
-                    117,
-                  ),
-                ),
-              ),
-              if (rating > 0) ...[
-                const SizedBox(width: 4.0),
-                const Text(
-                  '/ 5.0',
-                  style: TextStyle(
-                    fontSize: 14.0,
-                    color: Color.fromARGB(
-                      255,
-                      158,
-                      158,
-                      158,
-                    ),
-                  ),
-                ),
-              ],
-              const Spacer(),
-              const Icon(
-                Icons.lock_outline,
-                size: 18.0,
-                color: Color.fromARGB(
-                  255,
-                  158,
-                  158,
-                  158,
-                ),
+                color: Color.fromARGB(255, 158, 158, 158),
               ),
             ],
           ),
@@ -804,30 +574,20 @@ class SharedSaveButton extends StatelessWidget {
       width: double.infinity,
       height: 52.0,
       child: ElevatedButton(
-        onPressed:
-        isLoading ? null : onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-          const Color.fromARGB(
-            255,
-            255,
-            160,
-            122,
-          ),
+          backgroundColor: const Color.fromARGB(255, 255, 160, 122),
           foregroundColor: Colors.white,
           elevation: 0,
-          shape:
-          RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.circular(16.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
           ),
         ),
         child: isLoading
             ? const SizedBox(
           width: 20.0,
           height: 20.0,
-          child:
-          CircularProgressIndicator(
+          child: CircularProgressIndicator(
             strokeWidth: 2.0,
             color: Colors.white,
           ),
@@ -836,8 +596,7 @@ class SharedSaveButton extends StatelessWidget {
           'Save Changes',
           style: TextStyle(
             fontSize: 16.0,
-            fontWeight:
-            FontWeight.bold,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),

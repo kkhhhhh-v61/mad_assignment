@@ -118,7 +118,8 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
               initialEmail: currentUser?.email ?? '',
               initialPhone: currentUser?.phone ?? '',
               initialAvatarUrl: currentUser?.avatarUrl,
-
+              vehicleType: _vehicleType,
+              vehiclePlate: _vehiclePlate,
               onSave: (name, email, phone, password) async {
                 try {
                   final userId = supabase.auth.currentUser!.id;

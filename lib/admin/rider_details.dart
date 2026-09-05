@@ -273,14 +273,6 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
                           ),
                           const SizedBox(height: 16.0),
                           _DetailField(
-                            label: 'Rating',
-                            controller: TextEditingController(text: widget.rider['rating'] as String? ?? '5.0'),
-                            icon: Icons.star_outline,
-                            readOnly: true,
-                            isLocked: _isEditing,
-                          ),
-                          const SizedBox(height: 16.0),
-                          _DetailField(
                             label: 'Current Status',
                             controller: TextEditingController(text: widget.rider['status'] as String? ?? 'Offline'),
                             icon: Icons.info_outline,

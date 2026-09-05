@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mad_assignment/customer/payment_methods.dart';
 import 'package:mad_assignment/customer/saved_addresses.dart';
+import 'package:mad_assignment/customer/vouchers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
@@ -25,6 +26,14 @@ class CustomerMainNavigation extends StatefulWidget {
 
   const CustomerMainNavigation({super.key, this.initialIndex = 0});
 
+  static _CustomerMainNavigationState? _currentState;
+
+  static bool get hasCurrentState => _currentState != null;
+
+  static void switchToTab(int index) {
+    _currentState?.setTab(index);
+  }
+
   @override
   State<CustomerMainNavigation> createState() => _CustomerMainNavigationState();
 }
@@ -39,8 +48,25 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
   @override
   void initState() {
     super.initState();
+    CustomerMainNavigation._currentState = this;
     _checkAutoLogin();
     _currentIndex = widget.initialIndex;
+  }
+
+  @override
+  void dispose() {
+    if (CustomerMainNavigation._currentState == this) {
+      CustomerMainNavigation._currentState = null;
+    }
+    super.dispose();
+  }
+
+  void setTab(int index) {
+    if (mounted) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
   }
 
   Future<void> _checkAutoLogin() async {
@@ -263,22 +289,26 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
         ),
         const Divider(height: 1, indent: 60, endIndent: 20.0),
         SharedOptionTile(
-            icon: Icons.credit_card_outlined,
-            title: 'Payment Methods',
-            onTap: () {
-              Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const PaymentMethodsScreen()),
-              );
-            }
-            ),
-
+          icon: Icons.credit_card_outlined,
+          title: 'Payment Methods',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PaymentMethodsScreen()),
+            );
+          },
+        ),
         const Divider(height: 1, indent: 60, endIndent: 20.0),
-        SharedOptionTile(icon: Icons.local_offer_outlined, title: 'Vouchers & Offers', onTap: () {}),
-        const Divider(height: 1, indent: 60, endIndent: 20.0),
-        SharedOptionTile(icon: Icons.help_outline, title: 'Help Center', onTap: () {}),
-        const Divider(height: 1, indent: 60, endIndent: 20.0),
-        SharedOptionTile(icon: Icons.settings_outlined, title: 'Settings', onTap: () {}),
+        SharedOptionTile(
+          icon: Icons.local_offer_outlined,
+          title: 'Vouchers',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CustomerVouchersScreen()),
+            );
+          },
+        ),
       ],
     );
   }

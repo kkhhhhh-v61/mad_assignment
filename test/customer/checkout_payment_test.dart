@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mad_assignment/customer/cart.dart';
 import 'package:mad_assignment/customer/checkout.dart';
 
 void main() {
@@ -34,10 +35,61 @@ void main() {
 
       expect(find.text('Place Order'), findsOneWidget);
     });
+
+    testWidgets('tapping Place Order with Cash on Delivery calls onPlaceOrder and redirects to Order Confirmation', (tester) async {
+      bool orderPlaced = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: CheckoutBottomBar(
+              total: 62.50,
+              buttonText: 'Place Order',
+              selectedPaymentMethod: 'Cash on Delivery',
+              onPlaceOrder: () {
+                orderPlaced = true;
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Place Order'));
+      await tester.pumpAndSettle();
+
+      expect(orderPlaced, isTrue);
+      expect(find.text('Order Placed\nSuccessfully!'), findsOneWidget);
+      expect(find.text('Total to pay upon receiving your order: RM 62.50'), findsOneWidget);
+    });
+
+    testWidgets('tapping Proceed to Payment with Card shows SnackBar and does not place order', (tester) async {
+      bool orderPlaced = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: CheckoutBottomBar(
+              total: 62.50,
+              buttonText: 'Proceed to Payment',
+              selectedPaymentMethod: 'Credit / Debit Card',
+              onPlaceOrder: () {
+                orderPlaced = true;
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Proceed to Payment'));
+      await tester.pump();
+
+      expect(orderPlaced, isFalse);
+      expect(find.text('Credit / Debit Card payment via Stripe sandbox is not enabled yet. Please select Cash on Delivery.'), findsOneWidget);
+    });
   });
 
   group('CheckoutPayment', () {
-    testWidgets('displays Cash on Delivery details correctly', (tester) async {
+    testWidgets('displays Cash on Delivery details with updated description', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -56,11 +108,11 @@ void main() {
 
       expect(find.text('Payment Method'), findsOneWidget);
       expect(find.text('Cash on Delivery'), findsOneWidget);
-      expect(find.text('Pay with cash upon arrival'), findsOneWidget);
+      expect(find.text('Pay upon receiving your order.'), findsOneWidget);
       expect(find.text('Stripe Sandbox'), findsNothing);
     });
 
-    testWidgets('displays Credit / Debit Card with saved card details and Stripe Sandbox badge', (tester) async {
+    testWidgets('displays Credit / Debit Card without Stripe Sandbox badge', (tester) async {
       final savedCard = {
         'id': 'card-1',
         'cardholder_name': 'John Doe',
@@ -90,10 +142,10 @@ void main() {
 
       expect(find.text('Credit / Debit Card'), findsOneWidget);
       expect(find.text('Visa •••• 4242 (Exp: 12/28)'), findsOneWidget);
-      expect(find.text('Stripe Sandbox'), findsOneWidget);
+      expect(find.text('Stripe Sandbox'), findsNothing);
     });
 
-    testWidgets('displays Online Banking details with Stripe Sandbox badge', (tester) async {
+    testWidgets('displays Online Banking details without Stripe Sandbox badge', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -111,13 +163,13 @@ void main() {
       );
 
       expect(find.text('Online Banking'), findsOneWidget);
-      expect(find.text('FPX / Internet Banking (Stripe Sandbox)'), findsOneWidget);
-      expect(find.text('Stripe Sandbox'), findsOneWidget);
+      expect(find.text('FPX / Internet Banking'), findsOneWidget);
+      expect(find.text('Stripe Sandbox'), findsNothing);
     });
   });
 
   group('PaymentSelectionBottomSheet', () {
-    testWidgets('shows all 3 payment methods and lists saved cards', (tester) async {
+    testWidgets('shows all 3 payment methods and lists saved cards without sandbox badges', (tester) async {
       final savedCards = [
         {
           'id': 'card-1',
@@ -160,12 +212,149 @@ void main() {
       expect(find.text('Mastercard **** **** **** 1234'), findsOneWidget);
       expect(find.text('Default'), findsOneWidget);
       expect(find.text('Alice Tan · Exp: 05/27'), findsOneWidget);
+      expect(find.text('Stripe Sandbox'), findsNothing);
+      expect(find.text('Confirm'), findsOneWidget);
 
-      // Tap Cash on Delivery
+      // Tap Cash on Delivery without confirming
       await tester.tap(find.text('Cash on Delivery'));
       await tester.pumpAndSettle();
 
+      // Selection must not be committed yet
+      expect(selectedMethod, isNull);
+
+      // Tap Confirm button
+      await tester.tap(find.text('Confirm'));
+      await tester.pumpAndSettle();
+
       expect(selectedMethod, 'Cash on Delivery');
+    });
+
+    testWidgets('tapping saved card selects it and only commits on Confirm', (tester) async {
+      final savedCards = [
+        {
+          'id': 'card-1',
+          'cardholder_name': 'Alice Tan',
+          'card_number_masked': '**** **** **** 1234',
+          'expiry_date': '05/27',
+          'card_brand': 'Mastercard',
+          'is_default': false,
+        },
+        {
+          'id': 'card-2',
+          'cardholder_name': 'Alice Tan',
+          'card_number_masked': '**** **** **** 5678',
+          'expiry_date': '08/29',
+          'card_brand': 'Visa',
+          'is_default': true,
+        },
+      ];
+
+      String? selectedMethod;
+      Map<String, dynamic>? selectedCard;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PaymentSelectionBottomSheet(
+              availablePaymentMethods: const [
+                'Cash on Delivery',
+                'Credit / Debit Card',
+                'Online Banking',
+              ],
+              selectedPaymentMethod: 'Credit / Debit Card',
+              selectedSavedCard: savedCards[1],
+              savedCards: savedCards,
+              onPaymentMethodSelected: (method, card) {
+                selectedMethod = method;
+                selectedCard = card;
+              },
+              onAddNewCard: () {},
+            ),
+          ),
+        ),
+      );
+
+      // Select first card
+      await tester.tap(find.text('Mastercard **** **** **** 1234'));
+      await tester.pumpAndSettle();
+
+      // Not committed yet
+      expect(selectedCard, isNull);
+
+      // Tap Confirm
+      await tester.tap(find.text('Confirm'));
+      await tester.pumpAndSettle();
+
+      expect(selectedMethod, 'Credit / Debit Card');
+      expect(selectedCard?['id'], 'card-1');
+    });
+  });
+
+  group('AddressSelection', () {
+    testWidgets('displays address title label and full address', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AddressSelection(
+              address: '123 Jalan Ampang, Kuala Lumpur',
+              addressLabel: 'Home',
+              onTap: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Delivery Address'), findsOneWidget);
+      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('123 Jalan Ampang, Kuala Lumpur'), findsOneWidget);
+      expect(find.byIcon(Icons.home_outlined), findsOneWidget);
+    });
+
+    testWidgets('displays Current Location icon when label is Current Location', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AddressSelection(
+              address: 'George Town, Penang',
+              addressLabel: 'Current Location',
+              onTap: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Current Location'), findsOneWidget);
+      expect(find.text('George Town, Penang'), findsOneWidget);
+      expect(find.byIcon(Icons.my_location), findsOneWidget);
+    });
+  });
+
+  group('CustomerCheckout Place Order', () {
+    testWidgets('redirects to Order Confirmation when Place Order is pressed with CoD', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CustomerCheckout(
+            cartItems: [
+              CartItem(
+                id: 'item-1',
+                name: 'Nasi Lemak',
+                price: 15.0,
+                quantity: 1,
+              ),
+            ],
+            deliveryAddress: '123 Jalan Ampang, Kuala Lumpur',
+            enableBranchSelection: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Place Order'), findsOneWidget);
+      await tester.tap(find.text('Place Order'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Order Placed\nSuccessfully!'), findsOneWidget);
+      expect(find.text('Total to pay upon receiving your order: RM 15.00'), findsOneWidget);
     });
   });
 }

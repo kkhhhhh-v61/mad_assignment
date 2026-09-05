@@ -27,18 +27,31 @@ Future<bool> cancelCustomerOrder({
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Cancel order?'),
+      title: const Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Color(0xFFFFA07A)),
+          SizedBox(width: 8),
+          Text('Cancel order?'),
+        ],
+      ),
       content: const Text(
         'This order has not been prepared yet. Do you want to cancel it?',
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Keep Order'),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFFFFA07A),
+          ),
+          child: const Text('Cancel Order'),
         ),
         FilledButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Cancel Order'),
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFFFFA07A),
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Keep Order'),
         ),
       ],
     ),

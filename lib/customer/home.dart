@@ -469,16 +469,6 @@ class _CustomerHomeState extends State<CustomerHome> {
           ),
         ),
         const SizedBox(height: 4),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.0),
-          child: Text(
-            'Quickly reorder your past favorites',
-            style: TextStyle(
-              fontSize: 12.0,
-              color: Color(0xFF757575),
-            ),
-          ),
-        ),
         const SizedBox(height: 12.0),
         SizedBox(
           height: 205,

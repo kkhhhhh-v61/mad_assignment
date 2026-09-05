@@ -33,6 +33,31 @@ const branchStateOptions = <BranchStateOption>[
   BranchStateOption(id: 16, name: 'Putrajaya'),
 ];
 
+String nextBranchCode({
+  required String stateCode,
+  required Iterable<BranchRecord> existingBranches,
+}) {
+  final trimmedStateCode = stateCode.trim();
+  if (trimmedStateCode.isEmpty) {
+    throw const BranchRepositoryException('Branch state code is required.');
+  }
+  final normalizedStateCode = trimmedStateCode.padLeft(2, '0');
+
+  final prefix = 'DD-$normalizedStateCode-';
+  var highestSequence = 0;
+  for (final branch in existingBranches) {
+    final code = branch.branchCode.trim().toUpperCase();
+    if (!code.startsWith(prefix)) continue;
+    final sequenceText = code.substring(prefix.length);
+    final sequence = int.tryParse(sequenceText);
+    if (sequence != null && sequence > highestSequence) {
+      highestSequence = sequence;
+    }
+  }
+
+  return '$prefix${(highestSequence + 1).toString().padLeft(2, '0')}';
+}
+
 class BranchDraft {
   final String branchCode;
   final String name;

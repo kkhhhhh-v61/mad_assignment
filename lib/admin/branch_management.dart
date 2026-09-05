@@ -58,8 +58,11 @@ class _AdminBranchManagementState extends State<AdminBranchManagement> {
     final saved = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            AdminBranchForm(repository: _repository, branch: branch),
+        builder: (_) => AdminBranchForm(
+          repository: _repository,
+          branch: branch,
+          existingBranches: _branches,
+        ),
       ),
     );
     if (saved == true && mounted) {
@@ -339,8 +342,14 @@ class _StatusChip extends StatelessWidget {
 class AdminBranchForm extends StatefulWidget {
   final BranchAdminRepository repository;
   final BranchRecord? branch;
+  final List<BranchRecord> existingBranches;
 
-  const AdminBranchForm({super.key, required this.repository, this.branch});
+  const AdminBranchForm({
+    super.key,
+    required this.repository,
+    this.branch,
+    this.existingBranches = const [],
+  });
 
   @override
   State<AdminBranchForm> createState() => _AdminBranchFormState();
@@ -359,6 +368,20 @@ class _AdminBranchFormState extends State<AdminBranchForm> {
   String? _error;
 
   bool get _isEditing => widget.branch != null;
+
+  void _selectState(int? value) {
+    if (_isSaving) return;
+    setState(() {
+      _stateId = value;
+      if (!_isEditing && value != null) {
+        final state = branchStateOptions.firstWhere((item) => item.id == value);
+        _codeController.text = nextBranchCode(
+          stateCode: state.code,
+          existingBranches: widget.existingBranches,
+        );
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -460,6 +483,10 @@ class _AdminBranchFormState extends State<AdminBranchForm> {
               hint: 'e.g. DD-07-03',
               icon: Icons.qr_code_2,
               validator: _requiredValidator,
+              readOnly: !_isEditing,
+              helperText: _isEditing
+                  ? 'Existing code can be updated.'
+                  : 'Automatically assigned after selecting a state.',
             ),
             const SizedBox(height: 16.0),
             _textField(
@@ -485,9 +512,7 @@ class _AdminBranchFormState extends State<AdminBranchForm> {
                     ),
                   )
                   .toList(growable: false),
-              onChanged: _isSaving
-                  ? null
-                  : (value) => setState(() => _stateId = value),
+              onChanged: _isSaving ? null : _selectState,
               validator: (value) => value == null ? 'Select a state.' : null,
             ),
             const SizedBox(height: 16.0),
@@ -599,15 +624,19 @@ class _AdminBranchFormState extends State<AdminBranchForm> {
     required String? Function(String?) validator,
     TextInputType? keyboardType,
     int maxLines = 1,
+    bool readOnly = false,
+    String? helperText,
   }) {
     return TextFormField(
       controller: controller,
       enabled: !_isSaving,
+      readOnly: readOnly,
       keyboardType: keyboardType,
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
+        helperText: helperText,
         prefixIcon: Icon(icon),
         border: const OutlineInputBorder(),
       ),

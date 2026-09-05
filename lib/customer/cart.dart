@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../global.dart';
 import '../main.dart';
 import 'checkout.dart';
 import 'food_item_detail.dart';
@@ -274,6 +273,21 @@ class _CustomerCartState extends State<CustomerCart> {
     );
   }
 
+  void _navigateToMenu() {
+    if (CustomerMainNavigation.hasCurrentState) {
+      CustomerMainNavigation.switchToTab(1);
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } else {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const CustomerMainNavigation(initialIndex: 1),
+        ),
+        (route) => false,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -377,11 +391,80 @@ class _CustomerCartState extends State<CustomerCart> {
   }
 
   Widget _buildEmptyCart() {
-    return const Center(
-      child: FallbackMessage(
-        icon: Icons.shopping_cart_outlined,
-        title: 'Your Cart is Empty',
-        description: 'Add some delicious items from our menu to get started!',
+    return Center(
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFEEEEEE)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFA07A).withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.shopping_cart_outlined,
+                size: 36,
+                color: Color(0xFFFFA07A),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Your Cart is Empty',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xDD000000),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Add some delicious items from our menu to get started!',
+              style: TextStyle(fontSize: 14, color: Color(0xFF757575)),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _navigateToMenu,
+              icon: const Icon(Icons.restaurant_menu, size: 18),
+              label: const Text(
+                'Explore Menu',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFA07A),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

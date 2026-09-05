@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
+import 'services/stripe_service.dart';
 import 'splash_screen.dart';
 
 const String supabaseUrl =
@@ -23,6 +25,10 @@ Future<void> main() async {
     url: supabaseUrl,
     publishableKey: supabasePublishableKey,
   );
+
+  Stripe.publishableKey = 'pk_test_51UCGT9Q8948mjjJDz6ThcfO4In190RUnAN9VXynSOMr1OHftMC13FYhLSTSuWkZi8fJ1Rv69NbC7Xx1NIQTPlBpX00UBudoS96';
+  await Stripe.instance.applySettings();
+  await StripeService.init();
 
   runApp(const MyApp());
 }

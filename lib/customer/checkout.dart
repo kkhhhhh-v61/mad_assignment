@@ -14,6 +14,7 @@ import 'header.dart';
 import 'order_confirmation.dart';
 import 'payment_methods.dart';
 import 'saved_addresses.dart';
+import '../services/stripe_service.dart';
 
 class CustomerCheckout extends StatefulWidget {
   final List<CartItem>? cartItems;
@@ -52,7 +53,6 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
   final List<String> _availablePaymentMethods = const [
     'Cash on Delivery',
     'Credit / Debit Card',
-    'Online Banking',
   ];
   List<Map<String, dynamic>> _savedCards = [];
   Map<String, dynamic>? _selectedSavedCard;
@@ -266,19 +266,12 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
             .order('created_at', ascending: false);
         if (mounted) {
           final cards = List<Map<String, dynamic>>.from(response);
-          Map<String, dynamic>? defaultCard;
-          if (cards.isNotEmpty) {
-            defaultCard = cards.firstWhere(
-              (c) => c['is_default'] == true,
-              orElse: () => cards.first,
-            );
-          }
           setState(() {
             _savedCards = cards;
             _savedCardsLoading = false;
-            if (_selectedSavedCard == null ||
+            if (_selectedSavedCard != null &&
                 !cards.any((c) => c['id'] == _selectedSavedCard?['id'])) {
-              _selectedSavedCard = defaultCard;
+              _selectedSavedCard = null;
             }
           });
           return;
@@ -310,6 +303,9 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
             if (mounted) {
               setState(() {
                 _selectedPaymentMethod = 'Credit / Debit Card';
+                if (_savedCards.isNotEmpty) {
+                  _selectedSavedCard = _savedCards.first;
+                }
               });
             }
           },
@@ -805,86 +801,160 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     );
   }
 
+  Future<bool> _showExitConfirmationDialog() async {
+    final shouldLeave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        title: const Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Color.fromARGB(255, 255, 160, 122),
+              size: 24,
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Leave Checkout?',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18.0,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to leave checkout? Your items will remain in your cart, but your order has not been placed yet.',
+          style: TextStyle(fontSize: 14.0, color: Colors.black87),
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text(
+              'Stay',
+              style: TextStyle(
+                color: Color.fromARGB(255, 120, 120, 120),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 255, 160, 122),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Leave',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+    return shouldLeave ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(248, 255, 255, 255),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: Color.fromARGB(221, 0, 0, 0),
-            size: 20,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldLeave = await _showExitConfirmationDialog();
+        if (shouldLeave && context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color.fromARGB(248, 255, 255, 255),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: Color.fromARGB(221, 0, 0, 0),
+              size: 20,
+            ),
+            onPressed: () async {
+              final shouldLeave = await _showExitConfirmationDialog();
+              if (shouldLeave && context.mounted) {
+                Navigator.pop(context);
+              }
+            },
           ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Checkout',
-          style: TextStyle(
-            color: Color.fromARGB(221, 0, 0, 0),
-            fontWeight: FontWeight.bold,
-            fontSize: 18.0,
+          title: const Text(
+            'Checkout',
+            style: TextStyle(
+              color: Color.fromARGB(221, 0, 0, 0),
+              fontWeight: FontWeight.bold,
+              fontSize: 18.0,
+            ),
+          ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1.0),
+            child: Container(
+              color: const Color.fromARGB(255, 214, 214, 214),
+              height: 1.0,
+            ),
           ),
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(
-            color: const Color.fromARGB(255, 214, 214, 214),
-            height: 1.0,
-          ),
-        ),
-      ),
-      body: CheckoutLayout(
-        cartItems: _cartItems,
-        isSelfPickup: _isSelfPickup,
-        onFulfillmentChanged: _setFulfillmentType,
-        branchSelectionEnabled: _isSelfPickup,
-        selectedBranch: _selectedBranch,
-        fallbackBranchSnapshot: widget.branchSnapshot,
-        branches: _branches,
-        branchLoading: _branchesLoading,
-        branchError: _branchesError,
-        onBranchTap: () => _showBranchSelectionDialog(context),
-        onRetryBranches: _loadBranches,
-        selectedAddress: _selectedAddress,
-        selectedAddressLabel: _selectedAddressOption?.label,
-        onAddressTap: () => _showAddressSelectionDialog(context),
-        selectedPaymentMethod: _selectedPaymentMethod,
-        availablePaymentMethods: _availablePaymentMethods,
-        selectedSavedCard: _selectedSavedCard,
-        savedCards: _savedCards,
-        savedCardsLoading: _savedCardsLoading,
-        onPaymentMethodChanged: (method, card) {
-          setState(() {
-            _selectedPaymentMethod = method;
-            if (card != null) {
+        body: CheckoutLayout(
+          cartItems: _cartItems,
+          isSelfPickup: _isSelfPickup,
+          onFulfillmentChanged: _setFulfillmentType,
+          branchSelectionEnabled: _isSelfPickup,
+          selectedBranch: _selectedBranch,
+          fallbackBranchSnapshot: widget.branchSnapshot,
+          branches: _branches,
+          branchLoading: _branchesLoading,
+          branchError: _branchesError,
+          onBranchTap: () => _showBranchSelectionDialog(context),
+          onRetryBranches: _loadBranches,
+          selectedAddress: _selectedAddress,
+          selectedAddressLabel: _selectedAddressOption?.label,
+          onAddressTap: () => _showAddressSelectionDialog(context),
+          selectedPaymentMethod: _selectedPaymentMethod,
+          availablePaymentMethods: _availablePaymentMethods,
+          selectedSavedCard: _selectedSavedCard,
+          savedCards: _savedCards,
+          savedCardsLoading: _savedCardsLoading,
+          onPaymentMethodChanged: (method, card) {
+            setState(() {
+              _selectedPaymentMethod = method;
               _selectedSavedCard = card;
-            }
-          });
-        },
-        onAddNewCard: () => _openAddCardModal(context),
-        appliedVoucher: _appliedVoucher,
-        deliveryFee: _deliveryFee,
-        deliveryFeeQuote: _deliveryFeeQuote,
-        deliveryFeeRequired: _routedFeeEnabled,
-        deliveryFeeLoading: _deliveryFeeLoading,
-        deliveryFeeError: _deliveryFeeError,
-        onRetryDeliveryFee: _loadRoutedDeliveryFee,
-        availableVouchers: _availableVouchers,
-        onVoucherApplied: (voucher) {
-          setState(() {
-            _appliedVoucher = voucher;
-          });
-        },
-        onPlaceOrder: () {
-          setState(() {
-            _cartItems.clear();
-          });
-          CartStorage.clearCart();
-        },
+            });
+          },
+          onAddNewCard: () => _openAddCardModal(context),
+          appliedVoucher: _appliedVoucher,
+          deliveryFee: _deliveryFee,
+          deliveryFeeQuote: _deliveryFeeQuote,
+          deliveryFeeRequired: _routedFeeEnabled,
+          deliveryFeeLoading: _deliveryFeeLoading,
+          deliveryFeeError: _deliveryFeeError,
+          onRetryDeliveryFee: _loadRoutedDeliveryFee,
+          availableVouchers: _availableVouchers,
+          onVoucherApplied: (voucher) {
+            setState(() {
+              _appliedVoucher = voucher;
+            });
+          },
+          onPlaceOrder: () {
+            setState(() {
+              _cartItems.clear();
+            });
+            CartStorage.clearCart();
+          },
+        ),
       ),
     );
   }
@@ -980,7 +1050,8 @@ class CheckoutLayout extends StatelessWidget {
       }
     }
 
-    double total = subtotal + effectiveDeliveryFee - discount;
+    final double sst = subtotal * 0.06;
+    double total = subtotal + sst + effectiveDeliveryFee - discount;
     if (total < 0) total = 0;
 
     final addressReady = isSelfPickup || selectedAddress.trim().isNotEmpty;
@@ -1063,6 +1134,7 @@ class CheckoutLayout extends StatelessWidget {
                 ],
                 CheckoutSummary(
                   subtotal: subtotal,
+                  sst: sst,
                   deliveryFee: effectiveDeliveryFee,
                   discount: discount,
                   total: total,
@@ -1078,6 +1150,7 @@ class CheckoutLayout extends StatelessWidget {
           placeOrderEnabled: placeOrderEnabled,
           buttonText: buttonText,
           selectedPaymentMethod: selectedPaymentMethod,
+          selectedSavedCard: selectedSavedCard,
         ),
       ],
     );
@@ -1707,14 +1780,9 @@ class CheckoutPayment extends StatelessWidget {
         final brand = selectedSavedCard!['card_brand'] ?? 'Card';
         final exp = selectedSavedCard!['expiry_date'] ?? '';
         subtitle = '$brand •••• $last4 (Exp: $exp)';
-      } else if (savedCards.isNotEmpty) {
-        subtitle = 'Select a card';
       } else {
-        subtitle = 'No saved cards (Tap to add)';
+        subtitle = 'Enter card details at payment';
       }
-    } else if (selectedPaymentMethod == 'Online Banking') {
-      icon = Icons.account_balance_outlined;
-      subtitle = 'FPX / Internet Banking';
     } else {
       icon = Icons.credit_card;
       subtitle = 'Select payment method';
@@ -1851,18 +1919,10 @@ class _PaymentSelectionBottomSheetState
   void _selectMethod(String method) {
     setState(() {
       _selectedMethod = method;
-      if (method == 'Credit / Debit Card' &&
-          _selectedCard == null &&
-          widget.savedCards.isNotEmpty) {
-        _selectedCard = widget.savedCards.firstWhere(
-          (c) => c['is_default'] == true,
-          orElse: () => widget.savedCards.first,
-        );
-      }
     });
   }
 
-  void _selectCard(Map<String, dynamic> card) {
+  void _selectCard(Map<String, dynamic>? card) {
     setState(() {
       _selectedMethod = 'Credit / Debit Card';
       _selectedCard = card;
@@ -2034,11 +2094,67 @@ class _PaymentSelectionBottomSheetState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Option: Enter Card Details Manually (No saved card)
+                  InkWell(
+                    onTap: () {
+                      _selectCard(null);
+                    },
+                    borderRadius: BorderRadius.circular(12.0),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12.0),
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: _selectedCard == null
+                            ? Colors.white
+                            : const Color.fromARGB(255, 250, 250, 250),
+                        borderRadius: BorderRadius.circular(12.0),
+                        border: Border.all(
+                          color: _selectedCard == null
+                              ? const Color.fromARGB(255, 255, 160, 122)
+                              : const Color.fromARGB(255, 230, 230, 230),
+                          width: _selectedCard == null ? 1.5 : 1.0,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.edit_note_outlined,
+                            color: _selectedCard == null
+                                ? const Color.fromARGB(255, 255, 160, 122)
+                                : const Color.fromARGB(255, 140, 140, 140),
+                            size: 22,
+                          ),
+                          const SizedBox(width: 10.0),
+                          Expanded(
+                            child: Text(
+                              'Enter Card Details Manually',
+                              style: TextStyle(
+                                fontWeight: _selectedCard == null
+                                    ? FontWeight.bold
+                                    : FontWeight.w600,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            _selectedCard == null
+                                ? Icons.check_circle
+                                : Icons.radio_button_unchecked,
+                            color: _selectedCard == null
+                                ? const Color.fromARGB(255, 255, 160, 122)
+                                : const Color.fromARGB(255, 200, 200, 200),
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Saved Cards',
+                        'Saved Cards (Optional)',
                         style: TextStyle(
                           fontSize: 13.0,
                           fontWeight: FontWeight.bold,
@@ -2089,63 +2205,28 @@ class _PaymentSelectionBottomSheetState
                   else if (widget.savedCards.isEmpty)
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(14.0),
+                      padding: const EdgeInsets.all(12.0),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12.0),
+                        color: const Color.fromARGB(255, 250, 250, 250),
+                        borderRadius: BorderRadius.circular(10.0),
                         border: Border.all(
                           color: const Color.fromARGB(255, 238, 238, 238),
                         ),
                       ),
-                      child: Column(
+                      child: const Row(
                         children: [
-                          const Row(
-                            children: [
-                              Icon(
-                                Icons.credit_card_off_outlined,
-                                size: 20,
-                                color: Color.fromARGB(255, 158, 158, 158),
-                              ),
-                              SizedBox(width: 8.0),
-                              Expanded(
-                                child: Text(
-                                  'No saved cards found for your account.',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    color: Color.fromARGB(255, 117, 117, 117),
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: Color.fromARGB(255, 158, 158, 158),
                           ),
-                          const SizedBox(height: 10.0),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                widget.onAddNewCard();
-                              },
-                              icon: const Icon(
-                                Icons.add,
-                                size: 16,
-                                color: Color.fromARGB(255, 255, 160, 122),
-                              ),
-                              label: const Text(
-                                'Add a Card',
-                                style: TextStyle(
-                                  color: Color.fromARGB(255, 255, 160, 122),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(
-                                  color: Color.fromARGB(255, 255, 160, 122),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10.0),
-                                ),
+                          SizedBox(width: 8.0),
+                          Expanded(
+                            child: Text(
+                              'No saved cards. Card details will be entered manually at payment.',
+                              style: TextStyle(
+                                fontSize: 12.0,
+                                color: Color.fromARGB(255, 117, 117, 117),
                               ),
                             ),
                           ),
@@ -2164,7 +2245,12 @@ class _PaymentSelectionBottomSheetState
 
                       return InkWell(
                         onTap: () {
-                          _selectCard(card);
+                          // Tap to toggle selection: if already selected, unselect to manual entry
+                          if (isCardSelected) {
+                            _selectCard(null);
+                          } else {
+                            _selectCard(card);
+                          }
                         },
                         borderRadius: BorderRadius.circular(12.0),
                         child: Container(
@@ -2278,80 +2364,6 @@ class _PaymentSelectionBottomSheetState
     );
   }
 
-  Widget _buildOnlineBankingOption() {
-    final isSelected = _selectedMethod == 'Online Banking';
-    return InkWell(
-      onTap: () {
-        _selectMethod('Online Banking');
-      },
-      borderRadius: BorderRadius.circular(16.0),
-      child: Container(
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.1)
-              : Colors.white,
-          border: Border.all(
-            color: isSelected
-                ? const Color.fromARGB(255, 255, 160, 122)
-                : const Color.fromARGB(255, 238, 238, 238),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(16.0),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10.0),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.white
-                    : const Color.fromARGB(255, 245, 245, 245),
-              ),
-              child: Icon(
-                Icons.account_balance_outlined,
-                color: isSelected
-                    ? const Color.fromARGB(255, 255, 160, 122)
-                    : const Color.fromARGB(255, 120, 120, 120),
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 14.0),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Online Banking',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15.0,
-                    ),
-                  ),
-                  const SizedBox(height: 3.0),
-                  const Text(
-                    'FPX / Internet Banking (Maybank, CIMB, Public Bank, etc.)',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: Color.fromARGB(255, 117, 117, 117),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8.0),
-            Icon(
-              isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: isSelected
-                  ? const Color.fromARGB(255, 255, 160, 122)
-                  : const Color.fromARGB(255, 200, 200, 200),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -2402,8 +2414,6 @@ class _PaymentSelectionBottomSheetState
                     _buildCoDOption(),
                     const SizedBox(height: 14.0),
                     _buildCardOption(),
-                    const SizedBox(height: 14.0),
-                    _buildOnlineBankingOption(),
                   ],
                 ),
               ),
@@ -2415,7 +2425,9 @@ class _PaymentSelectionBottomSheetState
                 onPressed: () {
                   widget.onPaymentMethodSelected(
                     _selectedMethod,
-                    _selectedCard,
+                    _selectedMethod == 'Credit / Debit Card'
+                        ? _selectedCard
+                        : null,
                   );
                   Navigator.pop(context);
                 },
@@ -2533,6 +2545,7 @@ class _DeliveryFeeStatusCard extends StatelessWidget {
 
 class CheckoutSummary extends StatelessWidget {
   final double subtotal;
+  final double sst;
   final double deliveryFee;
   final double discount;
   final double total;
@@ -2540,6 +2553,7 @@ class CheckoutSummary extends StatelessWidget {
   const CheckoutSummary({
     super.key,
     required this.subtotal,
+    this.sst = 0.0,
     required this.deliveryFee,
     required this.discount,
     required this.total,
@@ -2573,6 +2587,20 @@ class CheckoutSummary extends StatelessWidget {
               ),
               Text(
                 'RM ${subtotal.toStringAsFixed(2)}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12.0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'SST (6%)',
+                style: TextStyle(color: Color.fromARGB(255, 117, 117, 117)),
+              ),
+              Text(
+                'RM ${sst.toStringAsFixed(2)}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ],
@@ -2637,12 +2665,13 @@ class CheckoutSummary extends StatelessWidget {
   }
 }
 
-class CheckoutBottomBar extends StatelessWidget {
+class CheckoutBottomBar extends StatefulWidget {
   final double total;
   final VoidCallback onPlaceOrder;
   final bool placeOrderEnabled;
   final String buttonText;
   final String selectedPaymentMethod;
+  final Map<String, dynamic>? selectedSavedCard;
 
   const CheckoutBottomBar({
     super.key,
@@ -2651,7 +2680,84 @@ class CheckoutBottomBar extends StatelessWidget {
     this.placeOrderEnabled = true,
     this.buttonText = 'Proceed to Payment',
     this.selectedPaymentMethod = 'Cash on Delivery',
+    this.selectedSavedCard,
   });
+
+  @override
+  State<CheckoutBottomBar> createState() => _CheckoutBottomBarState();
+}
+
+class _CheckoutBottomBarState extends State<CheckoutBottomBar> {
+  bool _isProcessing = false;
+
+  Future<void> _handlePayment() async {
+    if (_isProcessing) return;
+
+    if (widget.selectedPaymentMethod == 'Cash on Delivery') {
+      widget.onPlaceOrder();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CustomerOrderConfirmation(
+            totalPaid: widget.total,
+            paymentMethod: widget.selectedPaymentMethod,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (widget.selectedPaymentMethod == 'Credit / Debit Card') {
+      setState(() => _isProcessing = true);
+      try {
+        final success = await StripeService.handleCardPayment(
+          context: context,
+          amount: widget.total,
+          selectedCard: widget.selectedSavedCard,
+        );
+
+        if (!mounted) return;
+
+        if (success) {
+          widget.onPlaceOrder();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CustomerOrderConfirmation(
+                totalPaid: widget.total,
+                paymentMethod: 'Credit / Debit Card',
+              ),
+            ),
+          );
+        }
+      } catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Payment failed: ${error.toString().replaceAll('Exception: ', '')}',
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isProcessing = false);
+        }
+      }
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${widget.selectedPaymentMethod} payment via Stripe sandbox is not enabled yet. Please select Cash on Delivery or Credit / Debit Card.',
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2671,31 +2777,8 @@ class CheckoutBottomBar extends StatelessWidget {
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: placeOrderEnabled
-              ? () {
-                  if (selectedPaymentMethod == 'Cash on Delivery') {
-                    //TODO: Submit order details to backend API and handle response
-                    onPlaceOrder();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CustomerOrderConfirmation(
-                          totalPaid: total,
-                          paymentMethod: selectedPaymentMethod,
-                        ),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '$selectedPaymentMethod payment via Stripe sandbox is not enabled yet. Please select Cash on Delivery.',
-                        ),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                }
+          onPressed: (widget.placeOrderEnabled && !_isProcessing)
+              ? _handlePayment
               : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color.fromARGB(255, 255, 160, 122),
@@ -2706,10 +2789,22 @@ class CheckoutBottomBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(16.0),
             ),
           ),
-          child: Text(
-            buttonText,
-            style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-          ),
+          child: _isProcessing
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  widget.buttonText,
+                  style: const TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
       ),
     );

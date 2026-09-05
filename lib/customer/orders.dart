@@ -155,10 +155,22 @@ class _CustomerOrdersState extends State<CustomerOrders> {
               : OrderList(
                   orders: filteredOrders,
                   selectedStatus: _selectedStatus,
+                  onCancel: _cancelOrder,
+                  onOrderChanged: _loadOrders,
                 ),
         ),
       ],
     );
+  }
+
+  Future<void> _cancelOrder(Map<String, dynamic> order) async {
+    final cancelled = await cancelCustomerOrder(
+      context: context,
+      order: order,
+    );
+    if (cancelled && mounted) {
+      await _loadOrders();
+    }
   }
 }
 
@@ -249,11 +261,15 @@ String _customerDisplayStatus(OrderStatus status) {
 class OrderList extends StatelessWidget {
   final List<Map<String, dynamic>> orders;
   final String selectedStatus;
+  final Future<void> Function(Map<String, dynamic> order)? onCancel;
+  final Future<void> Function()? onOrderChanged;
 
   const OrderList({
     super.key,
     required this.orders,
     required this.selectedStatus,
+    this.onCancel,
+    this.onOrderChanged,
   });
 
   @override
@@ -272,7 +288,11 @@ class OrderList extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
       itemCount: orders.length,
       itemBuilder: (context, index) {
-        return OrderCard(order: orders[index]);
+        return OrderCard(
+          order: orders[index],
+          onCancel: onCancel,
+          onOrderChanged: onOrderChanged,
+        );
       },
     );
   }
@@ -280,8 +300,15 @@ class OrderList extends StatelessWidget {
 
 class OrderCard extends StatelessWidget {
   final Map<String, dynamic> order;
+  final Future<void> Function(Map<String, dynamic> order)? onCancel;
+  final Future<void> Function()? onOrderChanged;
 
-  const OrderCard({super.key, required this.order});
+  const OrderCard({
+    super.key,
+    required this.order,
+    this.onCancel,
+    this.onOrderChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -294,6 +321,11 @@ class OrderCard extends StatelessWidget {
     final String totalPrice = order['totalPrice'] as String? ?? '';
     final String info = order['info'] as String? ?? '';
     final IconData? icon = order['icon'] as IconData?;
+    final typedOrder = order['typedOrder'];
+    final canCancel =
+        typedOrder is Order &&
+        typedOrder.status == OrderStatus.placed &&
+        onCancel != null;
 
     Color statusColor;
     IconData footerIcon;
@@ -305,9 +337,9 @@ class OrderCard extends StatelessWidget {
       case 'Preparing':
         statusColor = const Color.fromARGB(255, 255, 160, 122);
         footerIcon = Icons.access_time;
-        buttonText = 'Cancel Order';
+        buttonText = canCancel ? 'Cancel Order' : '';
         buttonColor = const Color.fromARGB(255, 229, 57, 53);
-        isOutlined = true;
+        isOutlined = canCancel;
         break;
       case 'Delivering':
         statusColor = const Color.fromARGB(255, 33, 150, 243);
@@ -342,11 +374,14 @@ class OrderCard extends StatelessWidget {
         : firstItemName;
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final changed = await Navigator.push<bool>(
           context,
           MaterialPageRoute(builder: (context) => OrderDetails(order: order)),
         );
+        if (changed == true) {
+          await onOrderChanged?.call();
+        }
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16.0),
@@ -492,11 +527,14 @@ class OrderCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(
+                if (buttonText.isNotEmpty)
+                  SizedBox(
                   height: 32,
                   child: isOutlined
                       ? OutlinedButton(
-                          onPressed: () {},
+                          onPressed: buttonText == 'Cancel Order'
+                              ? () => onCancel?.call(order)
+                              : null,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: buttonColor,
                             side: BorderSide(color: buttonColor),

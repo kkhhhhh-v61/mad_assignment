@@ -4,17 +4,87 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../Order/order.dart';
+import '../Order/order_repository.dart';
 import 'customer_proof_photo_repository.dart';
 import 'order_tracking.dart';
+
+Future<bool> cancelCustomerOrder({
+  required BuildContext context,
+  required Map<String, dynamic> order,
+  OrderRepository? repository,
+}) async {
+  final typedOrder = order['typedOrder'];
+  if (typedOrder is! Order || typedOrder.status != OrderStatus.placed) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Only newly placed orders can be cancelled.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    return false;
+  }
+
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Cancel order?'),
+      content: const Text(
+        'This order has not been prepared yet. Do you want to cancel it?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Keep Order'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Cancel Order'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) return false;
+
+  try {
+    final orderRepository =
+        repository ?? SupabaseOrderRepository(Supabase.instance.client);
+    await orderRepository.transitionStatus(
+      orderId: typedOrder.id,
+      expectedStatus: OrderStatus.placed,
+      nextStatus: OrderStatus.cancelled,
+    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Order cancelled.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+    return true;
+  } catch (error) {
+    if (context.mounted) {
+      final message = error is OrderRepositoryException
+          ? error.message
+          : 'The order could not be cancelled. Please try again.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      );
+    }
+    return false;
+  }
+}
 
 class OrderDetails extends StatelessWidget {
   final Map<String, dynamic> order;
   final CustomerProofPhotoRepository? proofPhotoRepository;
+  final OrderRepository? orderRepository;
 
   const OrderDetails({
     super.key,
     required this.order,
     this.proofPhotoRepository,
+    this.orderRepository,
   });
 
   String get orderId => order['orderId'] as String;
@@ -50,6 +120,13 @@ class OrderDetails extends StatelessWidget {
     return null;
   }
 
+  Order? get typedOrder {
+    final value = order['typedOrder'];
+    return value is Order ? value : null;
+  }
+
+  bool get canCancel => typedOrder?.status == OrderStatus.placed;
+
   @override
   Widget build(BuildContext context) {
     // Colors and Buttons Logic
@@ -58,14 +135,15 @@ class OrderDetails extends StatelessWidget {
     String buttonText;
     Color buttonColor;
     bool isOutlined;
+    final showCancelAction = canCancel;
 
     switch (status) {
       case 'Preparing':
         statusColor = const Color.fromARGB(255, 255, 160, 122);
         heroIcon = Icons.outdoor_grill;
-        buttonText = 'Cancel Order';
+        buttonText = showCancelAction ? 'Cancel Order' : '';
         buttonColor = const Color.fromARGB(255, 229, 57, 53);
-        isOutlined = true;
+        isOutlined = showCancelAction;
         break;
       case 'Delivering':
         statusColor = const Color.fromARGB(255, 33, 150, 243);
@@ -230,7 +308,8 @@ class OrderDetails extends StatelessWidget {
                 ),
               ),
             ),
-            Container(
+            if (buttonText.isNotEmpty)
+              Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: 20.0,
                 vertical: 16.0,
@@ -250,8 +329,15 @@ class OrderDetails extends StatelessWidget {
                 height: 50,
                 child: isOutlined
                     ? OutlinedButton(
-                        onPressed: () {
-                          //TODO: Handle Cancel Order API request
+                        onPressed: () async {
+                          final cancelled = await cancelCustomerOrder(
+                            context: context,
+                            order: order,
+                            repository: orderRepository,
+                          );
+                          if (cancelled && context.mounted) {
+                            Navigator.pop(context, true);
+                          }
                         },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: buttonColor,

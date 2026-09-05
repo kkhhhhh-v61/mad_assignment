@@ -172,11 +172,6 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
 
       accountOptions: [
         SharedOptionTile(
-          icon: Icons.store_outlined,
-          title: 'Delivery Fees Setting',
-          onTap: () {},
-        ),
-        SharedOptionTile(
           icon: Icons.people_outline,
           title: 'Manage Customers',
           onTap: () {
@@ -199,11 +194,6 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
               ),
             );
           },
-        ),
-        SharedOptionTile(
-          icon: Icons.bar_chart,
-          title: 'Assign Rider',
-          onTap: () {},
         ),
       ],
     );

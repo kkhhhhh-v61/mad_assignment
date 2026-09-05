@@ -71,38 +71,6 @@ void main() {
       },
     );
 
-    testWidgets(
-      'tapping Proceed to Payment with Card shows SnackBar and does not place order',
-      (tester) async {
-        bool orderPlaced = false;
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              bottomNavigationBar: CheckoutBottomBar(
-                total: 62.50,
-                buttonText: 'Proceed to Payment',
-                selectedPaymentMethod: 'Credit / Debit Card',
-                onPlaceOrder: () {
-                  orderPlaced = true;
-                },
-              ),
-            ),
-          ),
-        );
-
-        await tester.tap(find.text('Proceed to Payment'));
-        await tester.pump();
-
-        expect(orderPlaced, isFalse);
-        expect(
-          find.text(
-            'Credit / Debit Card payment via Stripe sandbox is not enabled yet. Please select Cash on Delivery.',
-          ),
-          findsOneWidget,
-        );
-      },
-    );
   });
 
   group('CheckoutPayment', () {

@@ -15,6 +15,7 @@ import '../Order/order_repository.dart';
 import '../global.dart';
 import '../rider/data_gov_my_fuel_price_repository.dart';
 import '../services/states.dart';
+import '../services/stripe_service.dart';
 import 'branch_selection.dart';
 import 'cart.dart';
 import 'address_coordinate_cache.dart';
@@ -108,7 +109,6 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
   final List<String> _availablePaymentMethods = const [
     'Cash on Delivery',
     'Credit / Debit Card',
-    'Online Banking',
   ];
   List<Map<String, dynamic>> _savedCards = [];
   Map<String, dynamic>? _selectedSavedCard;
@@ -209,7 +209,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         });
       }
     } catch (e) {
-      print('Error fetching checkout vouchers: $e');
+      debugPrint('Error fetching checkout vouchers: $e');
     }
   }
 
@@ -543,19 +543,12 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
             .order('created_at', ascending: false);
         if (mounted) {
           final cards = List<Map<String, dynamic>>.from(response);
-          Map<String, dynamic>? defaultCard;
-          if (cards.isNotEmpty) {
-            defaultCard = cards.firstWhere(
-                  (c) => c['is_default'] == true,
-              orElse: () => cards.first,
-            );
-          }
           setState(() {
             _savedCards = cards;
             _savedCardsLoading = false;
-            if (_selectedSavedCard == null ||
+            if (_selectedSavedCard != null &&
                 !cards.any((c) => c['id'] == _selectedSavedCard?['id'])) {
-              _selectedSavedCard = defaultCard;
+              _selectedSavedCard = null;
             }
           });
           return;
@@ -957,9 +950,16 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     return OrderSubmission(
       orderNumber: 'ORD-${DateTime.now().toUtc().millisecondsSinceEpoch}',
       paymentIdempotencyKey: 'checkout-${const Uuid().v4()}',
-      paymentType: 'COD',
-      paymentStatus: 'Pending',
-      paymentMethodId: null,
+      paymentType:
+          _selectedPaymentMethod == 'Credit / Debit Card' ? 'Card' : 'COD',
+      paymentStatus: _selectedPaymentMethod == 'Credit / Debit Card'
+          ? 'Completed'
+          : 'Pending',
+      paymentMethodId: _selectedPaymentMethod == 'Credit / Debit Card'
+          ? (_selectedSavedCard != null
+              ? _selectedSavedCard!['id']?.toString()
+              : null)
+          : null,
       fulfilmentType: isDelivery
           ? FulfilmentType.delivery
           : FulfilmentType.pickup,
@@ -972,6 +972,98 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
       roadDistanceKm: quote?.oneWayRoadDistanceKm,
       items: items,
     );
+  }
+
+  double _calculateCurrentTotal() {
+    double subtotal = 0;
+    for (var item in _cartItems) {
+      double customTotal = item.customizations.fold(
+        0.0,
+        (sum, c) => sum + c.price,
+      );
+      subtotal += (item.price + customTotal) * item.quantity;
+    }
+    final effectiveDeliveryFee = _isSelfPickup ? 0.0 : _deliveryFee;
+    double discount = 0.0;
+    if (_appliedVoucher != null) {
+      if (_appliedVoucher!['is_free_delivery'] == true) {
+        discount = effectiveDeliveryFee;
+      } else {
+        final rawDiscount =
+            _appliedVoucher!['discount_amount'] ?? _appliedVoucher!['discountValue'];
+        final discountAmount = rawDiscount is num
+            ? rawDiscount.toDouble()
+            : 0.0;
+        discount = discountAmount;
+        if (discount > subtotal) {
+          discount = subtotal;
+        }
+      }
+    }
+    final sst = subtotal * 0.06;
+    double total = subtotal + sst + effectiveDeliveryFee - discount;
+    return total < 0 ? 0 : total;
+  }
+
+  Future<bool> _showExitConfirmationDialog() async {
+    final shouldLeave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        title: const Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Color.fromARGB(255, 255, 160, 122),
+              size: 24,
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Leave Checkout?',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18.0,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to leave checkout? Your items will remain in your cart, but your order has not been placed yet.',
+          style: TextStyle(fontSize: 14.0, color: Colors.black87),
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text(
+              'Stay',
+              style: TextStyle(
+                color: Color.fromARGB(255, 120, 120, 120),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 255, 160, 122),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+            ),
+            child: const Text(
+              'Leave',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+    return shouldLeave ?? false;
   }
 
   Future<void> _submitOrder() async {
@@ -988,7 +1080,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         );
       }
       final submission = _buildOrderSubmission();
-      final order = await repository.createOrder(submission);
+      await repository.createOrder(submission);
       await CartStorage.clearCart();
       if (!mounted) return;
       setState(() {
@@ -999,7 +1091,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         context,
         MaterialPageRoute(
           builder: (_) => CustomerOrderConfirmation(
-            totalPaid: order.totalSen / 100.0,
+            totalPaid: _calculateCurrentTotal(),
             paymentMethod: _selectedPaymentMethod,
           ),
         ),
@@ -1260,81 +1352,94 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(248, 255, 255, 255),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: Color.fromARGB(221, 0, 0, 0),
-            size: 20,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldLeave = await _showExitConfirmationDialog();
+        if (shouldLeave && context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color.fromARGB(248, 255, 255, 255),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: Color.fromARGB(221, 0, 0, 0),
+              size: 20,
+            ),
+            onPressed: () async {
+              final shouldLeave = await _showExitConfirmationDialog();
+              if (shouldLeave && context.mounted) {
+                Navigator.pop(context);
+              }
+            },
           ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Checkout',
-          style: TextStyle(
-            color: Color.fromARGB(221, 0, 0, 0),
-            fontWeight: FontWeight.bold,
-            fontSize: 18.0,
+          title: const Text(
+            'Checkout',
+            style: TextStyle(
+              color: Color.fromARGB(221, 0, 0, 0),
+              fontWeight: FontWeight.bold,
+              fontSize: 18.0,
+            ),
+          ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1.0),
+            child: Container(
+              color: const Color.fromARGB(255, 214, 214, 214),
+              height: 1.0,
+            ),
           ),
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(
-            color: const Color.fromARGB(255, 214, 214, 214),
-            height: 1.0,
-          ),
-        ),
-      ),
-      body: CheckoutLayout(
-        cartItems: _cartItems,
-        isSelfPickup: _isSelfPickup,
-        onFulfillmentChanged: _setFulfillmentType,
-        branchSelectionEnabled: _isSelfPickup,
-        selectedBranch: _selectedBranch,
-        fallbackBranchSnapshot: widget.branchSnapshot,
-        branches: _branches,
-        branchLoading: _branchesLoading,
-        branchError: _branchesError,
-        onBranchTap: () => _showBranchSelectionDialog(context),
-        onRetryBranches: _loadBranches,
-        selectedAddress: _selectedAddress,
-        selectedAddressLabel: _selectedAddressOption?.label,
-        onAddressTap: () => _showAddressSelectionDialog(context),
-        selectedPaymentMethod: _selectedPaymentMethod,
-        availablePaymentMethods: _availablePaymentMethods,
-        selectedSavedCard: _selectedSavedCard,
-        savedCards: _savedCards,
-        savedCardsLoading: _savedCardsLoading,
-        onPaymentMethodChanged: (method, card) {
-          setState(() {
-            _selectedPaymentMethod = method;
-            if (card != null) {
+        body: CheckoutLayout(
+          cartItems: _cartItems,
+          isSelfPickup: _isSelfPickup,
+          onFulfillmentChanged: _setFulfillmentType,
+          branchSelectionEnabled: _isSelfPickup,
+          selectedBranch: _selectedBranch,
+          fallbackBranchSnapshot: widget.branchSnapshot,
+          branches: _branches,
+          branchLoading: _branchesLoading,
+          branchError: _branchesError,
+          onBranchTap: () => _showBranchSelectionDialog(context),
+          onRetryBranches: _loadBranches,
+          selectedAddress: _selectedAddress,
+          selectedAddressLabel: _selectedAddressOption?.label,
+          onAddressTap: () => _showAddressSelectionDialog(context),
+          selectedPaymentMethod: _selectedPaymentMethod,
+          availablePaymentMethods: _availablePaymentMethods,
+          selectedSavedCard: _selectedSavedCard,
+          savedCards: _savedCards,
+          savedCardsLoading: _savedCardsLoading,
+          onPaymentMethodChanged: (method, card) {
+            setState(() {
+              _selectedPaymentMethod = method;
               _selectedSavedCard = card;
-            }
-          });
-        },
-        onAddNewCard: () => _openAddCardModal(context),
-        appliedVoucher: _appliedVoucher,
-        deliveryFee: _deliveryFee,
-        deliveryFeeQuote: _deliveryFeeQuote,
-        deliveryFeeRequired: _routedFeeEnabled,
-        deliveryFeeLoading: _deliveryFeeLoading,
-        deliveryFeeError: _deliveryFeeError,
-        onRetryDeliveryFee: _loadRoutedDeliveryFee,
-        availableVouchers: _availableVouchers,
-        placeOrderLoading: _isSubmitting,
-        navigateToConfirmation: false,
-        onVoucherApplied: (voucher) {
-          setState(() {
-            _appliedVoucher = voucher;
-          });
-        },
-        onPlaceOrder: _submitOrder,
+            });
+          },
+          onAddNewCard: () => _openAddCardModal(context),
+          appliedVoucher: _appliedVoucher,
+          deliveryFee: _deliveryFee,
+          deliveryFeeQuote: _deliveryFeeQuote,
+          deliveryFeeRequired: _routedFeeEnabled,
+          deliveryFeeLoading: _deliveryFeeLoading,
+          deliveryFeeError: _deliveryFeeError,
+          onRetryDeliveryFee: _loadRoutedDeliveryFee,
+          availableVouchers: _availableVouchers,
+          placeOrderLoading: _isSubmitting,
+          navigateToConfirmation: false,
+          onVoucherApplied: (voucher) {
+            setState(() {
+              _appliedVoucher = voucher;
+            });
+          },
+          onPlaceOrder: _submitOrder,
+        ),
       ),
     );
   }
@@ -1443,7 +1548,8 @@ class CheckoutLayout extends StatelessWidget {
       }
     }
 
-    double total = subtotal + effectiveDeliveryFee - discount;
+    final double sst = subtotal * 0.06;
+    double total = subtotal + sst + effectiveDeliveryFee - discount;
     if (total < 0) total = 0;
 
     final addressReady = isSelfPickup || selectedAddress.trim().isNotEmpty;
@@ -1529,6 +1635,7 @@ class CheckoutLayout extends StatelessWidget {
                 ],
                 CheckoutSummary(
                   subtotal: subtotal,
+                  sst: sst,
                   deliveryFee: effectiveDeliveryFee,
                   discount: discount,
                   total: total,
@@ -1546,6 +1653,7 @@ class CheckoutLayout extends StatelessWidget {
           navigateToConfirmation: navigateToConfirmation,
           buttonText: buttonText,
           selectedPaymentMethod: selectedPaymentMethod,
+          selectedSavedCard: selectedSavedCard,
         ),
       ],
     );
@@ -2224,10 +2332,8 @@ class CheckoutPayment extends StatelessWidget {
         final brand = selectedSavedCard!['card_brand'] ?? 'Card';
         final exp = selectedSavedCard!['expiry_date'] ?? '';
         subtitle = '$brand •••• $last4 (Exp: $exp)';
-      } else if (savedCards.isNotEmpty) {
-        subtitle = 'Select a card';
       } else {
-        subtitle = 'No saved cards (Tap to add)';
+        subtitle = 'Enter card details at payment';
       }
     } else if (selectedPaymentMethod == 'Online Banking') {
       icon = Icons.account_balance_outlined;
@@ -2371,21 +2477,17 @@ class _PaymentSelectionBottomSheetState
   void _selectMethod(String method) {
     setState(() {
       _selectedMethod = method;
-      if (method == 'Credit / Debit Card' &&
-          _selectedCard == null &&
-          widget.savedCards.isNotEmpty) {
-        _selectedCard = widget.savedCards.firstWhere(
-              (c) => c['is_default'] == true,
-          orElse: () => widget.savedCards.first,
-        );
-      }
     });
   }
 
   void _selectCard(Map<String, dynamic> card) {
     setState(() {
       _selectedMethod = 'Credit / Debit Card';
-      _selectedCard = card;
+      if (_selectedCard?['id'] == card['id']) {
+        _selectedCard = null;
+      } else {
+        _selectedCard = card;
+      }
     });
   }
 
@@ -2672,7 +2774,63 @@ class _PaymentSelectionBottomSheetState
                         ],
                       ),
                     )
-                  else
+                  else ...[
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _selectedCard = null;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(12.0),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8.0),
+                        padding: const EdgeInsets.all(12.0),
+                        decoration: BoxDecoration(
+                          color: _selectedCard == null
+                              ? Colors.white
+                              : const Color.fromARGB(255, 250, 250, 250),
+                          borderRadius: BorderRadius.circular(12.0),
+                          border: Border.all(
+                            color: _selectedCard == null
+                                ? const Color.fromARGB(255, 255, 160, 122)
+                                : const Color.fromARGB(255, 230, 230, 230),
+                            width: _selectedCard == null ? 1.5 : 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.edit_note_outlined,
+                              color: _selectedCard == null
+                                  ? const Color.fromARGB(255, 255, 160, 122)
+                                  : const Color.fromARGB(255, 140, 140, 140),
+                              size: 22,
+                            ),
+                            const SizedBox(width: 10.0),
+                            Expanded(
+                              child: Text(
+                                'Enter Card Details Manually',
+                                style: TextStyle(
+                                  fontWeight: _selectedCard == null
+                                      ? FontWeight.bold
+                                      : FontWeight.w600,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              _selectedCard == null
+                                  ? Icons.check_circle
+                                  : Icons.radio_button_unchecked,
+                              color: _selectedCard == null
+                                  ? const Color.fromARGB(255, 255, 160, 122)
+                                  : const Color.fromARGB(255, 200, 200, 200),
+                              size: 18,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     ...widget.savedCards.map((card) {
                       final isCardSelected = _selectedCard?['id'] == card['id'];
                       final isDefault = card['is_default'] == true;
@@ -2793,6 +2951,7 @@ class _PaymentSelectionBottomSheetState
                         ),
                       );
                     }),
+                  ],
                 ],
               ),
             ),
@@ -2928,8 +3087,11 @@ class _PaymentSelectionBottomSheetState
                     _buildCoDOption(),
                     const SizedBox(height: 14.0),
                     _buildCardOption(),
-                    const SizedBox(height: 14.0),
-                    _buildOnlineBankingOption(),
+                    if (widget.availablePaymentMethods
+                        .contains('Online Banking')) ...[
+                      const SizedBox(height: 14.0),
+                      _buildOnlineBankingOption(),
+                    ],
                   ],
                 ),
               ),
@@ -3056,6 +3218,7 @@ class _DeliveryFeeStatusCard extends StatelessWidget {
 
 class CheckoutSummary extends StatelessWidget {
   final double subtotal;
+  final double sst;
   final double deliveryFee;
   final double discount;
   final double total;
@@ -3063,6 +3226,7 @@ class CheckoutSummary extends StatelessWidget {
   const CheckoutSummary({
     super.key,
     required this.subtotal,
+    this.sst = 0.0,
     required this.deliveryFee,
     required this.discount,
     required this.total,
@@ -3096,6 +3260,20 @@ class CheckoutSummary extends StatelessWidget {
               ),
               Text(
                 'RM ${subtotal.toStringAsFixed(2)}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12.0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'SST (6%)',
+                style: TextStyle(color: Color.fromARGB(255, 117, 117, 117)),
+              ),
+              Text(
+                'RM ${sst.toStringAsFixed(2)}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ],
@@ -3163,7 +3341,7 @@ class CheckoutSummary extends StatelessWidget {
   }
 }
 
-class CheckoutBottomBar extends StatelessWidget {
+class CheckoutBottomBar extends StatefulWidget {
   final double total;
   final FutureOr<void> Function() onPlaceOrder;
   final bool placeOrderEnabled;
@@ -3171,6 +3349,7 @@ class CheckoutBottomBar extends StatelessWidget {
   final bool navigateToConfirmation;
   final String buttonText;
   final String selectedPaymentMethod;
+  final Map<String, dynamic>? selectedSavedCard;
 
   const CheckoutBottomBar({
     super.key,
@@ -3181,10 +3360,90 @@ class CheckoutBottomBar extends StatelessWidget {
     this.navigateToConfirmation = true,
     this.buttonText = 'Proceed to Payment',
     this.selectedPaymentMethod = 'Cash on Delivery',
+    this.selectedSavedCard,
   });
 
   @override
+  State<CheckoutBottomBar> createState() => _CheckoutBottomBarState();
+}
+
+class _CheckoutBottomBarState extends State<CheckoutBottomBar> {
+  bool _isProcessing = false;
+
+  Future<void> _handlePayment() async {
+    if (_isProcessing) return;
+
+    if (widget.selectedPaymentMethod == 'Cash on Delivery') {
+      await widget.onPlaceOrder();
+      if (!mounted || !widget.navigateToConfirmation) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CustomerOrderConfirmation(
+            totalPaid: widget.total,
+            paymentMethod: widget.selectedPaymentMethod,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (widget.selectedPaymentMethod == 'Credit / Debit Card') {
+      setState(() => _isProcessing = true);
+      try {
+        final success = await StripeService.handleCardPayment(
+          context: context,
+          amount: widget.total,
+          selectedCard: widget.selectedSavedCard,
+        );
+
+        if (!mounted) return;
+
+        if (success) {
+          await widget.onPlaceOrder();
+          if (!mounted || !widget.navigateToConfirmation) return;
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CustomerOrderConfirmation(
+                totalPaid: widget.total,
+                paymentMethod: 'Credit / Debit Card',
+              ),
+            ),
+          );
+        }
+      } catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Payment failed: ${error.toString().replaceAll('Exception: ', '')}',
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isProcessing = false);
+        }
+      }
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${widget.selectedPaymentMethod} payment via Stripe sandbox is not enabled yet. Please select Cash on Delivery or Credit / Debit Card.',
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isLoading = widget.placeOrderLoading || _isProcessing;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
       decoration: const BoxDecoration(
@@ -3201,31 +3460,8 @@ class CheckoutBottomBar extends StatelessWidget {
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: placeOrderEnabled
-              ? () async {
-                  if (selectedPaymentMethod == 'Cash on Delivery') {
-                    await onPlaceOrder();
-                    if (!context.mounted || !navigateToConfirmation) return;
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CustomerOrderConfirmation(
-                          totalPaid: total,
-                          paymentMethod: selectedPaymentMethod,
-                        ),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '$selectedPaymentMethod payment via Stripe sandbox is not enabled yet. Please select Cash on Delivery.',
-                        ),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                }
+          onPressed: (widget.placeOrderEnabled && !isLoading)
+              ? _handlePayment
               : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color.fromARGB(255, 255, 160, 122),
@@ -3236,7 +3472,7 @@ class CheckoutBottomBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(16.0),
             ),
           ),
-          child: placeOrderLoading
+          child: isLoading
               ? const SizedBox(
                   width: 22,
                   height: 22,
@@ -3246,7 +3482,7 @@ class CheckoutBottomBar extends StatelessWidget {
                   ),
                 )
               : Text(
-                  buttonText,
+                  widget.buttonText,
                   style: const TextStyle(
                     fontSize: 16.0,
                     fontWeight: FontWeight.bold,

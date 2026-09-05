@@ -15,6 +15,7 @@ class SharedAccountScreen extends StatefulWidget {
   final UserRole role;
   final String vehicleType;
   final String vehiclePlate;
+  final String branchName;
   final bool isOnline;
   final ValueChanged<bool>? onOnlineChanged;
 
@@ -33,6 +34,7 @@ class SharedAccountScreen extends StatefulWidget {
     this.role = UserRole.customer,
     this.vehicleType = '',
     this.vehiclePlate = '',
+    this.branchName = '',
     this.isOnline = false,
     this.onOnlineChanged,
   });
@@ -213,6 +215,17 @@ class _SharedAccountScreenState extends State<SharedAccountScreen> {
             ),
           ),
           const SizedBox(height: 16.0),
+          _buildInformationRow(
+            icon: Icons.store_outlined,
+            title: 'Assigned Branch',
+            value: widget.branchName.isNotEmpty
+                ? widget.branchName
+                : 'Not Available',
+          ),
+          const Divider(
+            height: 24.0,
+            color: Color.fromARGB(255, 238, 238, 238),
+          ),
           _buildInformationRow(
             icon: Icons.two_wheeler_outlined,
             title: 'Vehicle Type',

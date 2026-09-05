@@ -30,6 +30,7 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
 
   String _vehicleType = '';
   String _vehiclePlate = '';
+  String _branchName = '';
   bool _isOnline = false;
 
   @override
@@ -47,7 +48,7 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
       debugPrint('Fetching Rider Data for ID: $userId');
       final response = await supabase
           .from('riders')
-          .select('vehicle,plate,status')
+          .select('*, branches(name)')
           .eq('id', userId)
           .single();
 
@@ -57,6 +58,7 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
         setState(() {
           _vehicleType = response['vehicle']?.toString() ?? 'Not Available';
           _vehiclePlate = response['plate']?.toString() ?? 'Not Available';
+          _branchName = response['branches']?['name']?.toString() ?? 'Unassigned';
           _isOnline = response['status'] == 'Online';
         });
       }
@@ -93,6 +95,7 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
       role: UserRole.rider,
       vehicleType: _vehicleType,
       vehiclePlate: _vehiclePlate,
+      branchName: _branchName,
       isOnline: _isOnline,
       onOnlineChanged: (bool value) async {
         setState(() {
@@ -121,6 +124,7 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
               initialAvatarUrl: currentUser?.avatarUrl,
               vehicleType: _vehicleType,
               vehiclePlate: _vehiclePlate,
+              branchName: _branchName,
               onSave: (name, email, phone, password) async {
                 try {
                   final userId = supabase.auth.currentUser!.id;

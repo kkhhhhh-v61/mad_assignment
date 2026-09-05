@@ -39,7 +39,7 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
     try {
       final data = await _supabase
           .from('riders')
-          .select('*, profiles(name, phone, email, avatar_url)')
+          .select('*, profiles(name, phone, email, avatar_url), branches(name)')
           .order('created_at', ascending: false)
           .timeout(const Duration(seconds: 10));
 
@@ -47,12 +47,14 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
         _riderItems = (data as List).map((e) {
           final item = e as Map<String, dynamic>;
           final profile = item['profiles'] as Map<String, dynamic>? ?? {};
+          final branch = item['branches'] as Map<String, dynamic>? ?? {};
 
           final Map<String, dynamic> flattenedItem = Map<String, dynamic>.from(item);
           flattenedItem['name'] = profile['name'];
           flattenedItem['phone'] = profile['phone'];
           flattenedItem['email'] = profile['email'];
           flattenedItem['avatar_url'] = profile['avatar_url'];
+          flattenedItem['branch_name'] = branch['name'] ?? 'Unassigned';
 
           return flattenedItem;
         }).toList();
@@ -78,8 +80,9 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
         final phone = (rider['phone'] ?? '').toString().toLowerCase();
         final vehicle = (rider['vehicle'] ?? '').toString().toLowerCase();
         final plate = (rider['plate'] ?? '').toString().toLowerCase();
+        final branchName = (rider['branch_name'] ?? '').toString().toLowerCase();
         return name.contains(query) || email.contains(query) ||
-            phone.contains(query) || vehicle.contains(query) || plate.contains(query);
+            phone.contains(query) || vehicle.contains(query) || plate.contains(query) || branchName.contains(query);
       }).toList();
     }
 
@@ -182,7 +185,7 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
                           });
                         },
                         decoration: InputDecoration(
-                          hintText: 'Search name, phone, plate...',
+                          hintText: 'Search name, phone, plate, branch...',
                           hintStyle: const TextStyle(color: Colors.grey, fontSize: 14.0),
                           prefixIcon: const Icon(Icons.search, color: Colors.grey),
                           suffixIcon: _searchQuery.isNotEmpty
@@ -384,6 +387,21 @@ class RiderItemCard extends StatelessWidget {
                       style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Color.fromARGB(221, 0, 0, 0)),
                     ),
                     const SizedBox(height: 8.0),
+
+                    Row(
+                      children: [
+                        const Icon(Icons.store_outlined, color: Color.fromARGB(255, 158, 158, 158), size: 16),
+                        const SizedBox(width: 6.0),
+                        Expanded(
+                          child: Text(
+                            item['branch_name'] as String? ?? 'Unassigned',
+                            style: const TextStyle(fontSize: 13.0, color: Color.fromARGB(255, 117, 117, 117)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4.0),
                     Row(
                       children: [
                         const Icon(Icons.delivery_dining, color: Color.fromARGB(255, 158, 158, 158), size: 16),

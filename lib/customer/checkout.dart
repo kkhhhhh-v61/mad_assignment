@@ -13,6 +13,7 @@ import 'cart.dart';
 import 'header.dart';
 import 'order_confirmation.dart';
 import 'payment_methods.dart';
+import 'saved_addresses.dart';
 
 class CustomerCheckout extends StatefulWidget {
   final List<CartItem>? cartItems;
@@ -44,7 +45,9 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
   late List<CartItem> _cartItems;
   bool _isSelfPickup = false;
   late String _selectedAddress;
-  late List<String> _addresses;
+  AddressOption? _selectedAddressOption;
+  AddressOption? _detectedLocation;
+  List<AddressOption> _addressOptions = [];
   late String _selectedPaymentMethod;
   final List<String> _availablePaymentMethods = const [
     'Cash on Delivery',
@@ -74,10 +77,10 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
       _selectedBranch?.snapshot ?? widget.branchSnapshot;
 
   bool get _routedFeeEnabled =>
-      widget.branchSnapshot != null ||
-      widget.deliveryAddressSnapshot != null ||
-      widget.deliveryFeeService != null ||
-      (widget.enableBranchSelection && _selectedBranch != null);
+      (widget.deliveryAddressSnapshot != null &&
+          (widget.branchSnapshot != null ||
+              (widget.enableBranchSelection && _selectedBranch != null))) ||
+      widget.deliveryFeeService != null;
 
   @override
   void initState() {
@@ -94,7 +97,10 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
                 ? CustomerHeader.cachedAddress
                 : ''));
     _selectedAddress = initialAddress;
-    _addresses = _selectedAddress.isNotEmpty ? [_selectedAddress] : [];
+    if (CustomerHeader.cachedSelectedOption != null &&
+        CustomerHeader.cachedSelectedOption!.fullAddress == _selectedAddress) {
+      _selectedAddressOption = CustomerHeader.cachedSelectedOption;
+    }
     _selectedPaymentMethod = 'Cash on Delivery';
     _appliedVoucher = null;
     _deliveryFee = 0.0;
@@ -127,16 +133,34 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
   }
 
   Future<void> _loadAddresses() async {
-    final List<String> addressList = [];
-    if (_selectedAddress.isNotEmpty) {
-      addressList.add(_selectedAddress);
-    }
-    final headerAddresses = CustomerHeader.cachedSavedAddressStrings;
-    for (final addr in headerAddresses) {
-      if (!addressList.contains(addr)) {
-        addressList.add(addr);
+    final AddressOption detected = CustomerHeader.cachedDetectedLocation ??
+        (CustomerHeader.cachedAddress.isNotEmpty
+            ? AddressOption(
+                label: 'Current Location',
+                fullAddress: CustomerHeader.cachedAddress,
+                state: CustomerHeader.cachedState.isNotEmpty
+                    ? CustomerHeader.cachedState
+                    : extractStateFromAddress(CustomerHeader.cachedAddress),
+                isDetected: true,
+              )
+            : const AddressOption(
+                label: 'Current Location',
+                fullAddress: 'George Town, Penang',
+                state: 'Pulau Pinang',
+                isDetected: true,
+              ));
+
+    final List<AddressOption> options = [];
+
+    final headerSaved = CustomerHeader.cachedSavedAddresses;
+    if (headerSaved != null) {
+      for (final opt in headerSaved) {
+        if (!options.any((o) => o.fullAddress == opt.fullAddress)) {
+          options.add(opt);
+        }
       }
     }
+
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
@@ -146,28 +170,83 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
             .eq('id', user.id)
             .maybeSingle();
         final pAddr = profileRes?['address']?.toString().trim();
-        if (pAddr != null && pAddr.isNotEmpty && !addressList.contains(pAddr)) {
-          addressList.add(pAddr);
+        if (pAddr != null && pAddr.isNotEmpty) {
+          if (!options.any((o) => o.fullAddress == pAddr)) {
+            options.insert(
+              0,
+              AddressOption(
+                label: 'Default Address',
+                fullAddress: pAddr,
+                state: extractStateFromAddress(pAddr),
+                isDefault: true,
+              ),
+            );
+          }
         }
+
         final savedRes = await Supabase.instance.client
             .from('user_addresses')
-            .select('full_address')
-            .eq('user_id', user.id);
+            .select()
+            .eq('user_id', user.id)
+            .order('created_at', ascending: false);
         for (final row in savedRes) {
           final sAddr = row['full_address']?.toString().trim();
-          if (sAddr != null && sAddr.isNotEmpty && !addressList.contains(sAddr)) {
-            addressList.add(sAddr);
+          final sLabel = row['label']?.toString().trim();
+          if (sAddr != null && sAddr.isNotEmpty) {
+            final existingIndex =
+                options.indexWhere((o) => o.fullAddress == sAddr);
+            if (existingIndex >= 0) {
+              if (sLabel != null && sLabel.isNotEmpty) {
+                options[existingIndex] = AddressOption(
+                  label: sLabel,
+                  fullAddress: sAddr,
+                  state: extractStateFromAddress(sAddr),
+                  isDefault: options[existingIndex].isDefault,
+                );
+              }
+            } else {
+              options.add(
+                AddressOption(
+                  label: (sLabel != null && sLabel.isNotEmpty)
+                      ? sLabel
+                      : 'Saved Address',
+                  fullAddress: sAddr,
+                  state: extractStateFromAddress(sAddr),
+                ),
+              );
+            }
           }
         }
       }
     } catch (_) {}
 
+    AddressOption? selectedOption = _selectedAddressOption;
+    if (_selectedAddress.isNotEmpty) {
+      selectedOption = options
+          .where((o) => o.fullAddress == _selectedAddress)
+          .firstOrNull;
+      if (selectedOption == null &&
+          detected.fullAddress == _selectedAddress) {
+        selectedOption = detected;
+      }
+      selectedOption ??= AddressOption(
+        label: 'Delivery Address',
+        fullAddress: _selectedAddress,
+        state: extractStateFromAddress(_selectedAddress),
+      );
+    } else if (options.isNotEmpty) {
+      selectedOption = options.first;
+      _selectedAddress = options.first.fullAddress;
+    } else {
+      selectedOption = detected;
+      _selectedAddress = detected.fullAddress;
+    }
+
     if (mounted) {
       setState(() {
-        _addresses = addressList;
-        if (_selectedAddress.isEmpty && addressList.isNotEmpty) {
-          _selectedAddress = addressList.first;
-        }
+        _detectedLocation = detected;
+        _addressOptions = options;
+        _selectedAddressOption = selectedOption;
       });
     }
   }
@@ -488,137 +567,241 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     super.dispose();
   }
 
+  Future<void> _openManageAddresses(BuildContext context) async {
+    Navigator.pop(context);
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SavedAddressesScreen()),
+    );
+    CustomerHeader.clearLocationCache();
+    await _loadAddresses();
+  }
+
   void _showAddressSelectionDialog(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
       ),
-      builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(24.0),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 224, 224, 224),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Delivery Address',
-                    style: TextStyle(
-                      fontSize: 20.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16.0),
-              ..._addresses.map((String address) {
-                final isSelected = _selectedAddress == address;
-                return InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedAddress = address;
-                      if (!_isSelfPickup && _branches.isNotEmpty) {
-                        final addressState = extractStateFromAddress(address);
-                        if (addressState.isNotEmpty) {
-                          for (final branch in _branches) {
-                            if (isSameState(branch.stateCode, addressState) ||
-                                branch.address.toLowerCase().contains(addressState.toLowerCase()) ||
-                                branch.name.toLowerCase().contains(addressState.toLowerCase())) {
-                              _selectedBranch = branch;
-                              break;
-                            }
-                          }
-                        }
-                      }
-                    });
-                    Navigator.pop(context);
-                  },
-                  borderRadius: BorderRadius.circular(12.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    margin: const EdgeInsets.only(bottom: 12.0),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color.fromARGB(
-                              255,
-                              255,
-                              160,
-                              122,
-                            ).withValues(alpha: 0.1)
-                          : Colors.white,
-                      border: Border.all(
-                        color: isSelected
-                            ? const Color.fromARGB(255, 255, 160, 122)
-                            : const Color.fromARGB(255, 238, 238, 238),
-                        width: isSelected ? 2.0 : 1.0,
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE0E0E0),
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      borderRadius: BorderRadius.circular(12.0),
                     ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10.0),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? Colors.white
-                                : const Color.fromARGB(255, 245, 245, 245),
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                          child: Icon(
-                            Icons.location_on,
-                            color: isSelected
-                                ? const Color.fromARGB(255, 255, 160, 122)
-                                : const Color.fromARGB(255, 158, 158, 158),
-                          ),
+                  ),
+                  const SizedBox(height: 16.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Select Delivery Address',
+                        style: TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xDD000000),
                         ),
-                        const SizedBox(width: 16.0),
-                        Expanded(
-                          child: Text(
-                            address,
-                            style: TextStyle(
-                              fontSize: 14.0,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        if (isSelected)
-                          const Icon(
-                            Icons.check_circle,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.black54),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () => Navigator.pop(sheetContext),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16.0),
+                  if (_detectedLocation != null)
+                    _buildAddressOptionTile(
+                      _detectedLocation!,
+                      icon: Icons.my_location,
+                      sheetContext: sheetContext,
+                    ),
+                  if (_addressOptions.isNotEmpty) const Divider(height: 24.0),
+                  ..._addressOptions.map((addr) => _buildAddressOptionTile(
+                        addr,
+                        icon: addr.isDefault
+                            ? Icons.home_outlined
+                            : (addr.label.toLowerCase() == 'home'
+                                ? Icons.home_outlined
+                                : (addr.label.toLowerCase() == 'work' ||
+                                        addr.label.toLowerCase() == 'office'
+                                    ? Icons.work_outline
+                                    : Icons.location_on_outlined)),
+                        sheetContext: sheetContext,
+                      )),
+                  const SizedBox(height: 12.0),
+                  InkWell(
+                    onTap: () => _openManageAddresses(sheetContext),
+                    borderRadius: BorderRadius.circular(12),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_location_alt_outlined,
+                            size: 18,
                             color: Color.fromARGB(255, 255, 160, 122),
                           ),
-                      ],
+                          SizedBox(width: 8),
+                          Text(
+                            'Manage Saved Addresses',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color.fromARGB(255, 255, 160, 122),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                );
-              }),
-            ],
+                  const SizedBox(height: 12.0),
+                ],
+              ),
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildAddressOptionTile(
+    AddressOption option, {
+    required IconData icon,
+    required BuildContext sheetContext,
+  }) {
+    final isSelected = _selectedAddress == option.fullAddress;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedAddressOption = option;
+          _selectedAddress = option.fullAddress;
+          if (!_isSelfPickup && _branches.isNotEmpty) {
+            final addressState = option.state.isNotEmpty
+                ? option.state
+                : extractStateFromAddress(option.fullAddress);
+            if (addressState.isNotEmpty) {
+              for (final branch in _branches) {
+                if (isSameState(branch.stateCode, addressState) ||
+                    branch.address
+                        .toLowerCase()
+                        .contains(addressState.toLowerCase()) ||
+                    branch.name
+                        .toLowerCase()
+                        .contains(addressState.toLowerCase())) {
+                  _selectedBranch = branch;
+                  break;
+                }
+              }
+            }
+          }
+        });
+        Navigator.pop(sheetContext);
+        if (!_isSelfPickup && widget.deliveryAddressSnapshot != null) {
+          _loadRoutedDeliveryFee();
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFF5F0) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFFFFC8B4)
+                : const Color(0xFFEEEEEE),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected
+                  ? const Color.fromARGB(255, 255, 160, 122)
+                  : const Color(0xFF9E9E9E),
+              size: 22,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        option.label,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected
+                              ? const Color.fromARGB(255, 255, 160, 122)
+                              : const Color(0xDD000000),
+                        ),
+                      ),
+                      if (option.isDefault) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(40, 255, 160, 122),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Default',
+                            style: TextStyle(
+                              color: Color.fromARGB(255, 255, 160, 122),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    option.fullAddress,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF757575),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(
+                Icons.check_circle,
+                color: Color.fromARGB(255, 255, 160, 122),
+                size: 20,
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -667,6 +850,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         onBranchTap: () => _showBranchSelectionDialog(context),
         onRetryBranches: _loadBranches,
         selectedAddress: _selectedAddress,
+        selectedAddressLabel: _selectedAddressOption?.label,
         onAddressTap: () => _showAddressSelectionDialog(context),
         selectedPaymentMethod: _selectedPaymentMethod,
         availablePaymentMethods: _availablePaymentMethods,
@@ -719,6 +903,7 @@ class CheckoutLayout extends StatelessWidget {
   final VoidCallback onBranchTap;
   final VoidCallback onRetryBranches;
   final String selectedAddress;
+  final String? selectedAddressLabel;
   final VoidCallback onAddressTap;
   final String selectedPaymentMethod;
   final List<String> availablePaymentMethods;
@@ -752,6 +937,7 @@ class CheckoutLayout extends StatelessWidget {
     this.onBranchTap = _noop,
     this.onRetryBranches = _noop,
     required this.selectedAddress,
+    this.selectedAddressLabel,
     required this.onAddressTap,
     required this.selectedPaymentMethod,
     required this.availablePaymentMethods,
@@ -831,6 +1017,7 @@ class CheckoutLayout extends StatelessWidget {
                 if (!isSelfPickup) ...[
                   AddressSelection(
                     address: selectedAddress,
+                    addressLabel: selectedAddressLabel,
                     onTap: onAddressTap,
                   ),
                   const SizedBox(height: 20.0),
@@ -890,6 +1077,7 @@ class CheckoutLayout extends StatelessWidget {
           onPlaceOrder: onPlaceOrder,
           placeOrderEnabled: placeOrderEnabled,
           buttonText: buttonText,
+          selectedPaymentMethod: selectedPaymentMethod,
         ),
       ],
     );
@@ -997,16 +1185,21 @@ class FulfillmentOptionSwitch extends StatelessWidget {
 
 class AddressSelection extends StatelessWidget {
   final String address;
+  final String? addressLabel;
   final VoidCallback onTap;
 
   const AddressSelection({
     super.key,
     required this.address,
+    this.addressLabel,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasLabel = addressLabel != null && addressLabel!.trim().isNotEmpty;
+    final isCurrentLocation = addressLabel == 'Current Location';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1027,7 +1220,8 @@ class AddressSelection extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16.0),
-              border: Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
+              border:
+                  Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
             ),
             child: Row(
               children: [
@@ -1037,19 +1231,46 @@ class AddressSelection extends StatelessWidget {
                     color: const Color.fromARGB(255, 245, 245, 245),
                     borderRadius: BorderRadius.circular(12.0),
                   ),
-                  child: const Icon(
-                    Icons.location_on,
-                    color: Color.fromARGB(255, 255, 160, 122),
+                  child: Icon(
+                    isCurrentLocation
+                        ? Icons.my_location
+                        : (addressLabel?.toLowerCase() == 'home'
+                            ? Icons.home_outlined
+                            : (addressLabel?.toLowerCase() == 'work' ||
+                                    addressLabel?.toLowerCase() == 'office'
+                                ? Icons.work_outline
+                                : Icons.location_on)),
+                    color: const Color.fromARGB(255, 255, 160, 122),
                   ),
                 ),
                 const SizedBox(width: 16.0),
                 Expanded(
-                  child: Text(
-                    address,
-                    style: const TextStyle(
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (hasLabel) ...[
+                        Text(
+                          addressLabel!,
+                          style: const TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xDD000000),
+                          ),
+                        ),
+                        const SizedBox(height: 2.0),
+                      ],
+                      Text(
+                        address,
+                        style: TextStyle(
+                          fontSize: hasLabel ? 12.5 : 14.0,
+                          fontWeight:
+                              hasLabel ? FontWeight.normal : FontWeight.w500,
+                          color: hasLabel
+                              ? const Color(0xFF757575)
+                              : const Color(0xDD000000),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Icon(
@@ -1469,7 +1690,7 @@ class CheckoutPayment extends StatelessWidget {
 
     if (selectedPaymentMethod == 'Cash on Delivery') {
       icon = Icons.payments_outlined;
-      subtitle = 'Pay with cash upon arrival';
+      subtitle = 'Pay upon receiving your order.';
     } else if (selectedPaymentMethod == 'Credit / Debit Card') {
       if (selectedSavedCard != null &&
           selectedSavedCard!['card_brand'] == 'Visa') {
@@ -1493,58 +1714,22 @@ class CheckoutPayment extends StatelessWidget {
       }
     } else if (selectedPaymentMethod == 'Online Banking') {
       icon = Icons.account_balance_outlined;
-      subtitle = 'FPX / Internet Banking (Stripe Sandbox)';
+      subtitle = 'FPX / Internet Banking';
     } else {
       icon = Icons.credit_card;
       subtitle = 'Select payment method';
     }
 
-    final isSandbox = selectedPaymentMethod == 'Credit / Debit Card' ||
-        selectedPaymentMethod == 'Online Banking';
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Payment Method',
-              style: TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.bold,
-                color: Color.fromARGB(221, 0, 0, 0),
-              ),
-            ),
-            if (isSandbox)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF635BFF).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6.0),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.shield_outlined,
-                      size: 12.0,
-                      color: Color(0xFF635BFF),
-                    ),
-                    SizedBox(width: 4.0),
-                    Text(
-                      'Stripe Sandbox',
-                      style: TextStyle(
-                        fontSize: 11.0,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF635BFF),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
+        const Text(
+          'Payment Method',
+          style: TextStyle(
+            fontSize: 16.0,
+            fontWeight: FontWeight.bold,
+            color: Color.fromARGB(221, 0, 0, 0),
+          ),
         ),
         const SizedBox(height: 12.0),
         InkWell(
@@ -1675,7 +1860,6 @@ class _PaymentSelectionBottomSheetState
         );
       }
     });
-    widget.onPaymentMethodSelected(method, _selectedCard);
   }
 
   void _selectCard(Map<String, dynamic> card) {
@@ -1683,7 +1867,6 @@ class _PaymentSelectionBottomSheetState
       _selectedMethod = 'Credit / Debit Card';
       _selectedCard = card;
     });
-    widget.onPaymentMethodSelected('Credit / Debit Card', card);
   }
 
   Widget _buildCoDOption() {
@@ -1691,7 +1874,6 @@ class _PaymentSelectionBottomSheetState
     return InkWell(
       onTap: () {
         _selectMethod('Cash on Delivery');
-        Navigator.pop(context);
       },
       borderRadius: BorderRadius.circular(16.0),
       child: Container(
@@ -1740,7 +1922,7 @@ class _PaymentSelectionBottomSheetState
                   ),
                   SizedBox(height: 3.0),
                   Text(
-                    'Pay with cash upon arrival. Directly placed without payment steps.',
+                    'Pay upon receiving your order.',
                     style: TextStyle(
                       fontSize: 12.5,
                       color: Color.fromARGB(255, 117, 117, 117),
@@ -1808,40 +1990,16 @@ class _PaymentSelectionBottomSheetState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            const Text(
-                              'Credit / Debit Card',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15.0,
-                              ),
-                            ),
-                            const SizedBox(width: 8.0),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6.0,
-                                vertical: 2.0,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF635BFF)
-                                    .withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(4.0),
-                              ),
-                              child: const Text(
-                                'Stripe Sandbox',
-                                style: TextStyle(
-                                  fontSize: 10.0,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF635BFF),
-                                ),
-                              ),
-                            ),
-                          ],
+                        const Text(
+                          'Credit / Debit Card',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15.0,
+                          ),
                         ),
                         const SizedBox(height: 3.0),
                         const Text(
-                          'Visa, Mastercard via Stripe developer sandbox',
+                          'Visa, Mastercard',
                           style: TextStyle(
                             fontSize: 12.5,
                             color: Color.fromARGB(255, 117, 117, 117),
@@ -2007,7 +2165,6 @@ class _PaymentSelectionBottomSheetState
                       return InkWell(
                         onTap: () {
                           _selectCard(card);
-                          Navigator.pop(context);
                         },
                         borderRadius: BorderRadius.circular(12.0),
                         child: Container(
@@ -2126,7 +2283,6 @@ class _PaymentSelectionBottomSheetState
     return InkWell(
       onTap: () {
         _selectMethod('Online Banking');
-        Navigator.pop(context);
       },
       borderRadius: BorderRadius.circular(16.0),
       child: Container(
@@ -2151,7 +2307,6 @@ class _PaymentSelectionBottomSheetState
                 color: isSelected
                     ? Colors.white
                     : const Color.fromARGB(255, 245, 245, 245),
-                borderRadius: BorderRadius.circular(12.0),
               ),
               child: Icon(
                 Icons.account_balance_outlined,
@@ -2166,36 +2321,12 @@ class _PaymentSelectionBottomSheetState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'Online Banking',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15.0,
-                        ),
-                      ),
-                      const SizedBox(width: 8.0),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6.0,
-                          vertical: 2.0,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF635BFF)
-                              .withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(4.0),
-                        ),
-                        child: const Text(
-                          'Stripe Sandbox',
-                          style: TextStyle(
-                            fontSize: 10.0,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF635BFF),
-                          ),
-                        ),
-                      ),
-                    ],
+                  const Text(
+                    'Online Banking',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15.0,
+                    ),
                   ),
                   const SizedBox(height: 3.0),
                   const Text(
@@ -2224,53 +2355,89 @@ class _PaymentSelectionBottomSheetState
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 16.0),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
       ),
       child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 45,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 224, 224, 224),
-                    borderRadius: BorderRadius.circular(25.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 45,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 224, 224, 224),
+                  borderRadius: BorderRadius.circular(25.0),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Choose Payment Method',
+                  style:
+                      TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.black54),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16.0),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildCoDOption(),
+                    const SizedBox(height: 14.0),
+                    _buildCardOption(),
+                    const SizedBox(height: 14.0),
+                    _buildOnlineBankingOption(),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  widget.onPaymentMethodSelected(
+                    _selectedMethod,
+                    _selectedCard,
+                  );
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 255, 160, 122),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                ),
+                child: const Text(
+                  'Confirm',
+                  style: TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              const SizedBox(height: 16.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Choose Payment Method',
-                    style:
-                        TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.black54),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20.0),
-              _buildCoDOption(),
-              const SizedBox(height: 14.0),
-              _buildCardOption(),
-              const SizedBox(height: 14.0),
-              _buildOnlineBankingOption(),
-              const SizedBox(height: 8.0),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -2475,6 +2642,7 @@ class CheckoutBottomBar extends StatelessWidget {
   final VoidCallback onPlaceOrder;
   final bool placeOrderEnabled;
   final String buttonText;
+  final String selectedPaymentMethod;
 
   const CheckoutBottomBar({
     super.key,
@@ -2482,6 +2650,7 @@ class CheckoutBottomBar extends StatelessWidget {
     required this.onPlaceOrder,
     this.placeOrderEnabled = true,
     this.buttonText = 'Proceed to Payment',
+    this.selectedPaymentMethod = 'Cash on Delivery',
   });
 
   @override
@@ -2504,15 +2673,28 @@ class CheckoutBottomBar extends StatelessWidget {
         child: ElevatedButton(
           onPressed: placeOrderEnabled
               ? () {
-                  //TODO: Submit order details to backend API and handle response
-                  onPlaceOrder();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          CustomerOrderConfirmation(totalPaid: total),
-                    ),
-                  );
+                  if (selectedPaymentMethod == 'Cash on Delivery') {
+                    //TODO: Submit order details to backend API and handle response
+                    onPlaceOrder();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CustomerOrderConfirmation(
+                          totalPaid: total,
+                          paymentMethod: selectedPaymentMethod,
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '$selectedPaymentMethod payment via Stripe sandbox is not enabled yet. Please select Cash on Delivery.',
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
                 }
               : null,
           style: ElevatedButton.styleFrom(

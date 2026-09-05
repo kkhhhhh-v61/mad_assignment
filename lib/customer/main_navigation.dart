@@ -40,6 +40,7 @@ class CustomerMainNavigation extends StatefulWidget {
 
 class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
   late int _currentIndex;
+  int _ordersViewVersion = 0;
   bool _isLoggedIn = false;
   String _selectedMenuCategory = '';
   AppUser? currentUser;
@@ -63,6 +64,11 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
 
   void setTab(int index) {
     if (mounted) {
+      if (index == 2) {
+        // Recreate the Orders tab when it is opened so a newly submitted
+        // order is fetched instead of leaving a previously empty list cached.
+        _ordersViewVersion++;
+      }
       setState(() {
         _currentIndex = index;
       });
@@ -140,7 +146,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
         _selectedMenuCategory = categoryName;
       },
     ),
-    const CustomerOrders(),
+    CustomerOrders(key: ValueKey(_ordersViewVersion)),
     _isLoggedIn
         ? _buildAccountScreen()
         : SharedAuthScreen(
@@ -346,11 +352,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
           child: BottomNavigationBar(
             backgroundColor: Colors.white,
             currentIndex: _currentIndex,
-            onTap: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
+            onTap: setTab,
             type: BottomNavigationBarType.fixed,
             selectedItemColor: const Color.fromARGB(255, 255, 160, 122),
             unselectedItemColor: const Color.fromARGB(255, 158, 158, 158),

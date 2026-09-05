@@ -43,8 +43,8 @@ class CustomerHeader extends StatefulWidget {
 
   static bool get hasCachedLocation =>
       _CustomerHeaderState._hasLoaded &&
-      _CustomerHeaderState._cachedSelectedOption != null &&
-      _CustomerHeaderState._cachedUserId == supabase.auth.currentUser?.id;
+          _CustomerHeaderState._cachedSelectedOption != null &&
+          _CustomerHeaderState._cachedUserId == supabase.auth.currentUser?.id;
 
   static String get cachedState =>
       _CustomerHeaderState._cachedSelectedOption?.state ?? '';
@@ -57,7 +57,7 @@ class CustomerHeader extends StatefulWidget {
           ?.map((a) => a.fullAddress)
           .where((s) => s.isNotEmpty)
           .toList() ??
-      [];
+          [];
 
   static AddressOption? get cachedDetectedLocation =>
       _CustomerHeaderState._cachedDetectedLocation;
@@ -190,7 +190,6 @@ class _CustomerHeaderState extends State<CustomerHeader> {
   }
 
   Future<void> _loadAddresses() async {
-    //TODO: Retrieve user addresses dynamically from backend
     widget.onLocationLoadingChanged?.call(true);
 
     try {
@@ -310,7 +309,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
       MaterialPageRoute(
         builder: (_) => const CustomerMainNavigation(initialIndex: 3),
       ),
-      (route) => false,
+          (route) => false,
     );
   }
 
@@ -406,9 +405,9 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                 ] else ...[
                   if (_savedAddresses.isNotEmpty) const Divider(height: 24),
                   ..._savedAddresses.map((addr) => _buildAddressTile(
-                        addr,
-                        icon: addr.isDefault ? Icons.home_outlined : Icons.location_on_outlined,
-                      )),
+                    addr,
+                    icon: addr.isDefault ? Icons.home_outlined : Icons.location_on_outlined,
+                  )),
                   const SizedBox(height: 12),
                   InkWell(
                     onTap: _openManageAddresses,
@@ -466,37 +465,37 @@ class _CustomerHeaderState extends State<CustomerHeader> {
               Expanded(
                 child: widget.showBrandTitle
                     ? Row(
-                      children: [
-                        const Text(
-                          'Door',
-                          style: TextStyle(
-                            fontSize: 24.0,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                            color: Colors.black,
-                          ),
-                        ),
-                        const Text(
-                          'Dish',
-                          style: TextStyle(
-                            fontSize: 24.0,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                            color: Color(0xFFFFA07A),
-                          ),
-                        ),
-                      ],
-                    )
+                  children: [
+                    const Text(
+                      'Door',
+                      style: TextStyle(
+                        fontSize: 24.0,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const Text(
+                      'Dish',
+                      style: TextStyle(
+                        fontSize: 24.0,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                        color: Color(0xFFFFA07A),
+                      ),
+                    ),
+                  ],
+                )
                     : (widget.showTitle
-                        ? Text(
-                            widget.pageTitle,
-                            style: const TextStyle(
-                              fontSize: 22.0,
-                              fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(221, 0, 0, 0),
-                            ),
-                          )
-                        : _buildLocationSelector()),
+                    ? Text(
+                  widget.pageTitle,
+                  style: const TextStyle(
+                    fontSize: 22.0,
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromARGB(221, 0, 0, 0),
+                  ),
+                )
+                    : _buildLocationSelector()),
               ),
               if (widget.showActions) const HeaderActionButtons(),
             ],
@@ -508,11 +507,11 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                 Expanded(
                   child: widget.showSearch
                       ? HeaderSearchBar(
-                          controller: widget.searchController,
-                          onChanged: widget.onSearchChanged,
-                          onClear: widget.onSearchClear,
-                          hintText: widget.searchHint ?? 'Search...',
-                        )
+                    controller: widget.searchController,
+                    onChanged: widget.onSearchChanged,
+                    onClear: widget.onSearchClear,
+                    hintText: widget.searchHint ?? 'Search...',
+                  )
                       : const SizedBox.shrink(),
                 ),
                 if (widget.showFilter) const SizedBox(width: 12.0),
@@ -557,18 +556,18 @@ class _CustomerHeaderState extends State<CustomerHeader> {
               const SizedBox(width: 6),
               _isLoadingLocation
                   ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Color.fromARGB(255, 255, 160, 122),
-                      ),
-                    )
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Color.fromARGB(255, 255, 160, 122),
+                ),
+              )
                   : const Icon(
-                      Icons.keyboard_arrow_down,
-                      color: Color.fromARGB(255, 255, 160, 122),
-                      size: 20,
-                    ),
+                Icons.keyboard_arrow_down,
+                color: Color.fromARGB(255, 255, 160, 122),
+                size: 20,
+              ),
             ],
           ),
         ],
@@ -627,8 +626,42 @@ class _CustomerHeaderState extends State<CustomerHeader> {
   }
 }
 
-class HeaderActionButtons extends StatelessWidget {
+class HeaderActionButtons extends StatefulWidget {
   const HeaderActionButtons({super.key});
+
+  @override
+  State<HeaderActionButtons> createState() => _HeaderActionButtonsState();
+}
+
+class _HeaderActionButtonsState extends State<HeaderActionButtons> {
+  bool _hasUnreadNotifications = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUnreadNotifications();
+  }
+
+  Future<void> _checkUnreadNotifications() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final response = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_read', false);
+
+      if (mounted) {
+        setState(() {
+          _hasUnreadNotifications = (response as List).isNotEmpty;
+        });
+      }
+    } catch (e) {
+      print('Error fetching notification count: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -636,15 +669,15 @@ class HeaderActionButtons extends StatelessWidget {
       children: [
         HeaderIconWithBadge(
           icon: Icons.notifications_outlined,
-          //TODO: Retrieve unread notifications count dynamically from backend
-          showBadge: true,
-          onPressed: () {
-            Navigator.push(
+          showBadge: _hasUnreadNotifications,
+          onPressed: () async {
+            await Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => const CustomerNotifications(),
               ),
             );
+            _checkUnreadNotifications();
           },
         ),
         HeaderIconWithBadge(
@@ -752,17 +785,17 @@ class HeaderSearchBar extends StatelessWidget {
               ),
               suffixIcon: hasText
                   ? IconButton(
-                      icon: const Icon(
-                        Icons.clear,
-                        color: Color.fromARGB(255, 158, 158, 158),
-                        size: 18,
-                      ),
-                      onPressed: () {
-                        controller?.clear();
-                        onChanged?.call('');
-                        onClear?.call();
-                      },
-                    )
+                icon: const Icon(
+                  Icons.clear,
+                  color: Color.fromARGB(255, 158, 158, 158),
+                  size: 18,
+                ),
+                onPressed: () {
+                  controller?.clear();
+                  onChanged?.call('');
+                  onClear?.call();
+                },
+              )
                   : null,
             ),
           );

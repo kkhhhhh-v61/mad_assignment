@@ -40,6 +40,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
   void initState() {
     super.initState();
     _checkAutoLogin();
+    _currentIndex = widget.initialIndex;
   }
 
   Future<void> _checkAutoLogin() async {
@@ -56,19 +57,27 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
         if (user != null && mounted) {
           if (user.role == 'admin') {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AdminMainNavigation(user: user)));
-            return; //
+            return;
           } else if (user.role == 'rider') {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => RiderMainNavigation(user: user)));
-            return; //
+            return;
           } else {
             setState(() {
               _isLoggedIn = true;
               currentUser = user;
               _isCheckingAuth = false;
             });
-            return; //
+            return;
           }
         }
+      }
+    } else {
+      await supabase.auth.signOut();
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = false;
+          currentUser = null;
+        });
       }
     }
 
@@ -79,12 +88,6 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = widget.initialIndex;
-    _checkCurrentUser();
-  }
 
   @override
   void didUpdateWidget(covariant CustomerMainNavigation oldWidget) {

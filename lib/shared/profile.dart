@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
@@ -201,9 +202,10 @@ class _SharedProfileScreenState extends State<SharedProfileScreen> {
                         SharedInputField(
                           controller: _phoneController,
                           label: 'Phone Number',
-                          hintText: 'Enter your new phone number',
+                          hintText: 'e.g., 012-345 6789',
                           icon: Icons.phone_outlined,
                           keyboardType: TextInputType.phone,
+                          inputFormatters: [PhoneWithDashFormatter()],
                         ),
                         if (_isRider) ...[
                           const SizedBox(height: 32.0),
@@ -290,8 +292,25 @@ class _SharedProfileScreenState extends State<SharedProfileScreen> {
               child: SharedSaveButton(
                 isLoading: _isLoading,
                 onPressed: () async {
+                  final name = _nameController.text.trim();
+                  final phone = _phoneController.text.trim();
                   final password = _passwordController.text.trim();
                   final confirmPassword = _confirmPasswordController.text.trim();
+
+                  if (name.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Full Name cannot be empty.', style: TextStyle(fontWeight: FontWeight.bold)), backgroundColor: Color.fromARGB(255, 239, 83, 80)),
+                    );
+                    return;
+                  }
+                  if (RegExp(r'[0-9@#\$%^&*()_=+\[\]{}|\\;:"<>\?]').hasMatch(name)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Name cannot contain numbers or special characters.', style: TextStyle(fontWeight: FontWeight.bold)), backgroundColor: Color.fromARGB(255, 239, 83, 80)),
+                    );
+                    return;
+                  }
+
+
 
                   if (password.isNotEmpty && password != confirmPassword) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -406,6 +425,7 @@ class SharedInputField extends StatelessWidget {
   final bool obscureText;
   final VoidCallback? onTogglePassword;
   final bool readOnly;
+  final List<TextInputFormatter>? inputFormatters;
 
   const SharedInputField({
     super.key,
@@ -418,6 +438,7 @@ class SharedInputField extends StatelessWidget {
     this.obscureText = false,
     this.onTogglePassword,
     this.readOnly = false,
+    this.inputFormatters,
   });
 
   @override
@@ -439,6 +460,7 @@ class SharedInputField extends StatelessWidget {
           keyboardType: keyboardType,
           obscureText: obscureText,
           readOnly: readOnly,
+          inputFormatters: inputFormatters,
           style: TextStyle(
             fontSize: 15.0,
             color: readOnly
@@ -600,6 +622,41 @@ class SharedSaveButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class PhoneWithDashFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    if (oldValue.text.length > newValue.text.length) {
+      return newValue;
+    }
+
+    String text = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    bool is11Digits = text.startsWith('011');
+
+    int maxDigits = is11Digits ? 11 : 10;
+    if (text.length > maxDigits) {
+      text = text.substring(0, maxDigits);
+    }
+
+    String formatted = '';
+    for (int i = 0; i < text.length; i++) {
+      if (i == 3) {
+        formatted += '-';
+      } else if (is11Digits && i == 7) {
+        formatted += ' ';
+      } else if (!is11Digits && i == 6) {
+        formatted += ' ';
+      }
+      formatted += text[i];
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

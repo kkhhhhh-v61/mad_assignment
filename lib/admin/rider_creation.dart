@@ -26,6 +26,33 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
 
   File? _selectedImage;
 
+  String? _selectedBranchId;
+  List<Map<String, dynamic>> _branchesList = [];
+  bool _isLoadingBranches = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBranches();
+  }
+
+  Future<void> _fetchBranches() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('branches')
+          .select('id, name')
+          .order('name');
+
+      setState(() {
+        _branchesList = List<Map<String, dynamic>>.from(response);
+        _isLoadingBranches = false;
+      });
+    } catch (e) {
+      print('Error fetching branches: $e');
+      setState(() => _isLoadingBranches = false);
+    }
+  }
+
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
@@ -71,8 +98,9 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
     final confirmPassword = _confirmPasswordController.text;
     final plate = _plateController.text.trim();
 
-    if (name.isEmpty || phone.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty || _selectedVehicle == null || plate.isEmpty) {
-      _showErrorSnackBar('Please fill in all fields.');
+    if (name.isEmpty || phone.isEmpty || email.isEmpty || password.isEmpty ||
+        confirmPassword.isEmpty || _selectedVehicle == null || plate.isEmpty || _selectedBranchId == null) {
+      _showErrorSnackBar('Please fill in all fields and select a branch.');
       return;
     }
 
@@ -137,6 +165,7 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
         'id': newUserId,
         'vehicle': _selectedVehicle,
         'plate': plate.toUpperCase(),
+        'branch_id': _selectedBranchId,
       });
 
       adminClient.dispose();
@@ -243,6 +272,28 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
                           isPassword: true,
                           obscureText: _obscureConfirmPassword,
                           onTogglePassword: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                        ),
+
+                        const SizedBox(height: 24.0),
+                        const Divider(color: Color.fromARGB(255, 238, 238, 238), thickness: 1.5),
+                        const SizedBox(height: 16.0),
+
+                        const Text('Branch & Assignment', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.black87)),
+                        const SizedBox(height: 12.0),
+
+                        _isLoadingBranches
+                            ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 255, 160, 122)))
+                            : _BranchDropdownField(
+                          value: _selectedBranchId,
+                          label: 'Assigned Branch',
+                          hintText: 'Select a branch',
+                          icon: Icons.store_outlined,
+                          items: _branchesList,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedBranchId = value;
+                            });
+                          },
                         ),
 
                         const SizedBox(height: 24.0),
@@ -453,6 +504,68 @@ class _DropdownField extends StatelessWidget {
             return DropdownMenuItem<String>(
               value: item,
               child: Text(item),
+            );
+          }).toList(),
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
+            filled: true,
+            fillColor: const Color.fromARGB(255, 245, 245, 245),
+            prefixIcon: Icon(icon, color: const Color.fromARGB(255, 117, 117, 117), size: 20),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 2.0),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BranchDropdownField extends StatelessWidget {
+  final String? value;
+  final String label;
+  final String hintText;
+  final IconData icon;
+  final List<Map<String, dynamic>> items;
+  final ValueChanged<String?> onChanged;
+
+  const _BranchDropdownField({
+    required this.value,
+    required this.label,
+    required this.hintText,
+    required this.icon,
+    required this.items,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Color.fromARGB(221, 0, 0, 0)),
+        ),
+        const SizedBox(height: 6.0),
+        DropdownButtonFormField<String>(
+          value: value,
+          items: items.map((branch) {
+            return DropdownMenuItem<String>(
+              value: branch['id'].toString(),
+              child: Text(branch['name']),
             );
           }).toList(),
           onChanged: onChanged,

@@ -23,6 +23,10 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
   late TextEditingController _plateController;
   String? _selectedVehicle;
 
+  String? _selectedBranchId;
+  List<Map<String, dynamic>> _branchesList = [];
+  bool _isLoadingBranches = true;
+
   @override
   void initState() {
     super.initState();
@@ -31,6 +35,22 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
     _phoneController = TextEditingController(text: widget.rider['phone'] ?? '');
     _plateController = TextEditingController(text: widget.rider['plate'] ?? '');
     _selectedVehicle = widget.rider['vehicle'] ?? 'Motorcycle';
+
+    _selectedBranchId = widget.rider['branch_id']?.toString();
+    _fetchBranches();
+  }
+
+  Future<void> _fetchBranches() async {
+    try {
+      final response = await _supabase.from('branches').select('id, name').order('name');
+      setState(() {
+        _branchesList = List<Map<String, dynamic>>.from(response);
+        _isLoadingBranches = false;
+      });
+    } catch (e) {
+      print('Error fetching branches: $e');
+      setState(() => _isLoadingBranches = false);
+    }
   }
 
   @override
@@ -54,8 +74,8 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
   Future<void> _updateRiderDetails() async {
     final plate = _plateController.text.trim();
 
-    if (plate.isEmpty || _selectedVehicle == null) {
-      _showSnackBar('Please fill in all editable fields.', Colors.red);
+    if (plate.isEmpty || _selectedVehicle == null || _selectedBranchId == null) {
+      _showSnackBar('Please fill in all editable fields and select a branch.', Colors.red);
       return;
     }
 
@@ -72,22 +92,31 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
       await _supabase.from('riders').update({
         'vehicle': _selectedVehicle,
         'plate': plate.toUpperCase(),
+        'branch_id': _selectedBranchId,
       }).eq('id', riderId);
+
+      final newBranchName = _branchesList.firstWhere(
+            (b) => b['id'].toString() == _selectedBranchId,
+        orElse: () => {'name': 'Unknown'},
+      )['name'];
 
       setState(() {
         widget.rider['vehicle'] = _selectedVehicle;
         widget.rider['plate'] = plate.toUpperCase();
+        widget.rider['branch_id'] = _selectedBranchId;
+        widget.rider['branch_name'] = newBranchName;
+
         _isEditing = false;
         _isSaving = false;
         _needsRefresh = true;
       });
 
       if (mounted) {
-        _showSnackBar('Vehicle details updated successfully!', const Color.fromARGB(255, 76, 175, 80));
+        _showSnackBar('Rider details updated successfully!', const Color.fromARGB(255, 76, 175, 80));
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Error updating vehicle: $e', Colors.red);
+        _showSnackBar('Error updating details: $e', Colors.red);
         setState(() => _isSaving = false);
       }
     }
@@ -196,6 +225,7 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
                   _phoneController.text = widget.rider['phone'] ?? '';
                   _plateController.text = widget.rider['plate'] ?? '';
                   _selectedVehicle = widget.rider['vehicle'] ?? 'Motorcycle';
+                  _selectedBranchId = widget.rider['branch_id']?.toString();
                 });
               },
             ),
@@ -248,6 +278,26 @@ class _AdminRiderDetailsState extends State<AdminRiderDetails> {
                             readOnly: true,
                             isLocked: _isEditing,
                           ),
+                          const SizedBox(height: 16.0),
+
+                          if (_isEditing && !_isLoadingBranches)
+                            _BranchDropdownField(
+                              value: _selectedBranchId,
+                              label: 'Assigned Branch',
+                              icon: Icons.store_outlined,
+                              items: _branchesList,
+                              onChanged: (value) => setState(() => _selectedBranchId = value),
+                            )
+                          else if (_isEditing && _isLoadingBranches)
+                            const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 255, 160, 122)))
+                          else
+                            _DetailField(
+                              label: 'Assigned Branch',
+                              controller: TextEditingController(text: widget.rider['branch_name'] as String? ?? 'Unassigned'),
+                              icon: Icons.store_outlined,
+                              readOnly: true,
+                            ),
+
                           const SizedBox(height: 16.0),
                           if (_isEditing)
                             _DropdownField(
@@ -326,6 +376,7 @@ class _ImageDisplay extends StatelessWidget {
   final String? avatarUrl;
   const _ImageDisplay({this.avatarUrl});
 
+  @override
   Widget build(BuildContext context) {
     return Container(
       height: 120,
@@ -453,6 +504,64 @@ class _DropdownField extends StatelessWidget {
             return DropdownMenuItem<String>(
               value: item,
               child: Text(item),
+            );
+          }).toList(),
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: const Color.fromARGB(255, 245, 245, 245),
+            prefixIcon: Icon(icon, color: const Color.fromARGB(255, 117, 117, 117), size: 20),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 1.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15.0),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 2.0),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BranchDropdownField extends StatelessWidget {
+  final String? value;
+  final String label;
+  final IconData icon;
+  final List<Map<String, dynamic>> items;
+  final ValueChanged<String?> onChanged;
+
+  const _BranchDropdownField({
+    required this.value,
+    required this.label,
+    required this.icon,
+    required this.items,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Color.fromARGB(221, 0, 0, 0)),
+        ),
+        const SizedBox(height: 6.0),
+        DropdownButtonFormField<String>(
+          value: value,
+          items: items.map((branch) {
+            return DropdownMenuItem<String>(
+              value: branch['id'].toString(),
+              child: Text(branch['name']),
             );
           }).toList(),
           onChanged: onChanged,

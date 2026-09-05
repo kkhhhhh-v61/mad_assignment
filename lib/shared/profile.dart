@@ -21,6 +21,7 @@ class SharedProfileScreen extends StatefulWidget {
   final UserRole role;
   final String vehicleType;
   final String vehiclePlate;
+  final String branchName;
 
   const SharedProfileScreen({
     super.key,
@@ -34,6 +35,7 @@ class SharedProfileScreen extends StatefulWidget {
     this.role = UserRole.customer,
     this.vehicleType = '',
     this.vehiclePlate = '',
+    this.branchName = '',
   });
 
   @override
@@ -223,6 +225,13 @@ class _SharedProfileScreenState extends State<SharedProfileScreen> {
                             ),
                           ),
                           const SizedBox(height: 16.0),
+                          SharedReadOnlyField(
+                            label: 'Assigned Branch',
+                            value: widget.branchName.isNotEmpty
+                                ? widget.branchName
+                                : 'Not Available',
+                            icon: Icons.store_outlined,
+                          ),
                           SharedReadOnlyField(
                             label: 'Vehicle Type',
                             value: widget.vehicleType.isNotEmpty

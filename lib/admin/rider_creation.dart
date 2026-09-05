@@ -508,10 +508,15 @@ class _BranchDropdownField extends StatelessWidget {
         const SizedBox(height: 6.0),
         DropdownButtonFormField<String>(
           value: value,
+          isExpanded: true,
           items: items.map((branch) {
             return DropdownMenuItem<String>(
               value: branch['id'].toString(),
-              child: Text(branch['name']),
+              child: Text(
+                branch['name']?.toString() ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             );
           }).toList(),
           onChanged: onChanged,

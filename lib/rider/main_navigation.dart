@@ -31,6 +31,7 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
   String _vehicleType = '';
   String _vehiclePlate = '';
   String _branchName = '';
+  String _riderStatus = 'Offline';
   bool _isOnline = false;
 
   @override
@@ -55,11 +56,13 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
       debugPrint('Rider data fetched successfully: $response');
 
       if (mounted) {
+        final riderStatus = response['status']?.toString() ?? 'Offline';
         setState(() {
           _vehicleType = response['vehicle']?.toString() ?? 'Not Available';
           _vehiclePlate = response['plate']?.toString() ?? 'Not Available';
           _branchName = response['branches']?['name']?.toString() ?? 'Unassigned';
-          _isOnline = response['status'] == 'Online';
+          _riderStatus = riderStatus;
+          _isOnline = riderStatus == 'Online';
         });
       }
     } catch (e) {
@@ -97,21 +100,46 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
       vehiclePlate: _vehiclePlate,
       branchName: _branchName,
       isOnline: _isOnline,
-      onOnlineChanged: (bool value) async {
-        setState(() {
-          _isOnline = value;
-        });
+      onOnlineChanged: _riderStatus == 'On Delivery'
+          ? null
+          : (bool value) async {
+              final previousValue = _isOnline;
+              setState(() {
+                _isOnline = value;
+              });
 
-        try {
-          final userId = currentUser?.id ?? supabase.auth.currentUser!.id;
-          await supabase
-              .from('riders')
-              .update({'status': value ? 'Online' : 'Offline'})
-              .eq('id', userId);
-        } catch (e) {
-          debugPrint('Error updating online status: $e');
-        }
-      },
+              try {
+                final userId = currentUser?.id ?? supabase.auth.currentUser?.id;
+                if (userId == null || userId.trim().isEmpty) {
+                  throw StateError('No signed-in rider was found.');
+                }
+
+                await supabase.rpc(
+                  'set_rider_availability',
+                  params: {'p_status': value ? 'Online' : 'Offline'},
+                );
+
+                if (!mounted) return;
+                setState(() {
+                  _riderStatus = value ? 'Online' : 'Offline';
+                });
+              } catch (error) {
+                debugPrint('Error updating online status through RPC: $error');
+                if (!context.mounted) return;
+                setState(() {
+                  _isOnline = previousValue;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      error.toString().contains('ACTIVE_DELIVERY_REQUIRED')
+                          ? 'You cannot change availability during an active delivery.'
+                          : 'Unable to update availability. Please try again.',
+                    ),
+                  ),
+                );
+              }
+            },
       onEditPressed: () {
         Navigator.push(
           context,

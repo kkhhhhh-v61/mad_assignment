@@ -365,7 +365,9 @@ class _SharedAccountScreenState extends State<SharedAccountScreen> {
           Switch(
             value: _isOnline,
             activeThumbColor: const Color.fromARGB(255, 76, 175, 80),
-            onChanged: _handleOnlineChanged,
+            onChanged: widget.onOnlineChanged == null
+                ? null
+                : _handleOnlineChanged,
           ),
         ],
       ),

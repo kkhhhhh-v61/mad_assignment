@@ -82,7 +82,7 @@ class DeliveryDistanceLimitException extends InvalidOrderException {
   const DeliveryDistanceLimitException(super.message);
 }
 
-const supportedPaymentTypes = <String>{'COD', 'Card', 'PayPal'};
+const supportedPaymentTypes = <String>{'COD', 'Card'};
 const supportedPaymentStatuses = <String>{'Pending', 'Completed', 'Failed'};
 
 void validatePaymentFields({

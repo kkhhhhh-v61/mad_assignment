@@ -102,6 +102,7 @@ void main() {
   });
 
   test('payment contract rejects unsupported or inconsistent values', () {
+    expect(supportedPaymentTypes, {'COD', 'Card'});
     expect(
       () => OrderSubmission(
         orderNumber: 'ORD-1008',
@@ -125,24 +126,6 @@ void main() {
         paymentIdempotencyKey: 'payment-1009',
         paymentType: 'Card',
         paymentStatus: 'Completed',
-        fulfilmentType: FulfilmentType.delivery,
-        branchSnapshot: branch,
-        deliveryAddressSnapshot: address,
-        subtotalSen: 2500,
-        discountSen: 200,
-        deliveryFeeSen: 300,
-        totalSen: 2600,
-        items: [item],
-      ),
-      throwsA(isA<InvalidOrderException>()),
-    );
-    expect(
-      () => OrderSubmission(
-        orderNumber: 'ORD-1010',
-        paymentIdempotencyKey: 'payment-1010',
-        paymentType: 'PayPal',
-        paymentStatus: 'Pending',
-        paymentMethodId: '11111111-1111-1111-1111-111111111111',
         fulfilmentType: FulfilmentType.delivery,
         branchSnapshot: branch,
         deliveryAddressSnapshot: address,

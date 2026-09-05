@@ -17,8 +17,9 @@ import '../models.dart';
 
 class SharedAuthScreen extends StatefulWidget {
   final Function(AppUser)? onAuthSuccess;
+  final Widget? header;
 
-  const SharedAuthScreen({super.key, this.onAuthSuccess});
+  const SharedAuthScreen({super.key, this.onAuthSuccess, this.header});
 
   @override
   State<SharedAuthScreen> createState() => _SharedAuthScreenState();
@@ -115,7 +116,7 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
   @override
   void initState() {
     super.initState();
-    _loadRememberedUser();
+    _checkAutoLogin();
     _fetchStates();
     supabase.auth.onAuthStateChange.listen((data) {
       final AuthChangeEvent event = data.event;
@@ -130,15 +131,69 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
     });
   }
 
-  Future<void> _loadRememberedUser() async {
+  Future<void> _checkAutoLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final rememberMe = prefs.getBool('remember_me') ?? false;
-    if (rememberMe) {
+
+    final savedEmail = prefs.getString('saved_email') ?? '';
+    final savedPassword = prefs.getString('saved_password') ?? '';
+
+    if (savedEmail.isNotEmpty) {
       setState(() {
-        _rememberMe = true;
-        _emailController.text = prefs.getString('saved_email') ?? '';
-        _passwordController.text = prefs.getString('saved_password') ?? '';
+        _emailController.text = savedEmail;
+        _passwordController.text = savedPassword;
+        _rememberMe = rememberMe;
       });
+    }
+
+    if (rememberMe) {
+      final session = supabase.auth.currentSession;
+
+      if (session != null) {
+        try {
+          final profile = await supabase
+              .from('profiles')
+              .select()
+              .eq('id', session.user.id)
+              .single();
+
+          if (profile['status'] == 'Inactive') {
+            await supabase.auth.signOut();
+            if (mounted) _showErrorSnackBar('Your account has been deactivated.');
+            return;
+          }
+
+          AppUser loggedInUser = AppUser(
+            id: session.user.id,
+            role: profile['role'],
+            name: profile['name'],
+            email: session.user.email ?? '',
+            phone: profile['phone'],
+            address: '',
+          );
+
+          if (!mounted) return;
+
+          if (loggedInUser.role == 'admin') {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AdminMainNavigation(user: loggedInUser)));
+          } else if (loggedInUser.role == 'rider') {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => RiderMainNavigation(user: loggedInUser)));
+          } else {
+            widget.onAuthSuccess?.call(loggedInUser);
+          }
+        } catch (e) {
+          print('Auto-login error: $e');
+          if (savedEmail.isNotEmpty && savedPassword.isNotEmpty) {
+            _handleAuthAction();
+          }
+        }
+      } else {
+        if (savedEmail.isNotEmpty && savedPassword.isNotEmpty) {
+          _handleAuthAction();
+        }
+      }
+    } else {
+      await supabase.auth.signOut();
     }
   }
 
@@ -437,23 +492,26 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SafeArea(
-          bottom: false,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20.0),
-            color: Colors.white,
-            alignment: Alignment.center,
-            child: const Text(
-              'Account',
-              style: TextStyle(
-                fontSize: 18.0,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+        if (widget.header != null)
+          widget.header!
+        else
+          SafeArea(
+            bottom: false,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
+              color: Colors.white,
+              alignment: Alignment.center,
+              child: const Text(
+                'Account',
+                style: TextStyle(
+                  fontSize: 18.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
             ),
           ),
-        ),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),

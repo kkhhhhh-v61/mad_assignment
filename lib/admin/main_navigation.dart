@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../main.dart';
 import '../customer/main_navigation.dart';
@@ -63,28 +64,35 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
                 try {
                   final userId = supabase.auth.currentUser!.id;
 
-                  await supabase.from('profiles').update({
-                    'name': name,
-                    'email': email,
-                    'phone': phone,
-                  }).eq('id', userId);
+                  await supabase
+                      .from('profiles')
+                      .update({'name': name, 'email': email, 'phone': phone})
+                      .eq('id', userId);
 
                   if (password.isNotEmpty) {
                     if (password.length < 8) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Password must be at least 8 characters long.'),
+                            content: Text(
+                              'Password must be at least 8 characters long.',
+                            ),
                             backgroundColor: Color.fromARGB(255, 239, 83, 80),
                           ),
                         );
                       }
                       return;
                     }
-                    await supabase.auth.updateUser(UserAttributes(password: password));
+                    await supabase.auth.updateUser(
+                      UserAttributes(password: password),
+                    );
                   }
 
-                  final updatedProfile = await supabase.from('profiles').select().eq('id', currentUser!.id).single();
+                  final updatedProfile = await supabase
+                      .from('profiles')
+                      .select()
+                      .eq('id', currentUser!.id)
+                      .single();
 
                   setState(() {
                     currentUser = AppUser(
@@ -133,6 +141,9 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
       },
 
       onLogout: () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('remember_me', false);
+
         await supabase.auth.signOut();
 
         if (context.mounted) {
@@ -150,8 +161,10 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
 
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const CustomerMainNavigation()),
-                (route) => false,
+            MaterialPageRoute(
+              builder: (context) => const CustomerMainNavigation(),
+            ),
+            (route) => false,
           );
         }
       },
@@ -168,7 +181,9 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const AdminCustomerManagement()),
+              MaterialPageRoute(
+                builder: (context) => const AdminCustomerManagement(),
+              ),
             );
           },
         ),
@@ -178,7 +193,6 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
           onTap: () {},
         ),
       ],
-
     );
   }
 
@@ -186,10 +200,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 249, 250, 251),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _getPages(context),
-      ),
+      body: IndexedStack(index: _currentIndex, children: _getPages(context)),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           borderRadius: BorderRadius.vertical(top: Radius.circular(15.0)),

@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:mad_assignment/customer/payment_methods.dart';
 import 'package:mad_assignment/customer/saved_addresses.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/auth_service.dart';
 
 import '../shared/account.dart';
 import '../shared/profile.dart';
 import '../main.dart';
+import '../admin/main_navigation.dart';
+import '../rider/main_navigation.dart';
 
 import '../shared/auth.dart';
 import 'header.dart';
@@ -17,17 +21,97 @@ import '../models.dart';
 
 
 class CustomerMainNavigation extends StatefulWidget {
-  const CustomerMainNavigation({super.key});
+  final int initialIndex;
+
+  const CustomerMainNavigation({super.key, this.initialIndex = 0});
 
   @override
   State<CustomerMainNavigation> createState() => _CustomerMainNavigationState();
 }
 
 class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   bool _isLoggedIn = false;
   String _selectedMenuCategory = '';
   AppUser? currentUser;
+  bool _isCheckingAuth = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAutoLogin();
+    _currentIndex = widget.initialIndex;
+  }
+
+  Future<void> _checkAutoLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rememberMe = prefs.getBool('remember_me') ?? false;
+
+    if (rememberMe) {
+      final savedEmail = prefs.getString('saved_email') ?? '';
+      final savedPassword = prefs.getString('saved_password') ?? '';
+
+      if (savedEmail.isNotEmpty && savedPassword.isNotEmpty) {
+        AppUser? user = await loginUser(savedEmail, savedPassword);
+
+        if (user != null && mounted) {
+          if (user.role == 'admin') {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AdminMainNavigation(user: user)));
+            return;
+          } else if (user.role == 'rider') {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => RiderMainNavigation(user: user)));
+            return;
+          } else {
+            setState(() {
+              _isLoggedIn = true;
+              currentUser = user;
+              _isCheckingAuth = false;
+            });
+            return;
+          }
+        }
+      }
+    } else {
+      await supabase.auth.signOut();
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = false;
+          currentUser = null;
+        });
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _isCheckingAuth = false;
+      });
+    }
+  }
+
+
+  @override
+  void didUpdateWidget(covariant CustomerMainNavigation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialIndex != widget.initialIndex) {
+      _currentIndex = widget.initialIndex;
+    }
+  }
+
+  Future<void> _checkCurrentUser() async {
+    final session = supabase.auth.currentSession;
+    final user = supabase.auth.currentUser;
+    if (session != null && !session.isExpired && user != null) {
+      try {
+        final profile = await supabase.from('profiles').select().eq('id', user.id).maybeSingle();
+        if (profile != null && mounted) {
+          setState(() {
+            _isLoggedIn = true;
+            currentUser = AppUser.fromJson(Map<String, dynamic>.from(profile), user.email ?? '');
+          });
+        }
+      } catch (_) {}
+    }
+  }
 
   List<Widget> get _screens => [
     CustomerHome(
@@ -48,13 +132,18 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
     _isLoggedIn
         ? _buildAccountScreen()
         : SharedAuthScreen(
-      onAuthSuccess: (user) {
-        setState(() {
-          _isLoggedIn = true;
-          currentUser = user;
-        });
-      },
-    ),
+            header: const CustomerHeader(
+              showTitle: true,
+              pageTitle: 'My Account',
+              showSearch: false,
+            ),
+            onAuthSuccess: (user) {
+              setState(() {
+                _isLoggedIn = true;
+                currentUser = user;
+              });
+            },
+          ),
   ];
 
   Widget _buildAccountScreen() {
@@ -149,12 +238,15 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
         );
       },
       onLogout: () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('remember_me', false);
+
         await supabase.auth.signOut();
         setState(() {
           _isLoggedIn = false;
           currentUser = null;
         });
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
@@ -205,6 +297,17 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingAuth) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color.fromARGB(255, 255, 160, 122),
+            strokeWidth: 3.0,
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color.fromARGB(248, 255, 255, 255),
       body: _screens[_currentIndex],

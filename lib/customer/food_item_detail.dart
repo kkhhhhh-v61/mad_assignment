@@ -63,6 +63,31 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
     return const [];
   }
 
+  List<String> get _exclusiveStates {
+    if (widget.item['exclusive_states'] is List) {
+      return (widget.item['exclusive_states'] as List)
+          .map((e) => e.toString())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+    final raw = widget.item['food_item_states'] as List<dynamic>?;
+    if (raw != null && raw.isNotEmpty) {
+      final states = raw
+          .whereType<Map<String, dynamic>>()
+          .map((e) => (e['states'] as Map<String, dynamic>?)?['name']?.toString())
+          .whereType<String>()
+          .toList();
+      if (states.isNotEmpty) return states;
+    }
+    if (widget.item['states'] is List) {
+      return (widget.item['states'] as List)
+          .map((e) => e.toString())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+    return const [];
+  }
+
   double get _totalPrice {
     double total = _basePrice;
     if (_selectedSize != null) {
@@ -159,6 +184,8 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
       icon: _icon,
       imageUrl: _imageUrl,
       customizations: customizations,
+      exclusiveStates: _exclusiveStates,
+      isAvailable: _isAvailable,
     );
 
     await CartStorage.addToCart(cartItem);

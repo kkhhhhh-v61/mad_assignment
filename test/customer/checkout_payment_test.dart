@@ -1,10 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mad_assignment/Order/branch_repository.dart';
+import 'package:mad_assignment/Order/order.dart';
+import 'package:mad_assignment/Order/order_repository.dart';
 import 'package:mad_assignment/customer/cart.dart';
 import 'package:mad_assignment/customer/checkout.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class FakeOrderRepository implements OrderRepository {
+  OrderSubmission? lastSubmission;
+
+  @override
+  Future<Order> createOrder(OrderSubmission submission) async {
+    lastSubmission = submission;
+    return Order(
+      id: 'order-123',
+      orderNumber: submission.orderNumber,
+      paymentIdempotencyKey: submission.paymentIdempotencyKey,
+      customerId: 'customer-1',
+      riderId: null,
+      fulfilmentType: submission.fulfilmentType,
+      status: OrderStatus.placed,
+      branchSnapshot: submission.branchSnapshot,
+      deliveryAddressSnapshot: submission.deliveryAddressSnapshot,
+      subtotalSen: submission.subtotalSen,
+      discountSen: submission.discountSen,
+      deliveryFeeSen: submission.deliveryFeeSen,
+      totalSen: submission.totalSen,
+      items: submission.items,
+      proofPhotoPath: null,
+      deliveryComments: null,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      completedAt: null,
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
   group('CheckoutBottomBar', () {
     testWidgets('displays Proceed to Payment by default', (tester) async {
       await tester.pumpWidget(
@@ -359,6 +400,52 @@ void main() {
 
       expect(find.text('Order Placed\nSuccessfully!'), findsNothing);
     });
+
+    testWidgets(
+      'order confirmation displays the full price paid tallying with checkout total',
+      (tester) async {
+        final fakeRepo = FakeOrderRepository();
+        const branch = BranchSnapshot(
+          branchId: 'b-1',
+          name: 'Main Branch',
+          stateCode: 'PNG',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: CustomerCheckout(
+              cartItems: [
+                CartItem(
+                  id: 'item-1',
+                  name: 'Burger',
+                  price: 20.0,
+                  quantity: 2,
+                ),
+              ],
+              branchSnapshot: branch,
+              orderRepository: fakeRepo,
+              enableBranchSelection: false,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Switch to Self Pickup so no geocoding is needed
+        await tester.tap(find.text('Self Pickup'));
+        await tester.pumpAndSettle();
+
+        // Subtotal = 40.0, SST (6%) = 2.40, Total = 42.40
+        expect(find.text('Place Order'), findsOneWidget);
+        await tester.tap(find.text('Place Order'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Order Placed\nSuccessfully!'), findsOneWidget);
+        expect(
+          find.text('Total to pay upon receiving your order: RM 42.40'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 
   group('Checkout branch selection', () {

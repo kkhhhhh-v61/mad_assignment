@@ -46,10 +46,18 @@ class CustomerHeader extends StatefulWidget {
   final void Function(String address, String state)? onLocationChanged;
   final ValueChanged<bool>? onLocationLoadingChanged;
 
+  static String? get _currentUserIdSafe {
+    try {
+      return supabase.auth.currentUser?.id;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static bool get hasCachedLocation =>
       _CustomerHeaderState._hasLoaded &&
-          _CustomerHeaderState._cachedSelectedOption != null &&
-          _CustomerHeaderState._cachedUserId == supabase.auth.currentUser?.id;
+      _CustomerHeaderState._cachedSelectedOption != null &&
+      _CustomerHeaderState._cachedUserId == _currentUserIdSafe;
 
   static String get cachedState =>
       _CustomerHeaderState._cachedSelectedOption?.state ?? '';
@@ -62,7 +70,7 @@ class CustomerHeader extends StatefulWidget {
           ?.map((a) => a.fullAddress)
           .where((s) => s.isNotEmpty)
           .toList() ??
-          [];
+      [];
 
   static AddressOption? get cachedDetectedLocation =>
       _CustomerHeaderState._cachedDetectedLocation;
@@ -75,85 +83,16 @@ class CustomerHeader extends StatefulWidget {
 
   static void clearLocationCache() => _CustomerHeaderState.clearLocationCache();
 
-  const CustomerHeader({
-    super.key,
-    this.showFilter = false,
-    this.showSearch = true,
-    this.showTitle = false,
-    this.pageTitle = 'DoorDish',
-    this.showBrandTitle = false,
-    this.showActions = true,
-    this.onFilterTap,
-    this.searchController,
-    this.onSearchChanged,
-    this.onSearchClear,
-    this.searchHint,
-    this.onLocationChanged,
-    this.onLocationLoadingChanged,
-  });
+  static void setPreloadedAddress(AddressOption option) =>
+      _CustomerHeaderState.setPreloadedAddress(option);
 
-  @override
-  State<CustomerHeader> createState() => _CustomerHeaderState();
-}
-
-class _CustomerHeaderState extends State<CustomerHeader> {
-  static AddressOption? _cachedSelectedOption;
-  static AddressOption? _cachedDetectedLocation;
-  static List<AddressOption>? _cachedSavedAddresses;
-  static String? _cachedUserId;
-  static bool _hasLoaded = false;
-
-  static void clearLocationCache() {
-    _cachedSelectedOption = null;
-    _cachedDetectedLocation = null;
-    _cachedSavedAddresses = null;
-    _cachedUserId = null;
-    _hasLoaded = false;
+  static void updateSelectedOption(AddressOption option) {
+    _CustomerHeaderState._cachedSelectedOption = option;
+    _CustomerHeaderState._cachedUserId = _currentUserIdSafe;
+    _CustomerHeaderState._hasLoaded = true;
   }
 
-  AddressOption _selectedOption = const AddressOption(
-    label: 'Current Location',
-    fullAddress: 'George Town, Penang',
-    state: 'Pulau Pinang',
-    isDetected: true,
-  );
-  List<AddressOption> _savedAddresses = [];
-  AddressOption? _detectedLocation;
-  bool _isLoadingLocation = true;
-
-  bool get _isAuthenticated {
-    final session = supabase.auth.currentSession;
-    if (session == null || session.isExpired) return false;
-    return supabase.auth.currentUser != null;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    final currentUserId = supabase.auth.currentUser?.id;
-    final bool authChanged = currentUserId != _cachedUserId;
-
-    if (_hasLoaded && !authChanged && _cachedSelectedOption != null) {
-      _selectedOption = _cachedSelectedOption!;
-      _detectedLocation = _cachedDetectedLocation;
-      _savedAddresses = List<AddressOption>.from(_cachedSavedAddresses ?? []);
-      _isLoadingLocation = false;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          widget.onLocationChanged?.call(
-            _selectedOption.fullAddress,
-            _selectedOption.state,
-          );
-          widget.onLocationLoadingChanged?.call(false);
-        }
-      });
-    } else {
-      _loadAddresses();
-    }
-  }
-
-  Future<AddressOption> _detectLocation() async {
+  static Future<AddressOption> detectLocation() async {
     try {
       final enabled = await Geolocator.isLocationServiceEnabled();
       if (enabled) {
@@ -207,59 +146,22 @@ class _CustomerHeaderState extends State<CustomerHeader> {
     );
   }
 
-  Future<void> _loadAddresses() async {
-    widget.onLocationLoadingChanged?.call(true);
-
-    try {
-      await _loadAddressesInternal().timeout(const Duration(seconds: 5));
-    } catch (_) {
-      const fallback = AddressOption(
-        label: 'Current Location',
-        fullAddress: 'George Town, Penang',
-        state: 'Pulau Pinang',
-        isDetected: true,
-      );
-      _cachedSelectedOption = fallback;
-      _cachedDetectedLocation = fallback;
-      _cachedSavedAddresses = const [];
-      _cachedUserId = supabase.auth.currentUser?.id;
-      _hasLoaded = true;
-      if (mounted) {
-        setState(() {
-          _selectedOption = fallback;
-          _isLoadingLocation = false;
-        });
-        widget.onLocationChanged?.call(fallback.fullAddress, fallback.state);
-        widget.onLocationLoadingChanged?.call(false);
-      }
-    }
-  }
-
-  Future<void> _loadAddressesInternal() async {
-    if (!_isAuthenticated) {
-      final detected = await _detectLocation();
-      _detectedLocation = detected;
-      _cachedSelectedOption = detected;
-      _cachedDetectedLocation = detected;
-      _cachedSavedAddresses = const [];
-      _cachedUserId = null;
-      _hasLoaded = true;
-      if (mounted) {
-        setState(() {
-          _selectedOption = detected;
-          _isLoadingLocation = false;
-        });
-        widget.onLocationChanged?.call(detected.fullAddress, detected.state);
-        widget.onLocationLoadingChanged?.call(false);
-      }
+  static Future<void> loadAddressesStatic() async {
+    final userId = _currentUserIdSafe;
+    if (userId == null) {
+      final detected = await detectLocation();
+      _CustomerHeaderState._cachedSelectedOption = detected;
+      _CustomerHeaderState._cachedDetectedLocation = detected;
+      _CustomerHeaderState._cachedSavedAddresses = const [];
+      _CustomerHeaderState._cachedUserId = null;
+      _CustomerHeaderState._hasLoaded = true;
       return;
     }
 
-    final userId = supabase.auth.currentUser!.id;
     AddressOption? defaultOption;
     final List<AddressOption> saved = [];
 
-    final detectFuture = _detectLocation();
+    final detectFuture = detectLocation();
     final profileFuture = supabase
         .from('profiles')
         .select('address, role')
@@ -272,86 +174,63 @@ class _CustomerHeaderState extends State<CustomerHeader> {
         .order('created_at', ascending: false);
 
     final detected = await detectFuture;
-    _detectedLocation = detected;
+    _CustomerHeaderState._cachedDetectedLocation = detected;
 
-    final profileRes = await profileFuture;
-    final profileAddr = profileRes?['address']?.toString();
-    if (profileAddr != null && profileAddr.trim().isNotEmpty) {
-      defaultOption = AddressOption(
-        label: 'Default Address',
-        fullAddress: profileAddr.trim(),
-        state: extractStateFromAddress(profileAddr),
-        isDefault: true,
-      );
-    }
-
-    final otherRes = await addressesFuture;
-    for (final row in otherRes) {
-      final fullAddr = row['full_address']?.toString() ?? '';
-      final lbl = row['label']?.toString() ?? 'Saved Address';
-      if (fullAddr.isNotEmpty) {
-        saved.add(
-          AddressOption(
-            label: lbl,
-            fullAddress: fullAddr,
-            state: extractStateFromAddress(fullAddr),
-          ),
+    try {
+      final profileRes = await profileFuture;
+      final profileAddr = profileRes?['address']?.toString();
+      if (profileAddr != null && profileAddr.trim().isNotEmpty) {
+        defaultOption = AddressOption(
+          label: 'Default Address',
+          fullAddress: profileAddr.trim(),
+          state: extractStateFromAddress(profileAddr),
+          isDefault: true,
         );
       }
-    }
+
+      final otherRes = await addressesFuture;
+      for (final row in otherRes) {
+        final fullAddr = row['full_address']?.toString() ?? '';
+        final lbl = row['label']?.toString() ?? 'Saved Address';
+        if (fullAddr.isNotEmpty) {
+          saved.add(
+            AddressOption(
+              label: lbl,
+              fullAddress: fullAddr,
+              state: extractStateFromAddress(fullAddr),
+            ),
+          );
+        }
+      }
+    } catch (_) {}
 
     final initial =
         defaultOption ?? (saved.isNotEmpty ? saved.first : detected);
     final allSaved = [?defaultOption, ...saved];
 
-    _cachedSelectedOption = initial;
-    _cachedDetectedLocation = detected;
-    _cachedSavedAddresses = List<AddressOption>.from(allSaved);
-    _cachedUserId = userId;
-    _hasLoaded = true;
+    _CustomerHeaderState._cachedSelectedOption = initial;
+    _CustomerHeaderState._cachedSavedAddresses = List<AddressOption>.from(allSaved);
+    _CustomerHeaderState._cachedUserId = userId;
+    _CustomerHeaderState._hasLoaded = true;
+  }
 
-    if (mounted) {
-      setState(() {
-        _selectedOption = initial;
-        _savedAddresses = allSaved;
-        _isLoadingLocation = false;
-      });
-      widget.onLocationChanged?.call(initial.fullAddress, initial.state);
-      widget.onLocationLoadingChanged?.call(false);
+  static Future<AddressOption?> showAddressPicker(
+    BuildContext context, {
+    AddressOption? currentOption,
+  }) async {
+    if (!_CustomerHeaderState._hasLoaded ||
+        _CustomerHeaderState._cachedUserId != _currentUserIdSafe) {
+      await loadAddressesStatic();
     }
-  }
 
-  void _selectAddress(AddressOption option) {
-    setState(() {
-      _selectedOption = option;
-      _cachedSelectedOption = option;
-    });
-    widget.onLocationChanged?.call(option.fullAddress, option.state);
-  }
+    final detected = _CustomerHeaderState._cachedDetectedLocation;
+    final savedAddresses = _CustomerHeaderState._cachedSavedAddresses ?? [];
+    final activeOption = currentOption ?? _CustomerHeaderState._cachedSelectedOption;
+    final isAuthenticated = _currentUserIdSafe != null;
 
-  void _navigateToLogin() {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const CustomerMainNavigation(initialIndex: 3),
-      ),
-          (route) => false,
-    );
-  }
+    if (!context.mounted) return null;
 
-  Future<void> _openManageAddresses() async {
-    Navigator.pop(context);
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SavedAddressesScreen()),
-    );
-    clearLocationCache();
-    _loadAddresses();
-  }
-
-  void _showAddressSheet() {
-    if (_isLoadingLocation) return;
-    showModalBottomSheet(
+    return await showModalBottomSheet<AddressOption>(
       context: context,
       backgroundColor: Colors.white,
       isScrollControlled: true,
@@ -386,12 +265,21 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                if (_detectedLocation != null)
-                  _buildAddressTile(
-                    _detectedLocation!,
-                    icon: Icons.my_location,
-                  ),
-                if (!_isAuthenticated) ...[
+                _buildAddressOptionTile(
+                  sheetContext,
+                  detected ??
+                      const AddressOption(
+                        label: 'Current Location',
+                        fullAddress: 'Current Location',
+                        state: '',
+                        isDetected: true,
+                      ),
+                  isSelected: activeOption?.isDetected == true ||
+                      (detected != null &&
+                          activeOption?.fullAddress == detected.fullAddress),
+                  icon: Icons.my_location,
+                ),
+                if (!isAuthenticated) ...[
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
@@ -432,7 +320,7 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                           child: ElevatedButton(
                             onPressed: () {
                               Navigator.pop(sheetContext);
-                              _navigateToLogin();
+                              CustomerMainNavigation.switchToTab(3);
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFFFA07A),
@@ -452,10 +340,12 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                     ),
                   ),
                 ] else ...[
-                  if (_savedAddresses.isNotEmpty) const Divider(height: 24),
-                  ..._savedAddresses.map(
-                    (addr) => _buildAddressTile(
+                  if (savedAddresses.isNotEmpty) const Divider(height: 24),
+                  ...savedAddresses.map(
+                    (addr) => _buildAddressOptionTile(
+                      sheetContext,
                       addr,
+                      isSelected: activeOption?.fullAddress == addr.fullAddress,
                       icon: addr.isDefault
                           ? Icons.home_outlined
                           : Icons.location_on_outlined,
@@ -463,7 +353,17 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                   ),
                   const SizedBox(height: 12),
                   InkWell(
-                    onTap: _openManageAddresses,
+                    onTap: () async {
+                      Navigator.pop(sheetContext);
+                      await Navigator.push(
+                        sheetContext,
+                        MaterialPageRoute(
+                          builder: (_) => const SavedAddressesScreen(),
+                        ),
+                      );
+                      clearLocationCache();
+                      await loadAddressesStatic();
+                    },
                     borderRadius: BorderRadius.circular(12),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
@@ -496,6 +396,248 @@ class _CustomerHeaderState extends State<CustomerHeader> {
         );
       },
     );
+  }
+
+  static Widget _buildAddressOptionTile(
+    BuildContext sheetContext,
+    AddressOption option, {
+    required bool isSelected,
+    required IconData icon,
+  }) {
+    return InkWell(
+      onTap: () {
+        updateSelectedOption(option);
+        Navigator.pop(sheetContext, option);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFF5F0) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFFFFC8B4)
+                : const Color(0xFFEEEEEE),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              color: isSelected
+                  ? const Color(0xFFFFA07A)
+                  : const Color(0xFF9E9E9E),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        option.label,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected
+                              ? const Color(0xFFFFA07A)
+                              : const Color(0xDD000000),
+                        ),
+                      ),
+                      if (option.isDefault) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF0EB),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Default',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFFFA07A),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    option.fullAddress,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF757575),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(
+                Icons.check_circle,
+                size: 18,
+                color: Color(0xFFFFA07A),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  const CustomerHeader({
+    super.key,
+    this.showFilter = false,
+    this.showSearch = true,
+    this.showTitle = false,
+    this.pageTitle = 'DoorDish',
+    this.showBrandTitle = false,
+    this.showActions = true,
+    this.onFilterTap,
+    this.searchController,
+    this.onSearchChanged,
+    this.onSearchClear,
+    this.searchHint,
+    this.onLocationChanged,
+    this.onLocationLoadingChanged,
+  });
+
+  @override
+  State<CustomerHeader> createState() => _CustomerHeaderState();
+}
+
+class _CustomerHeaderState extends State<CustomerHeader> {
+  static AddressOption? _cachedSelectedOption;
+  static AddressOption? _cachedDetectedLocation;
+  static List<AddressOption>? _cachedSavedAddresses;
+  static String? _cachedUserId;
+  static bool _hasLoaded = false;
+
+  static void clearLocationCache() {
+    _cachedSelectedOption = null;
+    _cachedDetectedLocation = null;
+    _cachedSavedAddresses = null;
+    _cachedUserId = null;
+    _hasLoaded = false;
+  }
+
+  static void setPreloadedAddress(AddressOption option) {
+    _cachedSelectedOption = option;
+    _cachedDetectedLocation = option;
+    _cachedSavedAddresses = [option];
+    _cachedUserId = null;
+    _hasLoaded = true;
+  }
+
+  AddressOption _selectedOption = const AddressOption(
+    label: 'Current Location',
+    fullAddress: 'George Town, Penang',
+    state: 'Pulau Pinang',
+    isDetected: true,
+  );
+  bool _isLoadingLocation = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final currentUserId = CustomerHeader._currentUserIdSafe;
+    final bool authChanged = currentUserId != _cachedUserId;
+
+    if (_hasLoaded && !authChanged && _cachedSelectedOption != null) {
+      _selectedOption = _cachedSelectedOption!;
+      _isLoadingLocation = false;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          widget.onLocationChanged?.call(
+            _selectedOption.fullAddress,
+            _selectedOption.state,
+          );
+          widget.onLocationLoadingChanged?.call(false);
+        }
+      });
+    } else {
+      _loadAddresses();
+    }
+  }
+
+  Future<void> _loadAddresses() async {
+    widget.onLocationLoadingChanged?.call(true);
+
+    try {
+      await _loadAddressesInternal().timeout(const Duration(seconds: 5));
+    } catch (_) {
+      const fallback = AddressOption(
+        label: 'Current Location',
+        fullAddress: 'George Town, Penang',
+        state: 'Pulau Pinang',
+        isDetected: true,
+      );
+      _cachedSelectedOption = fallback;
+      _cachedDetectedLocation = fallback;
+      _cachedSavedAddresses = const [];
+      _cachedUserId = CustomerHeader._currentUserIdSafe;
+      _hasLoaded = true;
+      if (mounted) {
+        setState(() {
+          _selectedOption = fallback;
+          _isLoadingLocation = false;
+        });
+        widget.onLocationChanged?.call(fallback.fullAddress, fallback.state);
+        widget.onLocationLoadingChanged?.call(false);
+      }
+    }
+  }
+
+  Future<void> _loadAddressesInternal() async {
+    await CustomerHeader.loadAddressesStatic();
+    final initial = CustomerHeader.cachedSelectedOption ??
+        const AddressOption(
+          label: 'Current Location',
+          fullAddress: 'George Town, Penang',
+          state: 'Pulau Pinang',
+          isDetected: true,
+        );
+
+    if (mounted) {
+      setState(() {
+        _selectedOption = initial;
+        _isLoadingLocation = false;
+      });
+      widget.onLocationChanged?.call(initial.fullAddress, initial.state);
+      widget.onLocationLoadingChanged?.call(false);
+    }
+  }
+
+  void _selectAddress(AddressOption option) {
+    setState(() {
+      _selectedOption = option;
+      _cachedSelectedOption = option;
+    });
+    widget.onLocationChanged?.call(option.fullAddress, option.state);
+  }
+
+
+  Future<void> _showAddressSheet() async {
+    if (_isLoadingLocation) return;
+    final selected = await CustomerHeader.showAddressPicker(
+      context,
+      currentOption: _selectedOption,
+    );
+    if (selected != null && mounted) {
+      _selectAddress(selected);
+    }
   }
 
   @override
@@ -638,75 +780,6 @@ class _CustomerHeaderState extends State<CustomerHeader> {
       ),
     );
   }
-
-  Widget _buildAddressTile(AddressOption option, {required IconData icon}) {
-    final isSelected = _selectedOption.fullAddress == option.fullAddress;
-    return InkWell(
-      onTap: () {
-        _selectAddress(option);
-        Navigator.pop(context);
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFFF5F0) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFFFFC8B4)
-                : const Color(0xFFEEEEEE),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSelected
-                  ? const Color(0xFFFFA07A)
-                  : const Color(0xFF9E9E9E),
-              size: 22,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    option.label,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected
-                          ? const Color(0xFFFFA07A)
-                          : const Color(0xDD000000),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    option.fullAddress,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF757575),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              const Icon(
-                Icons.check_circle,
-                color: Color(0xFFFFA07A),
-                size: 20,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class HeaderActionButtons extends StatefulWidget {
@@ -724,17 +797,18 @@ class _HeaderActionButtonsState extends State<HeaderActionButtons> {
     super.initState();
     _checkUnreadNotifications();
     _setupRealtimeSubscription();
+    CartStorage.updateCartCount();
   }
 
   Future<void> _checkUnreadNotifications() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
+    final userId = CustomerHeader._currentUserIdSafe;
+    if (userId == null) return;
 
     try {
       final response = await supabase
           .from('notifications')
           .select('id')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .eq('is_read', false);
 
       if (mounted) {
@@ -743,34 +817,36 @@ class _HeaderActionButtonsState extends State<HeaderActionButtons> {
         });
       }
     } catch (e) {
-      print('Error fetching notification count: $e');
+      // Ignored
     }
   }
 
   void _setupRealtimeSubscription() {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
+    final userId = CustomerHeader._currentUserIdSafe;
+    if (userId == null) return;
 
-    _notificationChannel = supabase
-        .channel('public:notifications')
-        .onPostgresChanges(
-      event: PostgresChangeEvent.insert,
-      schema: 'public',
-      table: 'notifications',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'user_id',
-        value: user.id,
-      ),
-      callback: (payload) {
-        if (mounted) {
-          setState(() {
-            _hasUnreadNotifications = true;
-          });
-        }
-      },
-    )
-        .subscribe();
+    try {
+      _notificationChannel = supabase
+          .channel('public:notifications')
+          .onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'notifications',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'user_id',
+          value: userId,
+        ),
+        callback: (payload) {
+          if (mounted) {
+            setState(() {
+              _hasUnreadNotifications = true;
+            });
+          }
+        },
+      )
+          .subscribe();
+    } catch (_) {}
   }
 
   @override
@@ -796,14 +872,20 @@ class _HeaderActionButtonsState extends State<HeaderActionButtons> {
             _checkUnreadNotifications();
           },
         ),
-        HeaderIconWithBadge(
-          icon: Icons.shopping_cart_outlined,
-          //TODO: Retrieve cart item count dynamically from backend
-          showBadge: true,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CustomerCart()),
+        ValueListenableBuilder<int>(
+          valueListenable: CartStorage.cartCountNotifier,
+          builder: (context, cartCount, _) {
+            return HeaderIconWithBadge(
+              icon: Icons.shopping_cart_outlined,
+              showBadge: cartCount > 0,
+              badgeCount: cartCount,
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CustomerCart()),
+                );
+                CartStorage.updateCartCount();
+              },
             );
           },
         ),
@@ -815,18 +897,24 @@ class _HeaderActionButtonsState extends State<HeaderActionButtons> {
 class HeaderIconWithBadge extends StatelessWidget {
   final IconData icon;
   final bool showBadge;
+  final int? badgeCount;
   final VoidCallback onPressed;
 
   const HeaderIconWithBadge({
     super.key,
     required this.icon,
     required this.showBadge,
+    this.badgeCount,
     required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasCount = badgeCount != null;
+    final count = badgeCount ?? 0;
+
     return Stack(
+      clipBehavior: Clip.none,
       children: [
         IconButton(
           icon: Icon(
@@ -836,18 +924,38 @@ class HeaderIconWithBadge extends StatelessWidget {
           ),
           onPressed: onPressed,
         ),
-        if (showBadge)
+        if (showBadge && (!hasCount || count > 0))
           Positioned(
-            top: 8,
-            right: 8,
+            top: hasCount ? 4 : 8,
+            right: hasCount ? 4 : 8,
             child: Container(
-              padding: const EdgeInsets.all(4.0),
+              padding: hasCount
+                  ? const EdgeInsets.symmetric(horizontal: 4, vertical: 1)
+                  : const EdgeInsets.all(4.0),
               decoration: BoxDecoration(
                 color: const Color.fromARGB(255, 255, 160, 122),
-                shape: BoxShape.circle,
+                borderRadius: hasCount ? BorderRadius.circular(10) : null,
+                shape: hasCount ? BoxShape.rectangle : BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 1.5),
               ),
-              constraints: const BoxConstraints(minHeight: 10, minWidth: 10),
+              constraints: BoxConstraints(
+                minHeight: hasCount ? 18 : 10,
+                minWidth: hasCount ? 18 : 10,
+              ),
+              child: hasCount
+                  ? Center(
+                      child: Text(
+                        count > 99 ? '99+' : '$count',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          height: 1.1,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  : null,
             ),
           ),
       ],

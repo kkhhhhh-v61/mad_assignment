@@ -291,7 +291,12 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
       }
     }
 
-    final user = Supabase.instance.client.auth.currentUser;
+    User? user;
+    try {
+      user = Supabase.instance.client.auth.currentUser;
+    } catch (_) {
+      user = null;
+    }
     if (user != null) {
       try {
         final profileRes = await Supabase.instance.client
@@ -1068,6 +1073,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
 
   Future<void> _submitOrder() async {
     if (_isSubmitting) return;
+    final totalPaid = _calculateCurrentTotal();
     setState(() {
       _isSubmitting = true;
     });
@@ -1091,7 +1097,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         context,
         MaterialPageRoute(
           builder: (_) => CustomerOrderConfirmation(
-            totalPaid: _calculateCurrentTotal(),
+            totalPaid: totalPaid,
             paymentMethod: _selectedPaymentMethod,
           ),
         ),

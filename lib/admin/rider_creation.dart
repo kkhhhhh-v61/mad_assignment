@@ -19,7 +19,8 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
   final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _plateController = TextEditingController();
 
-  String? _selectedVehicle;
+  String? _selectedVehicle = 'Motorcycle';
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -302,6 +303,19 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
 
                         const Text('Vehicle Information', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.black87)),
                         const SizedBox(height: 12.0),
+
+                        _DropdownField(
+                          value: _selectedVehicle,
+                          label: 'Vehicle Type',
+                          hintText: 'Select a vehicle type',
+                          icon: Icons.two_wheeler,
+                          items: const ['Motorcycle'],
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedVehicle = value;
+                            });
+                          },
+                        ),
                         const SizedBox(height: 16.0),
                         _InputField(
                           controller: _plateController,

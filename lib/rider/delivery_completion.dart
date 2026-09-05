@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../Order/order.dart';
 import '../Order/order_repository.dart';
 import '../main.dart';
 import 'delivery_confirmation.dart';
@@ -138,20 +139,34 @@ class _DeliveryCompletionState extends State<DeliveryCompletion> {
           builder: (_) => DeliveryConfirmation(delivery: completedDelivery),
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (uploadedPath != null) {
         try {
-          await proofRepository.remove(uploadedPath);
+          await proofRepository
+              .remove(uploadedPath)
+              .timeout(const Duration(seconds: 5));
         } catch (_) {}
       }
       if (mounted) {
         setState(() {
           _submitting = false;
-          _error =
-              'Delivery could not be completed. Check the photo and try again.';
+          _error = _completionErrorMessage(error);
         });
       }
     }
+  }
+
+  String _completionErrorMessage(Object error) {
+    if (error is ProofPhotoRepositoryException) {
+      return error.message;
+    }
+    if (error is OrderRepositoryException) {
+      return error.message;
+    }
+    if (error is OrderDataException) {
+      return error.message;
+    }
+    return 'Delivery could not be completed. Check the photo and try again.';
   }
 
   ProofPhotoRepository? _defaultProofRepository() {

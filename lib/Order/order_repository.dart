@@ -49,9 +49,15 @@ class OrderNotFoundException extends OrderRepositoryException {
 }
 
 class SupabaseOrderRepository implements OrderRepository {
-  final SupabaseClient client;
+  static const _completionTimeout = Duration(seconds: 30);
 
-  const SupabaseOrderRepository(this.client);
+  final SupabaseClient client;
+  final Duration completionTimeout;
+
+  const SupabaseOrderRepository(
+    this.client, {
+    this.completionTimeout = _completionTimeout,
+  });
 
   @override
   Future<Order> createOrder(OrderSubmission submission) async {
@@ -171,17 +177,28 @@ class SupabaseOrderRepository implements OrderRepository {
     String? deliveryComments,
   }) async {
     try {
-      final response = await client.rpc(
-        'complete_delivery',
-        params: {
-          'p_order_id': orderId,
-          'p_proof_photo_path': proofPhotoPath,
-          'p_delivery_comments': deliveryComments,
-        },
-      );
+      final response = await client
+          .rpc(
+            'complete_delivery',
+            params: {
+              'p_order_id': orderId,
+              'p_proof_photo_path': proofPhotoPath,
+              'p_delivery_comments': deliveryComments,
+            },
+          )
+          .timeout(
+            completionTimeout,
+            onTimeout: () =>
+                throw TimeoutException('Delivery completion timed out.'),
+          );
       return Order.fromJson(_asOrderMap(response));
     } on OrderDataException {
       rethrow;
+    } on TimeoutException catch (error) {
+      throw OrderRepositoryException(
+        'Delivery completion timed out. Check the connection and try again.',
+        error,
+      );
     } catch (error) {
       throw OrderRepositoryException('Unable to complete delivery.', error);
     }

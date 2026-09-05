@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -25,13 +27,24 @@ class ProofPhotoRepositoryException implements Exception {
 
 class SupabaseProofPhotoRepository implements ProofPhotoRepository {
   static const bucket = 'delivery-proofs';
+  // Keep this aligned with the private Supabase bucket configuration.
+  static const maxProofPhotoBytes = 5 * 1024 * 1024;
+  static const _photoReadTimeout = Duration(seconds: 15);
+  static const _uploadTimeout = Duration(seconds: 30);
+  static const _cleanupTimeout = Duration(seconds: 5);
 
   final SupabaseClient client;
   final Uuid uuid;
+  final Duration photoReadTimeout;
+  final Duration uploadTimeout;
+  final Duration cleanupTimeout;
 
   const SupabaseProofPhotoRepository({
     required this.client,
     this.uuid = const Uuid(),
+    this.photoReadTimeout = _photoReadTimeout,
+    this.uploadTimeout = _uploadTimeout,
+    this.cleanupTimeout = _cleanupTimeout,
   });
 
   @override
@@ -41,10 +54,18 @@ class SupabaseProofPhotoRepository implements ProofPhotoRepository {
     }
     final path = '$orderId/${uuid.v4()}.jpg';
     try {
-      final bytes = await photo.readAsBytes();
+      final bytes = await photo.readAsBytes().timeout(
+        photoReadTimeout,
+        onTimeout: () => throw TimeoutException('Proof photo read timed out.'),
+      );
       if (bytes.isEmpty) {
         throw const ProofPhotoRepositoryException(
           'The selected photo is empty.',
+        );
+      }
+      if (bytes.length > maxProofPhotoBytes) {
+        throw const ProofPhotoRepositoryException(
+          'Proof photo must be 5 MB or smaller.',
         );
       }
       await client.storage
@@ -56,10 +77,22 @@ class SupabaseProofPhotoRepository implements ProofPhotoRepository {
               contentType: 'image/jpeg',
               upsert: false,
             ),
+          )
+          .timeout(
+            uploadTimeout,
+            onTimeout: () =>
+                throw TimeoutException('Proof photo upload timed out.'),
           );
       return path;
     } on ProofPhotoRepositoryException {
       rethrow;
+    } on TimeoutException catch (error) {
+      throw ProofPhotoRepositoryException(
+        error.message?.contains('read') == true
+            ? 'Reading the proof photo timed out. Try a smaller photo.'
+            : 'Proof photo upload timed out. Check the connection and try again.',
+        error,
+      );
     } catch (error) {
       throw ProofPhotoRepositoryException('Proof photo upload failed.', error);
     }
@@ -68,7 +101,19 @@ class SupabaseProofPhotoRepository implements ProofPhotoRepository {
   @override
   Future<void> remove(String path) async {
     try {
-      await client.storage.from(bucket).remove([path]);
+      await client.storage
+          .from(bucket)
+          .remove([path])
+          .timeout(
+            cleanupTimeout,
+            onTimeout: () =>
+                throw TimeoutException('Proof photo cleanup timed out.'),
+          );
+    } on TimeoutException catch (error) {
+      throw ProofPhotoRepositoryException(
+        'Proof photo cleanup timed out.',
+        error,
+      );
     } catch (error) {
       throw ProofPhotoRepositoryException('Proof photo cleanup failed.', error);
     }

@@ -167,6 +167,7 @@ class _AdminVoucherManagementState extends State<AdminVoucherManagement> {
     final customerData = v['profiles'];
     final targetName = customerData != null ? customerData['name'] : 'All Customers';
     final isSpecific = customerData != null;
+    final isFreeDelivery = v['is_free_delivery'] == true;
 
     return Opacity(
       opacity: isActive ? 1.0 : 0.5,
@@ -194,22 +195,33 @@ class _AdminVoucherManagementState extends State<AdminVoucherManagement> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'RM',
+                      isFreeDelivery ? 'FREE' : 'RM',
                       style: TextStyle(
                         color: isActive ? const Color.fromARGB(255, 255, 160, 122) : Colors.grey,
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: isFreeDelivery ? 20 : 14,
                       ),
                     ),
-                    Text(
-                      '${v['discount_amount']}',
-                      style: TextStyle(
-                        color: isActive ? const Color.fromARGB(255, 255, 160, 122) : Colors.grey,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 26,
-                        height: 1.1,
+                    if (!isFreeDelivery)
+                      Text(
+                        '${v['discount_amount']}',
+                        style: TextStyle(
+                          color: isActive ? const Color.fromARGB(255, 255, 160, 122) : Colors.grey,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 26,
+                          height: 1.1,
+                        ),
                       ),
-                    ),
+                    if (isFreeDelivery)
+                      Text(
+                        'DELIVERY',
+                        style: TextStyle(
+                          color: isActive ? const Color.fromARGB(255, 255, 160, 122) : Colors.grey,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          height: 1.1,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -348,10 +360,13 @@ class _VoucherFormState extends State<VoucherForm> {
 
   bool _isSaving = false;
   String? _errorMessage;
+
   bool _isForAll = true;
   String? _selectedCustomerId;
   List<Map<String, dynamic>> _customers = [];
   bool _isLoadingCustomers = false;
+
+  bool _isFreeDelivery = false;
 
   @override
   void initState() {
@@ -363,6 +378,8 @@ class _VoucherFormState extends State<VoucherForm> {
       _discountController.text = widget.existingVoucher!['discount_amount'].toString();
       _minSpendController.text = widget.existingVoucher!['min_spend'].toString();
       _selectedDate = DateTime.parse(widget.existingVoucher!['expiry_date']);
+
+      _isFreeDelivery = widget.existingVoucher!['is_free_delivery'] == true;
 
       if (widget.existingVoucher!['customer_id'] != null) {
         _isForAll = false;
@@ -432,25 +449,29 @@ class _VoucherFormState extends State<VoucherForm> {
     final discountStr = _discountController.text.trim();
     final minSpendStr = _minSpendController.text.trim();
 
-    if (code.isEmpty || discountStr.isEmpty || _selectedDate == null) {
-      _showError('Please fill in all required fields (Code, Discount, and Expiry Date).');
+    if (code.isEmpty || _selectedDate == null) {
+      _showError('Please fill in all required fields.');
+      return;
+    }
+
+    if (!_isFreeDelivery && discountStr.isEmpty) {
+      _showError('Please enter a discount amount.');
       return;
     }
 
     if (RegExp(r'[^A-Z0-9_\-]').hasMatch(code)) {
-      _showError('Voucher code can only contain letters, numbers, underscores, and dashes. No symbols like @, #, \$, % allowed.');
+      _showError('Voucher code can only contain letters, numbers, underscores, and dashes.');
       return;
     }
 
-    final discount = double.tryParse(discountStr);
-    if (discount == null) {
-      _showError('Please enter a valid number for the discount amount.');
-      return;
-    }
-
-    if (discount <= 0) {
-      _showError('Discount amount must be greater than RM 0.');
-      return;
+    double discount = 0.0;
+    if (!_isFreeDelivery) {
+      final parsed = double.tryParse(discountStr);
+      if (parsed == null || parsed <= 0) {
+        _showError('Discount amount must be greater than RM 0.');
+        return;
+      }
+      discount = parsed;
     }
 
     double minSpend = 0.0;
@@ -463,8 +484,8 @@ class _VoucherFormState extends State<VoucherForm> {
       minSpend = parsedMinSpend;
     }
 
-    if (minSpend > 0 && minSpend <= discount) {
-      _showError('Minimum spend (RM $minSpend) cannot be less than or equal to the discount amount (RM $discount).');
+    if (!_isFreeDelivery && minSpend > 0 && minSpend <= discount) {
+      _showError('Minimum spend cannot be less than or equal to the discount amount.');
       return;
     }
 
@@ -489,10 +510,35 @@ class _VoucherFormState extends State<VoucherForm> {
         'min_spend': minSpend,
         'expiry_date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
         'customer_id': _isForAll ? null : _selectedCustomerId,
+        'is_free_delivery': _isFreeDelivery,
       };
 
       if (widget.existingVoucher == null) {
         await _supabase.from('vouchers').insert(payload);
+
+        final notifTitle = _isForAll ? 'New Voucher Available! 🎉' : 'Exclusive Reward for You! 🌟';
+        final notifDesc = 'Use code $code to enjoy ${_isFreeDelivery ? "Free Delivery" : "RM ${discount.toStringAsFixed(2)} off"}!';
+
+        if (_isForAll) {
+          final payloads = _customers.map((c) => {
+            'user_id': c['id'],
+            'title': notifTitle,
+            'description': notifDesc,
+            'type': 'Promos',
+            'is_read': false,
+          }).toList();
+          if (payloads.isNotEmpty) {
+            await _supabase.from('notifications').insert(payloads);
+          }
+        } else {
+          await _supabase.from('notifications').insert({
+            'user_id': _selectedCustomerId,
+            'title': notifTitle,
+            'description': notifDesc,
+            'type': 'Promos',
+            'is_read': false,
+          });
+        }
       } else {
         await _supabase.from('vouchers').update(payload).eq('id', widget.existingVoucher!['id']);
       }
@@ -504,7 +550,7 @@ class _VoucherFormState extends State<VoucherForm> {
     } catch (e) {
       print('Save error: $e');
       if (mounted) {
-        _showError('This voucher code already exists in the system or a database error occurred.');
+        _showError('This voucher code already exists or database error occurred.');
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -556,6 +602,62 @@ class _VoucherFormState extends State<VoucherForm> {
                   ],
                 ),
               ),
+
+            const Text('Voucher Type', style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const SizedBox(height: 8.0),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _isFreeDelivery = false),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: !_isFreeDelivery ? const Color.fromARGB(255, 255, 160, 122).withOpacity(0.15) : const Color.fromARGB(255, 245, 245, 245),
+                        border: Border.all(color: !_isFreeDelivery ? const Color.fromARGB(255, 255, 160, 122) : Colors.transparent),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Fixed Discount',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: !_isFreeDelivery ? const Color.fromARGB(255, 255, 160, 122) : Colors.black54,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() {
+                      _isFreeDelivery = true;
+                      _discountController.clear();
+                    }),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _isFreeDelivery ? const Color.fromARGB(255, 255, 160, 122).withOpacity(0.15) : const Color.fromARGB(255, 245, 245, 245),
+                        border: Border.all(color: _isFreeDelivery ? const Color.fromARGB(255, 255, 160, 122) : Colors.transparent),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Free Delivery',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: _isFreeDelivery ? const Color.fromARGB(255, 255, 160, 122) : Colors.black54,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
 
             const Text('Target Audience', style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, color: Colors.black87)),
             const SizedBox(height: 8.0),
@@ -643,34 +745,44 @@ class _VoucherFormState extends State<VoucherForm> {
             _buildFormInput(
                 controller: _codeController,
                 label: 'Voucher Code *',
-                hint: 'e.g., NEWYEAR20',
+                hint: 'e.g., FREESHIP2026',
                 icon: Icons.local_offer_outlined
             ),
             const SizedBox(height: 16),
 
-            Row(
-              children: [
-                Expanded(
-                    child: _buildFormInput(
-                        controller: _discountController,
-                        label: 'Discount (RM) *',
-                        hint: '10.00',
-                        icon: Icons.payments_outlined,
-                        isNumber: true
-                    )
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                    child: _buildFormInput(
-                        controller: _minSpendController,
-                        label: 'Min Spend (RM)',
-                        hint: '25.00',
-                        icon: Icons.shopping_cart_outlined,
-                        isNumber: true
-                    )
-                ),
-              ],
-            ),
+            if (!_isFreeDelivery)
+              Row(
+                children: [
+                  Expanded(
+                      child: _buildFormInput(
+                          controller: _discountController,
+                          label: 'Discount (RM) *',
+                          hint: '10.00',
+                          icon: Icons.payments_outlined,
+                          isNumber: true
+                      )
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                      child: _buildFormInput(
+                          controller: _minSpendController,
+                          label: 'Min Spend (RM)',
+                          hint: '25.00',
+                          icon: Icons.shopping_cart_outlined,
+                          isNumber: true
+                      )
+                  ),
+                ],
+              )
+            else
+              _buildFormInput(
+                  controller: _minSpendController,
+                  label: 'Min Spend (RM) [Optional]',
+                  hint: 'e.g., 25.00',
+                  icon: Icons.shopping_cart_outlined,
+                  isNumber: true
+              ),
+
             const SizedBox(height: 16),
 
             const Text('Expiry Date *', style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, color: Colors.black87)),

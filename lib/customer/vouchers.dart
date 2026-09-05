@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CustomerVouchersScreen extends StatefulWidget {
   const CustomerVouchersScreen({super.key});
@@ -8,26 +10,54 @@ class CustomerVouchersScreen extends StatefulWidget {
 }
 
 class _CustomerVouchersScreenState extends State<CustomerVouchersScreen> {
-  // 1. Declarations & Initializations
-  final List<Map<String, dynamic>> _vouchers = [];
-  bool _isLoading = false;
+  final _supabase = Supabase.instance.client;
+  List<Map<String, dynamic>> _vouchers = [];
+  bool _isLoading = true;
 
-  // 2. Overrides & Lifecycle
   @override
   void initState() {
     super.initState();
     _loadVouchers();
   }
 
-  // 3. Logic Functions
   Future<void> _loadVouchers() async {
-    //TODO: Retrieve available vouchers from database
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = true);
+    try {
+      final userId = _supabase.auth.currentUser!.id;
+
+      final response = await _supabase
+          .from('vouchers')
+          .select()
+          .eq('is_active', true)
+          .or('customer_id.is.null, customer_id.eq.$userId')
+          .order('expiry_date', ascending: true);
+
+      if (mounted) {
+        setState(() {
+          _vouchers = List<Map<String, dynamic>>.from(response);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading customer vouchers: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
-  // 4. Main Build Method
+  void _copyToClipboard(String code) {
+    Clipboard.setData(ClipboardData(text: code));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Voucher code "$code" copied to clipboard!', style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: const Color.fromARGB(255, 76, 175, 80),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,35 +67,24 @@ class _CustomerVouchersScreenState extends State<CustomerVouchersScreen> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: Colors.black87,
-            size: 20,
-          ),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Vouchers',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.0,
-          ),
+          'My Vouchers',
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18.0),
         ),
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(
-                color: Color.fromARGB(255, 255, 160, 122),
-              ),
-            )
+        child: CircularProgressIndicator(color: Color.fromARGB(255, 255, 160, 122)),
+      )
           : _vouchers.isEmpty
-              ? _buildEmptyState()
-              : _buildVouchersList(),
+          ? _buildEmptyState()
+          : _buildVouchersList(),
     );
   }
 
-  // 5. UI Helpers / Sub-widgets
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
@@ -77,8 +96,7 @@ class _CustomerVouchersScreenState extends State<CustomerVouchersScreen> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 255, 160, 122)
-                    .withValues(alpha: 0.12),
+                color: const Color.fromARGB(255, 255, 160, 122).withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -90,21 +108,13 @@ class _CustomerVouchersScreenState extends State<CustomerVouchersScreen> {
             const SizedBox(height: 24.0),
             const Text(
               'No Vouchers Available',
-              style: TextStyle(
-                fontSize: 18.0,
-                fontWeight: FontWeight.bold,
-                color: Color(0xDD000000),
-              ),
+              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: Color(0xDD000000)),
             ),
             const SizedBox(height: 8.0),
             const Text(
               'You currently have no available vouchers.\nCheck back later for exciting offers and promotions!',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13.5,
-                color: Color.fromARGB(255, 117, 117, 117),
-                height: 1.5,
-              ),
+              style: TextStyle(fontSize: 13.5, color: Color.fromARGB(255, 117, 117, 117), height: 1.5),
             ),
           ],
         ),
@@ -118,112 +128,146 @@ class _CustomerVouchersScreenState extends State<CustomerVouchersScreen> {
       itemCount: _vouchers.length,
       itemBuilder: (context, index) {
         final voucher = _vouchers[index];
-        return _buildVoucherCard(voucher);
+        return _buildCouponCard(voucher);
       },
     );
   }
 
-  Widget _buildVoucherCard(Map<String, dynamic> voucher) {
-    final title = voucher['title'] ?? 'Voucher';
-    final description = voucher['description'] ?? '';
-    final code = voucher['code'] ?? '';
-    final expiryDate = voucher['expiry_date'] ?? '';
+  Widget _buildCouponCard(Map<String, dynamic> v) {
+    final isSpecific = v['customer_id'] != null;
+    final isFreeDelivery = v['is_free_delivery'] == true;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14.0),
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16.0),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16.0),
-        border: Border.all(
-          color: const Color.fromARGB(255, 238, 238, 238),
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromARGB(8, 0, 0, 0),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
+        side: BorderSide(color: Colors.grey.shade200, width: 1.5),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12.0),
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 255, 160, 122)
-                  .withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-            child: const Icon(
-              Icons.local_offer,
-              color: Color.fromARGB(255, 255, 160, 122),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14.0),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15.5,
-                  ),
-                ),
-                if (description.isNotEmpty) ...[
-                  const SizedBox(height: 4.0),
+      elevation: 0,
+      color: Colors.white,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: 100,
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 255, 160, 122).withOpacity(0.15),
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(15.0)),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
                   Text(
-                    description,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      color: Color.fromARGB(255, 117, 117, 117),
+                    isFreeDelivery ? 'FREE' : 'RM',
+                    style: TextStyle(
+                      color: const Color.fromARGB(255, 255, 160, 122),
+                      fontWeight: FontWeight.bold,
+                      fontSize: isFreeDelivery ? 20 : 14,
                     ),
                   ),
+                  if (!isFreeDelivery)
+                    Text(
+                      '${v['discount_amount']}',
+                      style: const TextStyle(
+                        color: Color.fromARGB(255, 255, 160, 122),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 26,
+                        height: 1.1,
+                      ),
+                    ),
+                  if (isFreeDelivery)
+                    const Text(
+                      'DELIVERY',
+                      style: TextStyle(
+                        color: Color.fromARGB(255, 255, 160, 122),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                        height: 1.1,
+                      ),
+                    ),
                 ],
-                if (code.isNotEmpty || expiryDate.isNotEmpty) ...[
-                  const SizedBox(height: 8.0),
-                  Row(
-                    children: [
-                      if (code.isNotEmpty)
+              ),
+            ),
+
+            Container(
+              width: 1.5,
+              color: Colors.grey.shade200,
+            ),
+
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8.0,
-                            vertical: 3.0,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 245, 245, 245),
-                            borderRadius: BorderRadius.circular(6.0),
+                            color: const Color.fromARGB(255, 255, 160, 122),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            code,
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(255, 66, 66, 66),
-                            ),
+                            v['code'].toString().toUpperCase(),
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.2),
                           ),
                         ),
-                      if (code.isNotEmpty && expiryDate.isNotEmpty)
-                        const SizedBox(width: 8.0),
-                      if (expiryDate.isNotEmpty)
+                        InkWell(
+                          onTap: () => _copyToClipboard(v['code'].toString().toUpperCase()),
+                          borderRadius: BorderRadius.circular(20),
+                          child: const Padding(
+                            padding: EdgeInsets.all(4.0),
+                            child: Icon(Icons.copy_rounded, color: Color.fromARGB(255, 255, 160, 122), size: 20),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    Row(
+                      children: [
+                        Icon(isSpecific ? Icons.star : Icons.public, size: 14, color: isSpecific ? Colors.orange : Colors.grey),
+                        const SizedBox(width: 6),
                         Text(
-                          'Expires $expiryDate',
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            color: Color.fromARGB(255, 140, 140, 140),
+                          isSpecific ? 'Exclusive Reward' : 'General Offer',
+                          style: TextStyle(
+                            color: isSpecific ? Colors.orange : Colors.black87,
+                            fontSize: 12,
+                            fontWeight: isSpecific ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),
-                    ],
-                  ),
-                ],
-              ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+
+                    Row(
+                      children: [
+                        const Icon(Icons.shopping_cart_outlined, size: 14, color: Colors.grey),
+                        const SizedBox(width: 6),
+                        Text(
+                            v['min_spend'] > 0 ? 'Min. Spend: RM ${v['min_spend']}' : 'No Min. Spend',
+                            style: const TextStyle(color: Colors.black87, fontSize: 13)
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                        const SizedBox(width: 6),
+                        Text('Valid till: ${v['expiry_date']}', style: const TextStyle(color: Colors.black87, fontSize: 13)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

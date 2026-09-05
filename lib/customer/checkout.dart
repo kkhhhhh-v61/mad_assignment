@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 
 import '../Order/branch_repository.dart';
 import '../Order/delivery_fee.dart';
@@ -80,7 +81,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
       (widget.deliveryAddressSnapshot != null &&
           (widget.branchSnapshot != null ||
               (widget.enableBranchSelection && _selectedBranch != null))) ||
-      widget.deliveryFeeService != null;
+          widget.deliveryFeeService != null;
 
   @override
   void initState() {
@@ -90,12 +91,12 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         : [];
     _isSelfPickup = false;
     final initialAddress = (widget.deliveryAddress != null &&
-            widget.deliveryAddress!.trim().isNotEmpty)
+        widget.deliveryAddress!.trim().isNotEmpty)
         ? widget.deliveryAddress!.trim()
         : (widget.deliveryAddressSnapshot?.formattedAddress ??
-            (CustomerHeader.cachedAddress.isNotEmpty
-                ? CustomerHeader.cachedAddress
-                : ''));
+        (CustomerHeader.cachedAddress.isNotEmpty
+            ? CustomerHeader.cachedAddress
+            : ''));
     _selectedAddress = initialAddress;
     if (CustomerHeader.cachedSelectedOption != null &&
         CustomerHeader.cachedSelectedOption!.fullAddress == _selectedAddress) {
@@ -106,12 +107,13 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     _deliveryFee = 0.0;
     _availableVouchers = [];
 
-    //TODO: Retrieve checkout items, available addresses, payment methods, and vouchers dynamically from backend
     if (_cartItems.isEmpty) {
       _loadCartItems();
     }
     _loadAddresses();
     _loadPaymentMethods();
+    _loadVouchers();
+
     if (widget.enableBranchSelection) {
       _loadBranches();
     }
@@ -122,12 +124,45 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     }
   }
 
+  Future<void> _loadVouchers() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+      final response = await Supabase.instance.client
+          .from('vouchers')
+          .select()
+          .eq('is_active', true)
+          .gte('expiry_date', todayStr)
+          .or('customer_id.is.null, customer_id.eq.$userId')
+          .order('expiry_date', ascending: true);
+
+      if (mounted) {
+        setState(() {
+          _availableVouchers = List<Map<String, dynamic>>.from(response);
+          if (_appliedVoucher != null) {
+            final stillValid = _availableVouchers.any((v) => v['id'] == _appliedVoucher!['id']);
+            if (!stillValid) _appliedVoucher = null;
+          }
+        });
+      }
+    } catch (e) {
+      print('Error fetching checkout vouchers: $e');
+    }
+  }
+
   void _setFulfillmentType(bool isSelfPickup) {
     if (_isSelfPickup == isSelfPickup) return;
     setState(() {
       _isSelfPickup = isSelfPickup;
       if (!_isSelfPickup && _selectedAddress.isEmpty) {
         _selectedAddress = CustomerHeader.cachedAddress;
+      }
+
+      if (_isSelfPickup && _appliedVoucher?['is_free_delivery'] == true) {
+        _appliedVoucher = null;
       }
     });
   }
@@ -136,19 +171,19 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     final AddressOption detected = CustomerHeader.cachedDetectedLocation ??
         (CustomerHeader.cachedAddress.isNotEmpty
             ? AddressOption(
-                label: 'Current Location',
-                fullAddress: CustomerHeader.cachedAddress,
-                state: CustomerHeader.cachedState.isNotEmpty
-                    ? CustomerHeader.cachedState
-                    : extractStateFromAddress(CustomerHeader.cachedAddress),
-                isDetected: true,
-              )
+          label: 'Current Location',
+          fullAddress: CustomerHeader.cachedAddress,
+          state: CustomerHeader.cachedState.isNotEmpty
+              ? CustomerHeader.cachedState
+              : extractStateFromAddress(CustomerHeader.cachedAddress),
+          isDetected: true,
+        )
             : const AddressOption(
-                label: 'Current Location',
-                fullAddress: 'George Town, Penang',
-                state: 'Pulau Pinang',
-                isDetected: true,
-              ));
+          label: 'Current Location',
+          fullAddress: 'George Town, Penang',
+          state: 'Pulau Pinang',
+          isDetected: true,
+        ));
 
     final List<AddressOption> options = [];
 
@@ -194,7 +229,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
           final sLabel = row['label']?.toString().trim();
           if (sAddr != null && sAddr.isNotEmpty) {
             final existingIndex =
-                options.indexWhere((o) => o.fullAddress == sAddr);
+            options.indexWhere((o) => o.fullAddress == sAddr);
             if (existingIndex >= 0) {
               if (sLabel != null && sLabel.isNotEmpty) {
                 options[existingIndex] = AddressOption(
@@ -507,7 +542,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
       setState(() {
         _deliveryFeeLoading = false;
         _deliveryFeeError =
-            'A branch and delivery address are required to calculate the road fee.';
+        'A branch and delivery address are required to calculate the road fee.';
       });
       return;
     }
@@ -585,7 +620,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         return SafeArea(
           child: Padding(
             padding:
-                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -630,17 +665,17 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
                     ),
                   if (_addressOptions.isNotEmpty) const Divider(height: 24.0),
                   ..._addressOptions.map((addr) => _buildAddressOptionTile(
-                        addr,
-                        icon: addr.isDefault
-                            ? Icons.home_outlined
-                            : (addr.label.toLowerCase() == 'home'
-                                ? Icons.home_outlined
-                                : (addr.label.toLowerCase() == 'work' ||
-                                        addr.label.toLowerCase() == 'office'
-                                    ? Icons.work_outline
-                                    : Icons.location_on_outlined)),
-                        sheetContext: sheetContext,
-                      )),
+                    addr,
+                    icon: addr.isDefault
+                        ? Icons.home_outlined
+                        : (addr.label.toLowerCase() == 'home'
+                        ? Icons.home_outlined
+                        : (addr.label.toLowerCase() == 'work' ||
+                        addr.label.toLowerCase() == 'office'
+                        ? Icons.work_outline
+                        : Icons.location_on_outlined)),
+                    sheetContext: sheetContext,
+                  )),
                   const SizedBox(height: 12.0),
                   InkWell(
                     onTap: () => _openManageAddresses(sheetContext),
@@ -679,10 +714,10 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
   }
 
   Widget _buildAddressOptionTile(
-    AddressOption option, {
-    required IconData icon,
-    required BuildContext sheetContext,
-  }) {
+      AddressOption option, {
+        required IconData icon,
+        required BuildContext sheetContext,
+      }) {
     final isSelected = _selectedAddress == option.fullAddress;
     return InkWell(
       onTap: () {
@@ -1034,7 +1069,7 @@ class CheckoutLayout extends StatelessWidget {
     for (var item in cartItems) {
       double customTotal = item.customizations.fold(
         0.0,
-        (sum, c) => sum + c.price,
+            (sum, c) => sum + c.price,
       );
       subtotal += (item.price + customTotal) * item.quantity;
     }
@@ -1042,11 +1077,15 @@ class CheckoutLayout extends StatelessWidget {
     final effectiveDeliveryFee = isSelfPickup ? 0.0 : deliveryFee;
 
     double discount = 0.0;
+
     if (appliedVoucher != null) {
-      if (appliedVoucher!['type'] == 'free_delivery') {
+      if (appliedVoucher!['is_free_delivery'] == true) {
         discount = effectiveDeliveryFee;
-      } else if (appliedVoucher!['type'] == 'percentage') {
-        discount = subtotal * (appliedVoucher!['discountValue'] as double) / 100;
+      } else {
+        discount = (appliedVoucher!['discount_amount'] as num).toDouble();
+        if (discount > subtotal) {
+          discount = subtotal;
+        }
       }
     }
 
@@ -1061,7 +1100,7 @@ class CheckoutLayout extends StatelessWidget {
     final effectiveFeeReady = isSelfPickup
         ? true
         : ((!deliveryFeeRequired && !deliveryFeeLoading) ||
-            (deliveryFeeQuote != null && deliveryFeeError == null));
+        (deliveryFeeQuote != null && deliveryFeeError == null));
 
     final placeOrderEnabled = cartItems.isNotEmpty &&
         addressReady &&
@@ -1110,6 +1149,7 @@ class CheckoutLayout extends StatelessWidget {
                   appliedVoucher: appliedVoucher,
                   availableVouchers: availableVouchers,
                   subtotal: subtotal,
+                  isSelfPickup: isSelfPickup,
                   onVoucherApplied: onVoucherApplied,
                 ),
                 const SizedBox(height: 20.0),
@@ -1220,12 +1260,12 @@ class FulfillmentOptionSwitch extends StatelessWidget {
           borderRadius: BorderRadius.circular(12.0),
           boxShadow: isSelected
               ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 6.0,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 6.0,
+              offset: const Offset(0, 2),
+            ),
+          ]
               : null,
         ),
         child: Row(
@@ -1294,7 +1334,7 @@ class AddressSelection extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16.0),
               border:
-                  Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
+              Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
             ),
             child: Row(
               children: [
@@ -1308,11 +1348,11 @@ class AddressSelection extends StatelessWidget {
                     isCurrentLocation
                         ? Icons.my_location
                         : (addressLabel?.toLowerCase() == 'home'
-                            ? Icons.home_outlined
-                            : (addressLabel?.toLowerCase() == 'work' ||
-                                    addressLabel?.toLowerCase() == 'office'
-                                ? Icons.work_outline
-                                : Icons.location_on)),
+                        ? Icons.home_outlined
+                        : (addressLabel?.toLowerCase() == 'work' ||
+                        addressLabel?.toLowerCase() == 'office'
+                        ? Icons.work_outline
+                        : Icons.location_on)),
                     color: const Color.fromARGB(255, 255, 160, 122),
                   ),
                 ),
@@ -1337,7 +1377,7 @@ class AddressSelection extends StatelessWidget {
                         style: TextStyle(
                           fontSize: hasLabel ? 12.5 : 14.0,
                           fontWeight:
-                              hasLabel ? FontWeight.normal : FontWeight.w500,
+                          hasLabel ? FontWeight.normal : FontWeight.w500,
                           color: hasLabel
                               ? const Color(0xFF757575)
                               : const Color(0xDD000000),
@@ -1399,7 +1439,7 @@ class CheckoutOrderItems extends StatelessWidget {
               CartItem item = entry.value;
               double customTotal = item.customizations.fold(
                 0.0,
-                (sum, c) => sum + c.price,
+                    (sum, c) => sum + c.price,
               );
               double itemTotal = (item.price + customTotal) * item.quantity;
 
@@ -1432,7 +1472,7 @@ class CheckoutOrderItems extends StatelessWidget {
                           if (item.customizations.isNotEmpty) ...[
                             const SizedBox(height: 4.0),
                             ...item.customizations.map(
-                              (c) => Text(
+                                  (c) => Text(
                                 '• ${c.name}',
                                 style: const TextStyle(
                                   fontSize: 12.0,
@@ -1466,6 +1506,7 @@ class CheckoutVoucher extends StatelessWidget {
   final Map<String, dynamic>? appliedVoucher;
   final List<Map<String, dynamic>> availableVouchers;
   final double subtotal;
+  final bool isSelfPickup;
   final Function(Map<String, dynamic>?) onVoucherApplied;
 
   const CheckoutVoucher({
@@ -1473,6 +1514,7 @@ class CheckoutVoucher extends StatelessWidget {
     required this.appliedVoucher,
     required this.availableVouchers,
     required this.subtotal,
+    required this.isSelfPickup,
     required this.onVoucherApplied,
   });
 
@@ -1499,10 +1541,10 @@ class CheckoutVoucher extends StatelessWidget {
               builder: (context) => VoucherSelectionBottomSheet(
                 availableVouchers: availableVouchers,
                 subtotal: subtotal,
+                isSelfPickup: isSelfPickup,
                 appliedVoucher: appliedVoucher,
                 onVoucherApplied: (v) {
                   onVoucherApplied(v);
-                  Navigator.pop(context);
                 },
               ),
             );
@@ -1525,8 +1567,8 @@ class CheckoutVoucher extends StatelessWidget {
                 Expanded(
                   child: Text(
                     appliedVoucher != null
-                        ? appliedVoucher!['title']
-                        : 'No voucher applied',
+                        ? appliedVoucher!['code'].toString().toUpperCase()
+                        : 'Select or enter code',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: appliedVoucher != null
@@ -1551,6 +1593,7 @@ class CheckoutVoucher extends StatelessWidget {
 class VoucherSelectionBottomSheet extends StatelessWidget {
   final List<Map<String, dynamic>> availableVouchers;
   final double subtotal;
+  final bool isSelfPickup;
   final Map<String, dynamic>? appliedVoucher;
   final Function(Map<String, dynamic>?) onVoucherApplied;
 
@@ -1558,6 +1601,7 @@ class VoucherSelectionBottomSheet extends StatelessWidget {
     super.key,
     required this.availableVouchers,
     required this.subtotal,
+    required this.isSelfPickup,
     required this.appliedVoucher,
     required this.onVoucherApplied,
   });
@@ -1595,7 +1639,10 @@ class VoucherSelectionBottomSheet extends StatelessWidget {
                 ),
                 if (appliedVoucher != null)
                   TextButton(
-                    onPressed: () => onVoucherApplied(null),
+                    onPressed: () {
+                      onVoucherApplied(null);
+                      Navigator.pop(context);
+                    },
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.redAccent,
                       padding: EdgeInsets.zero,
@@ -1612,30 +1659,47 @@ class VoucherSelectionBottomSheet extends StatelessWidget {
             const SizedBox(height: 20.0),
             if (availableVouchers.isEmpty)
               const Text(
-                'No vouchers available.',
+                'No vouchers available right now.',
                 style: TextStyle(color: Color.fromARGB(255, 117, 117, 117)),
               )
             else
               ...availableVouchers.map((voucher) {
-                bool isUsable = subtotal >= (voucher['minSpend'] as double);
+                final code = voucher['code'] ?? 'Voucher';
+                final isFreeDelivery = voucher['is_free_delivery'] == true;
+                final discountAmt = (voucher['discount_amount'] as num?)?.toDouble() ?? 0.0;
+                final minSpend = (voucher['min_spend'] as num?)?.toDouble() ?? 0.0;
+                final expiry = voucher['expiry_date'] ?? '';
+
+                bool isUsable = subtotal >= minSpend;
+                String disabledReason = '';
+
+                if (!isUsable) {
+                  disabledReason = 'Add RM ${(minSpend - subtotal).toStringAsFixed(2)} more to use';
+                }
+
+                if (isFreeDelivery && isSelfPickup) {
+                  isUsable = false;
+                  disabledReason = 'Not applicable for Self Pickup';
+                }
+
                 bool isSelected = appliedVoucher?['id'] == voucher['id'];
 
                 return Opacity(
-                  opacity: isUsable ? 1.0 : 0.5,
+                  opacity: isUsable ? 1.0 : 0.4,
                   child: InkWell(
-                    onTap: isUsable ? () => onVoucherApplied(voucher) : null,
+                    onTap: isUsable
+                        ? () {
+                      onVoucherApplied(voucher);
+                      Navigator.pop(context);
+                    }
+                        : null,
                     borderRadius: BorderRadius.circular(16.0),
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 12.0),
                       padding: const EdgeInsets.all(16.0),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color.fromARGB(
-                                255,
-                                255,
-                                160,
-                                122,
-                              ).withValues(alpha: 0.1)
+                            ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.1)
                             : Colors.white,
                         border: Border.all(
                           color: isSelected
@@ -1651,17 +1715,12 @@ class VoucherSelectionBottomSheet extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(12.0),
                             decoration: BoxDecoration(
-                              color: const Color.fromARGB(
-                                255,
-                                255,
-                                160,
-                                122,
-                              ).withValues(alpha: 0.15),
+                              color: const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
-                              Icons.local_offer,
-                              color: Color.fromARGB(255, 255, 160, 122),
+                            child: Icon(
+                              isFreeDelivery ? Icons.local_shipping : Icons.local_offer,
+                              color: const Color.fromARGB(255, 255, 160, 122),
                               size: 24,
                             ),
                           ),
@@ -1670,47 +1729,54 @@ class VoucherSelectionBottomSheet extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  voucher['title'],
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16.0,
-                                  ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      code.toString().toUpperCase(),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
+                                    ),
+                                    if (isSelected)
+                                      const Icon(Icons.check_circle, color: Color.fromARGB(255, 255, 160, 122), size: 20)
+                                  ],
                                 ),
                                 const SizedBox(height: 4.0),
+
                                 Text(
-                                  'Min. spend RM ${voucher['minSpend'].toStringAsFixed(2)}',
+                                  isFreeDelivery ? 'Free Delivery' : 'RM ${discountAmt.toStringAsFixed(2)} Off',
                                   style: TextStyle(
-                                    color: isUsable
-                                        ? const Color.fromARGB(255, 117, 117, 117)
-                                        : Colors.redAccent,
-                                    fontSize: 13.0,
-                                    fontWeight: isUsable
-                                        ? FontWeight.normal
-                                        : FontWeight.bold,
+                                    color: isUsable ? const Color.fromARGB(255, 255, 160, 122) : Colors.black54,
+                                    fontSize: 14.0,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                if (voucher.containsKey('expiryDate')) ...[
+                                const SizedBox(height: 2.0),
+
+                                if (!isUsable)
+                                  Text(
+                                    disabledReason,
+                                    style: const TextStyle(color: Colors.redAccent, fontSize: 12.0, fontWeight: FontWeight.bold),
+                                  )
+                                else if (minSpend > 0)
+                                  Text(
+                                    'Min. spend RM ${minSpend.toStringAsFixed(2)}',
+                                    style: const TextStyle(color: Color.fromARGB(255, 117, 117, 117), fontSize: 12.0),
+                                  )
+                                else
+                                  const Text(
+                                    'No Minimum Spend',
+                                    style: TextStyle(color: Color.fromARGB(255, 117, 117, 117), fontSize: 12.0),
+                                  ),
+
+                                if (expiry.isNotEmpty) ...[
                                   const SizedBox(height: 4.0),
                                   Row(
                                     children: [
-                                      const Icon(
-                                        Icons.access_time,
-                                        size: 14,
-                                        color: Color.fromARGB(255, 158, 158, 158),
-                                      ),
+                                      const Icon(Icons.access_time, size: 12, color: Color.fromARGB(255, 158, 158, 158)),
                                       const SizedBox(width: 4.0),
                                       Text(
-                                        voucher['expiryDate'],
-                                        style: const TextStyle(
-                                          color: Color.fromARGB(
-                                            255,
-                                            158,
-                                            158,
-                                            158,
-                                          ),
-                                          fontSize: 12.0,
-                                        ),
+                                        'Valid till $expiry',
+                                        style: const TextStyle(color: Color.fromARGB(255, 158, 158, 158), fontSize: 11.0),
                                       ),
                                     ],
                                   ),
@@ -1738,7 +1804,7 @@ class CheckoutPayment extends StatelessWidget {
   final List<Map<String, dynamic>> savedCards;
   final bool savedCardsLoading;
   final Function(String paymentMethod, Map<String, dynamic>? savedCard)
-      onPaymentMethodChanged;
+  onPaymentMethodChanged;
   final VoidCallback onAddNewCard;
 
   const CheckoutPayment({
@@ -1820,12 +1886,12 @@ class CheckoutPayment extends StatelessWidget {
           borderRadius: BorderRadius.circular(16.0),
           child: Container(
             padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16.0),
               border:
-                  Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
+              Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
             ),
             child: Row(
               children: [
@@ -1885,7 +1951,7 @@ class PaymentSelectionBottomSheet extends StatefulWidget {
   final List<Map<String, dynamic>> savedCards;
   final bool savedCardsLoading;
   final Function(String paymentMethod, Map<String, dynamic>? savedCard)
-      onPaymentMethodSelected;
+  onPaymentMethodSelected;
   final VoidCallback onAddNewCard;
 
   const PaymentSelectionBottomSheet({
@@ -2310,7 +2376,7 @@ class _PaymentSelectionBottomSheetState
                                                 122,
                                               ),
                                               borderRadius:
-                                                  BorderRadius.circular(4.0),
+                                              BorderRadius.circular(4.0),
                                             ),
                                             child: const Text(
                                               'Default',
@@ -2335,7 +2401,7 @@ class _PaymentSelectionBottomSheetState
                                       style: const TextStyle(
                                         fontSize: 11.5,
                                         color:
-                                            Color.fromARGB(255, 140, 140, 140),
+                                        Color.fromARGB(255, 140, 140, 140),
                                       ),
                                     ),
                                   ],
@@ -2394,7 +2460,7 @@ class _PaymentSelectionBottomSheetState
                 const Text(
                   'Choose Payment Method',
                   style:
-                      TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                  TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.black54),
@@ -2497,7 +2563,7 @@ class DeliveryFeeStatus extends StatelessWidget {
       color: const Color(0xffe8f5e9),
       icon: const Icon(Icons.route, color: Colors.green),
       message:
-          'Road distance: ${result.chargedRoadDistanceKm.toStringAsFixed(2)} km '
+      'Road distance: ${result.chargedRoadDistanceKm.toStringAsFixed(2)} km '
           '($routeType) · RON95 RM ${result.fuelPrice.ron95RinggitPerLitre.toStringAsFixed(2)}/L',
     );
   }

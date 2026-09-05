@@ -302,19 +302,6 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
 
                         const Text('Vehicle Information', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.black87)),
                         const SizedBox(height: 12.0),
-
-                        _DropdownField(
-                          value: _selectedVehicle,
-                          label: 'Vehicle Type',
-                          hintText: 'Select a vehicle type',
-                          icon: Icons.directions_car_outlined,
-                          items: const ['Motorcycle', 'Car', 'Bicycle'],
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedVehicle = value;
-                            });
-                          },
-                        ),
                         const SizedBox(height: 16.0),
                         _InputField(
                           controller: _plateController,

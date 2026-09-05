@@ -25,8 +25,9 @@ class _AdminVoucherManagementState extends State<AdminVoucherManagement> {
     try {
       final response = await _supabase
           .from('vouchers')
-          .select()
+          .select('*, profiles(name)')
           .order('created_at', ascending: false);
+
       setState(() {
         _vouchers = List<Map<String, dynamic>>.from(response);
         _isLoading = false;
@@ -46,13 +47,53 @@ class _AdminVoucherManagementState extends State<AdminVoucherManagement> {
     }
   }
 
+  Future<void> _confirmDelete(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
+            SizedBox(width: 8),
+            Text('Delete Voucher', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to delete this voucher? This action cannot be undone.',
+          style: TextStyle(color: Colors.black87, height: 1.4),
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _deleteVoucher(id);
+    }
+  }
+
   Future<void> _deleteVoucher(String id) async {
     try {
       await _supabase.from('vouchers').delete().eq('id', id);
       _fetchVouchers();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Voucher deleted!'), backgroundColor: Colors.redAccent),
+          const SnackBar(content: Text('Voucher deleted successfully!', style: TextStyle(fontWeight: FontWeight.bold)), backgroundColor: Colors.redAccent),
         );
       }
     } catch (e) {
@@ -123,6 +164,10 @@ class _AdminVoucherManagementState extends State<AdminVoucherManagement> {
   }
 
   Widget _buildCouponCard(Map<String, dynamic> v, bool isActive) {
+    final customerData = v['profiles'];
+    final targetName = customerData != null ? customerData['name'] : 'All Customers';
+    final isSpecific = customerData != null;
+
     return Opacity(
       opacity: isActive ? 1.0 : 0.5,
       child: Card(
@@ -201,7 +246,7 @@ class _AdminVoucherManagementState extends State<AdminVoucherManagement> {
                             onSelected: (value) {
                               if (value == 'toggle') _toggleStatus(v['id'], isActive);
                               if (value == 'edit') _showVoucherModal(v);
-                              if (value == 'delete') _deleteVoucher(v['id']);
+                              if (value == 'delete') _confirmDelete(v['id']);
                             },
                             itemBuilder: (context) => [
                               PopupMenuItem(
@@ -239,6 +284,24 @@ class _AdminVoucherManagementState extends State<AdminVoucherManagement> {
                         ],
                       ),
                       const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(isSpecific ? Icons.person : Icons.people_alt, size: 14, color: Colors.grey),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              targetName,
+                              style: TextStyle(
+                                color: isSpecific ? const Color.fromARGB(255, 255, 160, 122) : Colors.black87,
+                                fontSize: 13,
+                                fontWeight: isSpecific ? FontWeight.bold : FontWeight.normal,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           const Icon(Icons.shopping_cart_outlined, size: 14, color: Colors.grey),
@@ -285,15 +348,46 @@ class _VoucherFormState extends State<VoucherForm> {
 
   bool _isSaving = false;
   String? _errorMessage;
+  bool _isForAll = true;
+  String? _selectedCustomerId;
+  List<Map<String, dynamic>> _customers = [];
+  bool _isLoadingCustomers = false;
 
   @override
   void initState() {
     super.initState();
+    _fetchCustomers();
+
     if (widget.existingVoucher != null) {
       _codeController.text = widget.existingVoucher!['code'];
       _discountController.text = widget.existingVoucher!['discount_amount'].toString();
       _minSpendController.text = widget.existingVoucher!['min_spend'].toString();
       _selectedDate = DateTime.parse(widget.existingVoucher!['expiry_date']);
+
+      if (widget.existingVoucher!['customer_id'] != null) {
+        _isForAll = false;
+        _selectedCustomerId = widget.existingVoucher!['customer_id'];
+      }
+    }
+  }
+
+  Future<void> _fetchCustomers() async {
+    setState(() => _isLoadingCustomers = true);
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('id, name, phone')
+          .eq('role', 'customer')
+          .order('name');
+      if (mounted) {
+        setState(() {
+          _customers = List<Map<String, dynamic>>.from(response);
+          _isLoadingCustomers = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching customers: $e');
+      if (mounted) setState(() => _isLoadingCustomers = false);
     }
   }
 
@@ -381,6 +475,11 @@ class _VoucherFormState extends State<VoucherForm> {
       return;
     }
 
+    if (!_isForAll && _selectedCustomerId == null) {
+      _showError('Please select a specific customer to assign this voucher to.');
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
@@ -389,6 +488,7 @@ class _VoucherFormState extends State<VoucherForm> {
         'discount_amount': discount,
         'min_spend': minSpend,
         'expiry_date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
+        'customer_id': _isForAll ? null : _selectedCustomerId,
       };
 
       if (widget.existingVoucher == null) {
@@ -413,7 +513,6 @@ class _VoucherFormState extends State<VoucherForm> {
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 使用 Padding 将键盘高度整体垫在最底部，去掉多余的 SingleChildScrollView 导致的冲突
     return Padding(
       padding: EdgeInsets.only(
         left: 24.0,
@@ -421,119 +520,204 @@ class _VoucherFormState extends State<VoucherForm> {
         top: 24.0,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(widget.existingVoucher == null ? 'Create Voucher' : 'Edit Voucher', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.black54),
-                onPressed: () => Navigator.pop(context),
-              )
-            ],
-          ),
-          const SizedBox(height: 12),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(widget.existingVoucher == null ? 'Create Voucher' : 'Edit Voucher', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.black54),
+                  onPressed: () => Navigator.pop(context),
+                )
+              ],
+            ),
+            const SizedBox(height: 12),
 
-          if (_errorMessage != null)
-            Container(
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.shade200),
+            if (_errorMessage != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w600)),
+
+            const Text('Target Audience', style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const SizedBox(height: 8.0),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _isForAll = true),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _isForAll ? const Color.fromARGB(255, 255, 160, 122).withOpacity(0.15) : const Color.fromARGB(255, 245, 245, 245),
+                        border: Border.all(color: _isForAll ? const Color.fromARGB(255, 255, 160, 122) : Colors.transparent),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'All Customers',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: _isForAll ? const Color.fromARGB(255, 255, 160, 122) : Colors.black54,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _isForAll = false),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: !_isForAll ? const Color.fromARGB(255, 255, 160, 122).withOpacity(0.15) : const Color.fromARGB(255, 245, 245, 245),
+                        border: Border.all(color: !_isForAll ? const Color.fromARGB(255, 255, 160, 122) : Colors.transparent),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Specific Customer',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: !_isForAll ? const Color.fromARGB(255, 255, 160, 122) : Colors.black54,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
 
-          _buildFormInput(
-              controller: _codeController,
-              label: 'Voucher Code *',
-              hint: 'e.g., NEWYEAR20',
-              icon: Icons.local_offer_outlined
-          ),
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              Expanded(
-                  child: _buildFormInput(
-                      controller: _discountController,
-                      label: 'Discount (RM) *',
-                      hint: '10.00',
-                      icon: Icons.payments_outlined,
-                      isNumber: true
-                  )
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                  child: _buildFormInput(
-                      controller: _minSpendController,
-                      label: 'Min Spend (RM)',
-                      hint: '25.00',
-                      icon: Icons.shopping_cart_outlined,
-                      isNumber: true
-                  )
+            if (!_isForAll) ...[
+              const SizedBox(height: 16),
+              _isLoadingCustomers
+                  ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 255, 160, 122)))
+                  : DropdownButtonFormField<String>(
+                value: _selectedCustomerId,
+                hint: const Text('Select a customer', style: TextStyle(color: Colors.black54)),
+                isExpanded: true,
+                icon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color.fromARGB(255, 245, 245, 245),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15.0), borderSide: BorderSide.none),
+                ),
+                items: _customers.map((c) {
+                  return DropdownMenuItem<String>(
+                    value: c['id'].toString(),
+                    child: Text('${c['name']} (${c['phone'] ?? "No phone"})'),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  setState(() {
+                    _selectedCustomerId = val;
+                    _errorMessage = null;
+                  });
+                },
               ),
             ],
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          const Text('Expiry Date *', style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, color: Colors.black87)),
-          const SizedBox(height: 6.0),
-          InkWell(
-            onTap: _pickDate,
-            borderRadius: BorderRadius.circular(15.0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-              decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 245, 245, 245),
-                  borderRadius: BorderRadius.circular(15.0)
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today, color: Colors.black54, size: 20),
-                  const SizedBox(width: 12),
-                  Text(
-                      _selectedDate == null ? 'Select Date' : DateFormat('yyyy-MM-dd').format(_selectedDate!),
-                      style: TextStyle(
-                          fontSize: 15,
-                          color: _selectedDate == null ? const Color.fromARGB(255, 158, 158, 158) : Colors.black87
-                      )
-                  ),
-                ],
+            _buildFormInput(
+                controller: _codeController,
+                label: 'Voucher Code *',
+                hint: 'e.g., NEWYEAR20',
+                icon: Icons.local_offer_outlined
+            ),
+            const SizedBox(height: 16),
+
+            Row(
+              children: [
+                Expanded(
+                    child: _buildFormInput(
+                        controller: _discountController,
+                        label: 'Discount (RM) *',
+                        hint: '10.00',
+                        icon: Icons.payments_outlined,
+                        isNumber: true
+                    )
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                    child: _buildFormInput(
+                        controller: _minSpendController,
+                        label: 'Min Spend (RM)',
+                        hint: '25.00',
+                        icon: Icons.shopping_cart_outlined,
+                        isNumber: true
+                    )
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            const Text('Expiry Date *', style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const SizedBox(height: 6.0),
+            InkWell(
+              onTap: _pickDate,
+              borderRadius: BorderRadius.circular(15.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 245, 245, 245),
+                    borderRadius: BorderRadius.circular(15.0)
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today, color: Colors.black54, size: 20),
+                    const SizedBox(width: 12),
+                    Text(
+                        _selectedDate == null ? 'Select Date' : DateFormat('yyyy-MM-dd').format(_selectedDate!),
+                        style: TextStyle(
+                            fontSize: 15,
+                            color: _selectedDate == null ? const Color.fromARGB(255, 158, 158, 158) : Colors.black87
+                        )
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 32),
+            const SizedBox(height: 32),
 
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: _isSaving ? null : _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 255, 160, 122),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-                elevation: 0,
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: _isSaving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 255, 160, 122),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+                  elevation: 0,
+                ),
+                child: _isSaving
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('Save Voucher', style: TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold)),
               ),
-              child: _isSaving
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Save Voucher', style: TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold)),
-            ),
-          )
-        ],
+            )
+          ],
+        ),
       ),
     );
   }

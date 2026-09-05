@@ -105,11 +105,14 @@ class OrderDetails extends StatelessWidget {
   String get orderId => order['orderId'] as String;
   String get date => order['date'] as String;
   String get status => order['status'] as String;
-  List<Map<String, Object>> get itemsList {
+  List<Map<String, dynamic>> get itemsList {
     final rawItems = order['items'];
-    if (rawItems is! List) return const [];
+    if (rawItems is! Iterable) return const [];
     return rawItems
-        .map((item) => Map<String, Object>.from(item as Map))
+        .whereType<Map>()
+        // Item fields such as imageUrl are optional. Keep null values instead
+        // of forcing the whole Supabase-loaded map into Map<String, Object>.
+        .map((item) => Map<String, dynamic>.from(item))
         .toList(growable: false);
   }
 
@@ -451,7 +454,7 @@ class OrderDetails extends StatelessWidget {
 }
 
 class OrderReceiptCard extends StatelessWidget {
-  final List<Map<String, Object>> itemsList;
+  final List<Map<String, dynamic>> itemsList;
   final double subtotal;
   final double deliveryFee;
   final double discount;

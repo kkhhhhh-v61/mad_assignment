@@ -51,6 +51,7 @@ void main() {
             'name': 'Classic Beef Burger',
             'quantity': 2,
             'price': 16.90,
+            'imageUrl': null,
           },
         ],
       },

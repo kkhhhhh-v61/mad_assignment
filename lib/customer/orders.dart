@@ -86,8 +86,11 @@ class _CustomerOrdersState extends State<CustomerOrders> {
   Future<Map<String, String>> _loadFoodImageUrls(List<Order> orders) async {
     final foodIds = orders
         .expand((order) => order.items)
-        .map((item) => item.foodId.trim())
-        .where((id) => id.isNotEmpty)
+        .map((item) => item.foodId.trim().toLowerCase())
+        // State-combo/test items use text identifiers, while food_items.id is
+        // a UUID. Exclude those identifiers so one invalid value does not
+        // make PostgREST reject the whole image lookup with HTTP 400.
+        .where(_isUuid)
         .toSet()
         .toList(growable: false);
     if (foodIds.isEmpty) return const {};
@@ -100,8 +103,9 @@ class _CustomerOrdersState extends State<CustomerOrders> {
       final imageUrls = <String, String>{};
       for (final row in response) {
         final imageUrl = row['image_url']?.toString().trim() ?? '';
-        if (imageUrl.isNotEmpty) {
-          imageUrls[row['id'].toString()] = imageUrl;
+        final id = row['id']?.toString().trim().toLowerCase() ?? '';
+        if (id.isNotEmpty && imageUrl.isNotEmpty) {
+          imageUrls[id] = imageUrl;
         }
       }
       return imageUrls;
@@ -290,7 +294,7 @@ Map<String, dynamic> _toCustomerOrderMap(
           'name': item.name,
           'quantity': item.quantity,
           'price': item.unitPriceSen / 100,
-          'imageUrl': foodImageUrls[item.foodId.trim()],
+          'imageUrl': foodImageUrls[item.foodId.trim().toLowerCase()],
         },
       )
       .toList(growable: false);
@@ -322,6 +326,12 @@ Map<String, dynamic> _toCustomerOrderMap(
     'typedOrder': order,
   };
 }
+
+final _uuidPattern = RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+);
+
+bool _isUuid(String value) => _uuidPattern.hasMatch(value);
 
 String _customerDisplayStatus(OrderStatus status) {
   return switch (status) {

@@ -55,6 +55,49 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     }
   }
 
+  Future<void> _confirmDeleteCard(String id) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
+              SizedBox(width: 8),
+              Text('Delete Card', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
+          ),
+          content: const Text(
+            'Are you sure you want to delete this payment method? This action cannot be undone.',
+            style: TextStyle(color: Colors.black87, height: 1.4),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel', style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      _deleteCard(id);
+    }
+  }
+
   Future<void> _setDefaultCard(String id) async {
     try {
       final userId = _supabase.auth.currentUser!.id;
@@ -73,7 +116,18 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20.0))),
       builder: (context) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: AddCardForm(onSave: _fetchCards),
+        child: AddCardForm(
+            onSave: () {
+              _fetchCards();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Card added successfully!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  backgroundColor: Color.fromARGB(255, 76, 175, 80),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+        ),
       ),
     );
   }
@@ -186,7 +240,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                 ),
                 PopupMenuButton<String>(
                   onSelected: (value) {
-                    if (value == 'delete') _deleteCard(card['id']);
+                    if (value == 'delete') _confirmDeleteCard(card['id']);
                     if (value == 'default') _setDefaultCard(card['id']);
                   },
                   itemBuilder: (context) => [

@@ -15,7 +15,6 @@ class SharedAccountScreen extends StatefulWidget {
   final UserRole role;
   final String vehicleType;
   final String vehiclePlate;
-  final double rating;
   final bool isOnline;
   final ValueChanged<bool>? onOnlineChanged;
 
@@ -34,7 +33,6 @@ class SharedAccountScreen extends StatefulWidget {
     this.role = UserRole.customer,
     this.vehicleType = '',
     this.vehiclePlate = '',
-    this.rating = 0.0,
     this.isOnline = false,
     this.onOnlineChanged,
   });
@@ -124,15 +122,14 @@ class _SharedAccountScreenState extends State<SharedAccountScreen> {
             height: 70,
             width: 70,
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 255, 160, 122)
-                  .withValues(alpha: 0.2),
+              color: const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.2),
               shape: BoxShape.circle,
-            image: widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
-                ? DecorationImage(
-              image: NetworkImage(widget.avatarUrl!),
-              fit: BoxFit.cover,
-            )
-                : null,
+              image: widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
+                  ? DecorationImage(
+                image: NetworkImage(widget.avatarUrl!),
+                fit: BoxFit.cover,
+              )
+                  : null,
             ),
             child: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
                 ? Icon(
@@ -234,11 +231,6 @@ class _SharedAccountScreenState extends State<SharedAccountScreen> {
                 ? widget.vehiclePlate
                 : 'Not Available',
           ),
-          const Divider(
-            height: 24.0,
-            color: Color.fromARGB(255, 238, 238, 238),
-          ),
-          _buildRatingRow(),
         ],
       ),
     );
@@ -296,74 +288,6 @@ class _SharedAccountScreenState extends State<SharedAccountScreen> {
     );
   }
 
-  Widget _buildRatingRow() {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(9.0),
-          decoration: const BoxDecoration(
-            color: Color.fromARGB(255, 245, 245, 245),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.star_outline,
-            size: 21.0,
-            color: Color.fromARGB(255, 117, 117, 117),
-          ),
-        ),
-        const SizedBox(width: 14.0),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Rating',
-                style: TextStyle(
-                  fontSize: 13.0,
-                  color: Color.fromARGB(255, 117, 117, 117),
-                ),
-              ),
-              const SizedBox(height: 3.0),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.star,
-                    size: 18.0,
-                    color: Color.fromARGB(255, 255, 193, 7),
-                  ),
-                  const SizedBox(width: 4.0),
-                  Text(
-                    widget.rating > 0
-                        ? widget.rating.toStringAsFixed(1)
-                        : 'No Rating',
-                    style: const TextStyle(
-                      fontSize: 15.0,
-                      fontWeight: FontWeight.w600,
-                      color: Color.fromARGB(221, 0, 0, 0),
-                    ),
-                  ),
-                  if (widget.rating > 0)
-                    const Text(
-                      ' / 5.0',
-                      style: TextStyle(
-                        fontSize: 13.0,
-                        color: Color.fromARGB(255, 117, 117, 117),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const Icon(
-          Icons.lock_outline,
-          size: 17.0,
-          color: Color.fromARGB(255, 158, 158, 158),
-        ),
-      ],
-    );
-  }
-
   Widget _buildOnlineStatusCard(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -386,10 +310,8 @@ class _SharedAccountScreenState extends State<SharedAccountScreen> {
             padding: const EdgeInsets.all(10.0),
             decoration: BoxDecoration(
               color: _isOnline
-                  ? const Color.fromARGB(255, 76, 175, 80)
-                  .withValues(alpha: 0.12)
-                  : const Color.fromARGB(255, 158, 158, 158)
-                  .withValues(alpha: 0.12),
+                  ? const Color.fromARGB(255, 76, 175, 80).withValues(alpha: 0.12)
+                  : const Color.fromARGB(255, 158, 158, 158).withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -429,8 +351,7 @@ class _SharedAccountScreenState extends State<SharedAccountScreen> {
           ),
           Switch(
             value: _isOnline,
-            activeThumbColor:
-            const Color.fromARGB(255, 76, 175, 80),
+            activeThumbColor: const Color.fromARGB(255, 76, 175, 80),
             onChanged: _handleOnlineChanged,
           ),
         ],
@@ -495,8 +416,7 @@ class _SharedAccountScreenState extends State<SharedAccountScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8.0),
         decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 229, 57, 53)
-              .withValues(alpha: 0.1),
+          color: const Color.fromARGB(255, 229, 57, 53).withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: const Icon(

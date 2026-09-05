@@ -29,7 +29,6 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
 
   String _vehicleType = '';
   String _vehiclePlate = '';
-  double _rating = 0.0;
   bool _isOnline = false;
 
   @override
@@ -57,7 +56,6 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
         setState(() {
           _vehicleType = response['vehicle']?.toString() ?? 'Not Available';
           _vehiclePlate = response['plate']?.toString() ?? 'Not Available';
-          _rating = double.tryParse(response['rating']?.toString() ?? '0') ?? 0.0;
           _isOnline = response['status'] == 'Online';
         });
       }
@@ -94,7 +92,6 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
       role: UserRole.rider,
       vehicleType: _vehicleType,
       vehiclePlate: _vehiclePlate,
-      rating: _rating,
       isOnline: _isOnline,
       onOnlineChanged: (bool value) async {
         setState(() {
@@ -121,7 +118,8 @@ class _RiderMainNavigationState extends State<RiderMainNavigation> {
               initialEmail: currentUser?.email ?? '',
               initialPhone: currentUser?.phone ?? '',
               initialAvatarUrl: currentUser?.avatarUrl,
-
+              vehicleType: _vehicleType,
+              vehiclePlate: _vehiclePlate,
               onSave: (name, email, phone, password) async {
                 try {
                   final userId = supabase.auth.currentUser!.id;

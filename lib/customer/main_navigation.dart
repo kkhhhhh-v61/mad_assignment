@@ -138,6 +138,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
               showSearch: false,
             ),
             onAuthSuccess: (user) {
+              CustomerHeader.clearLocationCache();
               setState(() {
                 _isLoggedIn = true;
                 currentUser = user;
@@ -242,6 +243,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
         await prefs.setBool('remember_me', false);
 
         await supabase.auth.signOut();
+        CustomerHeader.clearLocationCache();
         setState(() {
           _isLoggedIn = false;
           currentUser = null;

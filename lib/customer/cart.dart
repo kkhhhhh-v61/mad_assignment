@@ -335,7 +335,7 @@ class _CustomerCartState extends State<CustomerCart> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'You must be logged in to view your cart and proceed with orders.',
+              'You must be logged in to view your cart.',
               style: TextStyle(fontSize: 14, color: Color(0xFF757575)),
               textAlign: TextAlign.center,
             ),

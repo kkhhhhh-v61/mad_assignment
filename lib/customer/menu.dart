@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../global.dart';
 import '../main.dart';
+import '../services/states.dart';
 import 'food_item_detail.dart';
 import 'header.dart';
 
@@ -23,6 +24,8 @@ class _CustomerMenuState extends State<CustomerMenu> {
   List<Map<String, dynamic>> _foodItems = [];
   bool _isLoadingFoodItems = true;
 
+  String _currentState = CustomerHeader.cachedState;
+  bool _isLoadingLocation = !CustomerHeader.hasCachedLocation;
   String _selectedSort = 'Popularity';
   final List<String> _sortOptions = [
     'Popularity',
@@ -127,8 +130,25 @@ class _CustomerMenuState extends State<CustomerMenu> {
     return const [];
   }
 
+  List<String> _extractStates(Map<String, dynamic> item) {
+    final raw = item['food_item_states'] as List<dynamic>?;
+    if (raw != null && raw.isNotEmpty) {
+      final states = raw
+          .whereType<Map<String, dynamic>>()
+          .map((e) => (e['states'] as Map<String, dynamic>?)?['name']?.toString())
+          .whereType<String>()
+          .toList();
+      if (states.isNotEmpty) return states;
+    }
+    if (item['states'] is List) {
+      return (item['states'] as List).map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
+    }
+    return const [];
+  }
+
   Map<String, dynamic> _normalizeFoodItem(Map<String, dynamic> raw) {
     final categories = _extractCategories(raw);
+    final states = _extractStates(raw);
     final prep = raw['preparation_time'] as int? ??
         (raw['prepTime'] != null ? int.tryParse(raw['prepTime'].toString()) : null);
     final prepStr = prep != null ? '$prep mins' : (raw['prepTime']?.toString() ?? '15 mins');
@@ -140,6 +160,7 @@ class _CustomerMenuState extends State<CustomerMenu> {
       'prepTime': prepStr,
       'category': categories.isNotEmpty ? categories.join(', ') : 'Special',
       'categories': categories,
+      'exclusive_states': states,
       'icon': raw['icon'] as IconData? ?? Icons.fastfood_outlined,
       'image_url': raw['image_url'] as String?,
       'description': raw['description']?.toString() ?? 'Freshly prepared and made to order.',
@@ -176,6 +197,16 @@ class _CustomerMenuState extends State<CustomerMenu> {
 
       final maxP = double.tryParse(_maxPriceController.text.trim());
       if (maxP != null && price > maxP) return false;
+
+      final exclusiveStates =
+          (item['exclusive_states'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+      if (exclusiveStates.isNotEmpty) {
+        if (_currentState.isEmpty) return false;
+        final matches = exclusiveStates.any(
+          (s) => isSameState(s, _currentState),
+        );
+        if (!matches) return false;
+      }
 
       return true;
     }).toList();
@@ -233,6 +264,7 @@ class _CustomerMenuState extends State<CustomerMenu> {
   @override
   Widget build(BuildContext context) {
     final items = _filterAndSortFoodItems();
+    final bool isContentLoading = _isLoadingFoodItems || _isLoadingLocation;
 
     return Column(
       children: [
@@ -243,12 +275,25 @@ class _CustomerMenuState extends State<CustomerMenu> {
           onSearchChanged: (v) => setState(() => _searchQuery = v.trim()),
           onSearchClear: () => setState(() => _searchQuery = ''),
           searchHint: 'Search menu...',
+          onLocationLoadingChanged: (loading) {
+            if (_isLoadingLocation != loading) {
+              setState(() {
+                _isLoadingLocation = loading;
+              });
+            }
+          },
+          onLocationChanged: (address, state) {
+            setState(() {
+              _currentState = state;
+              _isLoadingLocation = false;
+            });
+          },
         ),
         const SizedBox(height: 16),
         _buildCategoryChips(),
         const SizedBox(height: 8),
         Expanded(
-          child: _isLoadingFoodItems
+          child: isContentLoading
               ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFA07A)))
               : RefreshIndicator(
                   color: const Color(0xFFFFA07A),
@@ -265,7 +310,7 @@ class _CustomerMenuState extends State<CustomerMenu> {
                             ? 'No items found matching "$_searchQuery".'
                             : (_selectedCategory.isNotEmpty && _selectedCategory != 'All'
                                 ? 'No items found in "$_selectedCategory".'
-                                : 'There are no menu items to display right now.'),
+                                : 'There are no menu items available for your location right now.'),
                       ),
                     ),
                   ),
@@ -376,6 +421,8 @@ class FoodItemCard extends StatelessWidget {
     final prepTime = item['prepTime'] as String? ?? '';
     final icon = (item['icon'] as IconData?) ?? Icons.fastfood_outlined;
     final imageUrl = item['image_url'] as String?;
+    final exclusiveStates =
+        (item['exclusive_states'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
 
     void openDetail() => Navigator.push(context, MaterialPageRoute(builder: (_) => FoodItemDetail(item: item)));
 
@@ -413,18 +460,52 @@ class FoodItemCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xDD000000)),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.access_time, color: Color(0xFF9E9E9E), size: 16),
-                      const SizedBox(width: 4),
-                      Text(prepTime, style: const TextStyle(fontSize: 13, color: Color(0xFF757575))),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xDD000000)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(Icons.access_time, color: Color(0xFF9E9E9E), size: 16),
+                                const SizedBox(width: 4),
+                                Text(prepTime, style: const TextStyle(fontSize: 13, color: Color(0xFF757575))),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (exclusiveStates.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Tooltip(
+                          message: 'State Exclusive: ${exclusiveStates.join(", ")}',
+                          child: InkWell(
+                            onTap: () => _showExclusiveStatesDialog(context, name, exclusiveStates),
+                            borderRadius: BorderRadius.circular(15),
+                            child: Container(
+                              height: 30,
+                              width: 30,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFA07A).withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: const Color(0xFFFFA07A).withValues(alpha: 0.4)),
+                              ),
+                              child: const Center(
+                                child: Icon(Icons.location_on, size: 17, color: Color(0xFFFFA07A)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -450,6 +531,100 @@ class FoodItemCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showExclusiveStatesDialog(BuildContext context, String foodName, List<String> states) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+        contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFA07A).withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.location_on, color: Color(0xFFFFA07A), size: 22),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'State Exclusive',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xDD000000),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              foodName.isNotEmpty
+                  ? '$foodName is exclusively available in:'
+                  : 'This item is exclusively available in:',
+              style: const TextStyle(fontSize: 14, color: Color(0xFF616161), height: 1.4),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: states.map((state) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF0EA),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFFFC8B4)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.location_on, size: 14, color: Color(0xFFFFA07A)),
+                      const SizedBox(width: 4),
+                      Text(
+                        state,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFFFA07A),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFA07A),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Got it', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+          ),
+        ],
       ),
     );
   }

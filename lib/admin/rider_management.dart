@@ -19,7 +19,6 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
   String _searchQuery = '';
 
   String _currentSort = 'Name (A-Z)';
-  String _currentVehicleFilter = 'All';
   String _currentStatusFilter = 'All';
 
   @override
@@ -86,10 +85,6 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
       }).toList();
     }
 
-    if (_currentVehicleFilter != 'All') {
-      result = result.where((rider) => rider['vehicle'] == _currentVehicleFilter).toList();
-    }
-
     if (_currentStatusFilter != 'All') {
       result = result.where((rider) => rider['status'] == _currentStatusFilter).toList();
     }
@@ -111,7 +106,6 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
       builder: (BuildContext context) {
         return RiderFilterSheet(
           initialSort: _currentSort,
-          initialVehicle: _currentVehicleFilter,
           initialStatus: _currentStatusFilter,
         );
       },
@@ -120,7 +114,6 @@ class _AdminRiderManagementState extends State<AdminRiderManagement> {
     if (result != null) {
       setState(() {
         _currentSort = result['sort']!;
-        _currentVehicleFilter = result['vehicle']!;
         _currentStatusFilter = result['status']!;
       });
     }
@@ -404,11 +397,11 @@ class RiderItemCard extends StatelessWidget {
                     const SizedBox(height: 4.0),
                     Row(
                       children: [
-                        const Icon(Icons.delivery_dining, color: Color.fromARGB(255, 158, 158, 158), size: 16),
+                        const Icon(Icons.two_wheeler, color: Color.fromARGB(255, 158, 158, 158), size: 16),
                         const SizedBox(width: 6.0),
                         Expanded(
                           child: Text(
-                            '${item['vehicle'] ?? 'N/A'} - ${item['plate'] ?? 'N/A'}',
+                            'Motorcycle - ${item['plate'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 13.0, color: Color.fromARGB(255, 117, 117, 117)),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -450,14 +443,12 @@ class RiderItemCard extends StatelessWidget {
 
 class RiderFilterSheet extends StatefulWidget {
   final String initialSort;
-  final String initialVehicle;
   final String initialStatus;
 
   const RiderFilterSheet({
     super.key,
     required this.initialSort,
-    required this.initialVehicle,
-    required this.initialStatus
+    required this.initialStatus,
   });
 
   @override
@@ -466,18 +457,15 @@ class RiderFilterSheet extends StatefulWidget {
 
 class _RiderFilterSheetState extends State<RiderFilterSheet> {
   late String selectedSort;
-  late String selectedVehicle;
   late String selectedStatus;
 
   final List<String> sortOptions = ['Name (A-Z)', 'Name (Z-A)'];
-  final List<String> vehicleOptions = ['All', 'Motorcycle', 'Car', 'Bicycle'];
   final List<String> statusOptions = ['All', 'Online', 'Offline', 'On Delivery'];
 
   @override
   void initState() {
     super.initState();
     selectedSort = widget.initialSort;
-    selectedVehicle = widget.initialVehicle;
     selectedStatus = widget.initialStatus;
   }
 
@@ -511,7 +499,6 @@ class _RiderFilterSheetState extends State<RiderFilterSheet> {
                     onPressed: () {
                       setState(() {
                         selectedSort = 'Name (A-Z)';
-                        selectedVehicle = 'All';
                         selectedStatus = 'All';
                       });
                     },
@@ -540,22 +527,6 @@ class _RiderFilterSheetState extends State<RiderFilterSheet> {
                 ),
               ),
               const SizedBox(height: 24.0),
-              const Text('Vehicle Type', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8.0),
-              Wrap(
-                spacing: 8.0, runSpacing: 8.0,
-                children: vehicleOptions.map((String type) {
-                  final isSelected = selectedVehicle == type;
-                  return ChoiceChip(
-                    label: Text(type, style: TextStyle(color: isSelected ? Colors.white : const Color.fromARGB(221, 0, 0, 0), fontWeight: isSelected ? FontWeight.bold : FontWeight.w500)),
-                    selected: isSelected,
-                    selectedColor: const Color.fromARGB(255, 255, 160, 122),
-                    backgroundColor: const Color.fromARGB(255, 245, 245, 245),
-                    onSelected: (bool selected) => setState(() => selectedVehicle = type),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 24.0),
               const Text('Status', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8.0),
               Wrap(
@@ -578,7 +549,6 @@ class _RiderFilterSheetState extends State<RiderFilterSheet> {
                   onPressed: () {
                     Navigator.pop(context, {
                       'sort': selectedSort,
-                      'vehicle': selectedVehicle,
                       'status': selectedStatus,
                     });
                   },

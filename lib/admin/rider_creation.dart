@@ -19,7 +19,7 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
   final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _plateController = TextEditingController();
 
-  String? _selectedVehicle = 'Motorcycle';
+  final String _selectedVehicle = 'Motorcycle';
 
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -100,7 +100,7 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
     final plate = _plateController.text.trim();
 
     if (name.isEmpty || phone.isEmpty || email.isEmpty || password.isEmpty ||
-        confirmPassword.isEmpty || _selectedVehicle == null || plate.isEmpty || _selectedBranchId == null) {
+        confirmPassword.isEmpty || plate.isEmpty || _selectedBranchId == null) {
       _showErrorSnackBar('Please fill in all fields and select a branch.');
       return;
     }
@@ -302,20 +302,27 @@ class _AdminRiderCreationState extends State<AdminRiderCreation> {
                         const SizedBox(height: 16.0),
 
                         const Text('Vehicle Information', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold, color: Colors.black87)),
-                        const SizedBox(height: 12.0),
-
-                        _DropdownField(
-                          value: _selectedVehicle,
-                          label: 'Vehicle Type',
-                          hintText: 'Select a vehicle type',
-                          icon: Icons.two_wheeler,
-                          items: const ['Motorcycle'],
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedVehicle = value;
-                            });
-                          },
+                        const Text('Vehicle Type', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Color.fromARGB(221, 0, 0, 0))),
+                        const SizedBox(height: 6.0),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 245, 245, 245),
+                            borderRadius: BorderRadius.circular(15.0),
+                            border: Border.all(color: const Color.fromARGB(255, 224, 224, 224)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.two_wheeler, color: Color.fromARGB(255, 117, 117, 117), size: 20),
+                              SizedBox(width: 14.0),
+                              Text(
+                                'Motorcycle',
+                                style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.w500, color: Color.fromARGB(221, 0, 0, 0)),
+                              ),
+                            ],
+                          ),
                         ),
+
                         const SizedBox(height: 16.0),
                         _InputField(
                           controller: _plateController,
@@ -452,68 +459,6 @@ class _InputField extends StatelessWidget {
               onPressed: onTogglePassword,
             )
                 : null,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(color: Color.fromARGB(255, 224, 224, 224)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15.0),
-              borderSide: const BorderSide(color: Color.fromARGB(255, 255, 160, 122), width: 2.0),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DropdownField extends StatelessWidget {
-  final String? value;
-  final String label;
-  final String hintText;
-  final IconData icon;
-  final List<String> items;
-  final ValueChanged<String?> onChanged;
-
-  const _DropdownField({
-    required this.value,
-    required this.label,
-    required this.hintText,
-    required this.icon,
-    required this.items,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Color.fromARGB(221, 0, 0, 0)),
-        ),
-        const SizedBox(height: 6.0),
-        DropdownButtonFormField<String>(
-          value: value,
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: const TextStyle(color: Color.fromARGB(255, 158, 158, 158)),
-            filled: true,
-            fillColor: const Color.fromARGB(255, 245, 245, 245),
-            prefixIcon: Icon(icon, color: const Color.fromARGB(255, 117, 117, 117), size: 20),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),

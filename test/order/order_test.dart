@@ -139,6 +139,41 @@ void main() {
     );
   });
 
+  test('customer can read a legacy card order without a method reference', () {
+    final legacyOrder = <String, dynamic>{
+      'id': '22222222-2222-4222-8222-222222222222',
+      'order_number': 'ORD-LEGACY-CARD',
+      'payment_idempotency_key': 'legacy-card-1',
+      'payment_type': 'Card',
+      'payment_status': 'Completed',
+      'payment_method_id': null,
+      'customer_id': '33333333-3333-4333-8333-333333333333',
+      'rider_id': null,
+      'fulfilment_type': 'delivery',
+      'status': 'placed',
+      'branch_snapshot': branch.toJson(),
+      'delivery_address_snapshot': address.toJson(),
+      'subtotal_sen': 2500,
+      'discount_sen': 200,
+      'delivery_fee_sen': 300,
+      'total_sen': 2600,
+      'order_items': [item.toJson()],
+      'proof_photo_path': null,
+      'delivery_comments': null,
+      'created_at': '2026-09-05T00:00:00.000Z',
+      'updated_at': '2026-09-05T00:00:00.000Z',
+      'completed_at': null,
+    };
+
+    expect(
+      () => Order.fromJson(legacyOrder),
+      throwsA(isA<InvalidOrderException>()),
+    );
+    final order = Order.fromJson(legacyOrder, allowMissingCardMethodId: true);
+    expect(order.paymentType, 'Card');
+    expect(order.paymentMethodId, isNull);
+  });
+
   test('invalid total is rejected before a repository call', () {
     expect(
       () => OrderSubmission(

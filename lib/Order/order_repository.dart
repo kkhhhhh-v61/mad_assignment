@@ -139,7 +139,9 @@ class SupabaseOrderRepository implements OrderRepository {
           .eq('customer_id', customerId)
           .inFilter('status', statuses)
           .order('created_at', ascending: false);
-      return _asOrderList(response);
+      // Keep history readable for legacy Card rows missing a method ID;
+      // new submissions remain strict through OrderSubmission validation.
+      return _asOrderList(response, allowMissingCardMethodId: true);
     } on OrderDataException {
       rethrow;
     } catch (error) {
@@ -267,7 +269,10 @@ Map<String, dynamic> _asOrderMap(dynamic response) {
   throw const OrderDataException('The order response was empty or malformed.');
 }
 
-List<Order> _asOrderList(dynamic response) {
+List<Order> _asOrderList(
+  dynamic response, {
+  bool allowMissingCardMethodId = false,
+}) {
   if (response is! List) {
     throw const OrderDataException('The order list response was malformed.');
   }
@@ -276,7 +281,10 @@ List<Order> _asOrderList(dynamic response) {
         if (row is! Map) {
           throw const OrderDataException('An order row was malformed.');
         }
-        return Order.fromJson(Map<String, dynamic>.from(row));
+        return Order.fromJson(
+          Map<String, dynamic>.from(row),
+          allowMissingCardMethodId: allowMissingCardMethodId,
+        );
       })
       .toList(growable: false);
 }

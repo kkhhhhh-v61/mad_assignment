@@ -89,6 +89,7 @@ void validatePaymentFields({
   required String? paymentType,
   required String? paymentStatus,
   required String? paymentMethodId,
+  bool requireCardMethodId = true,
 }) {
   final hasPaymentFields =
       paymentType != null || paymentStatus != null || paymentMethodId != null;
@@ -106,7 +107,7 @@ void validatePaymentFields({
     throw const InvalidOrderException('Payment method ID cannot be blank.');
   }
   final hasPaymentMethod = paymentMethodId != null;
-  if (paymentType == 'Card' && !hasPaymentMethod) {
+  if (paymentType == 'Card' && requireCardMethodId && !hasPaymentMethod) {
     throw const InvalidOrderException(
       'Card payments require a payment method ID.',
     );
@@ -527,6 +528,7 @@ class Order {
     required this.createdAt,
     required this.updatedAt,
     required this.completedAt,
+    bool allowMissingCardMethodId = false,
   }) : items = List.unmodifiable(items) {
     if (id.trim().isEmpty ||
         orderNumber.trim().isEmpty ||
@@ -537,6 +539,7 @@ class Order {
       paymentType: paymentType,
       paymentStatus: paymentStatus,
       paymentMethodId: paymentMethodId,
+      requireCardMethodId: !allowMissingCardMethodId,
     );
     if (subtotalSen < 0 ||
         discountSen < 0 ||
@@ -574,7 +577,10 @@ class Order {
     }
   }
 
-  factory Order.fromJson(Map<String, dynamic> json) {
+  factory Order.fromJson(
+    Map<String, dynamic> json, {
+    bool allowMissingCardMethodId = false,
+  }) {
     final branch = json['branch_snapshot'] ?? json['branchSnapshot'];
     if (branch is! Map) {
       throw const InvalidOrderException('Branch snapshot is required.');
@@ -662,6 +668,7 @@ class Order {
         'completed_at',
         'completedAt',
       ]),
+      allowMissingCardMethodId: allowMissingCardMethodId,
     );
   }
 

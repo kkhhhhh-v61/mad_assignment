@@ -12,6 +12,7 @@ import 'food_management.dart';
 import 'rider_management.dart';
 import 'customer_management.dart';
 import 'branch_management.dart';
+import 'order_assignment.dart';
 
 import '../models.dart';
 
@@ -190,7 +191,14 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
         SharedOptionTile(
           icon: Icons.bar_chart,
           title: 'Assign Rider',
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AdminOrderAssignment(),
+              ),
+            );
+          },
         ),
       ],
     );

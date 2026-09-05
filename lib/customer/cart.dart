@@ -6,6 +6,7 @@ import '../global.dart';
 import '../main.dart';
 import 'checkout.dart';
 import 'food_item_detail.dart';
+import 'header.dart';
 import 'main_navigation.dart';
 
 class CartItemCustomization {
@@ -105,12 +106,21 @@ class CartItem {
 }
 
 class CartStorage {
-  static const String _key = 'customer_cart_items';
+  static const String _baseKey = 'customer_cart_items';
 
-  static Future<List<CartItem>> loadCart() async {
+  static String _getKey([String? userId]) {
+    final id = userId ?? supabase.auth.currentUser?.id;
+    if (id != null && id.isNotEmpty) {
+      return '${_baseKey}_$id';
+    }
+    return '${_baseKey}_guest';
+  }
+
+  static Future<List<CartItem>> loadCart([String? userId]) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString(_key);
+      final key = _getKey(userId);
+      final jsonStr = prefs.getString(key);
       if (jsonStr == null || jsonStr.isEmpty) return [];
       final List<dynamic> list = jsonDecode(jsonStr);
       return list
@@ -121,29 +131,31 @@ class CartStorage {
     }
   }
 
-  static Future<void> saveCart(List<CartItem> items) async {
+  static Future<void> saveCart(List<CartItem> items, [String? userId]) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final key = _getKey(userId);
       final jsonStr = jsonEncode(items.map((e) => e.toJson()).toList());
-      await prefs.setString(_key, jsonStr);
+      await prefs.setString(key, jsonStr);
     } catch (_) {}
   }
 
-  static Future<void> addToCart(CartItem newItem) async {
-    final items = await loadCart();
+  static Future<void> addToCart(CartItem newItem, [String? userId]) async {
+    final items = await loadCart(userId);
     final index = items.indexWhere((item) => item.isSameItem(newItem));
     if (index != -1) {
       items[index].quantity += newItem.quantity;
     } else {
       items.add(newItem);
     }
-    await saveCart(items);
+    await saveCart(items, userId);
   }
 
-  static Future<void> clearCart() async {
+  static Future<void> clearCart([String? userId]) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_key);
+      final key = _getKey(userId);
+      await prefs.remove(key);
     } catch (_) {}
   }
 }
@@ -240,7 +252,14 @@ class _CustomerCartState extends State<CustomerCart> {
   Future<void> _navigateToCheckout() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const CustomerCheckout()),
+      MaterialPageRoute(
+        builder: (_) => CustomerCheckout(
+          cartItems: _cartItems,
+          deliveryAddress: CustomerHeader.cachedAddress.isNotEmpty
+              ? CustomerHeader.cachedAddress
+              : null,
+        ),
+      ),
     );
     _loadCart();
   }

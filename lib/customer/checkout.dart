@@ -7,11 +7,16 @@ import '../Order/delivery_fee.dart';
 import '../Order/order.dart';
 import '../global.dart';
 import '../rider/data_gov_my_fuel_price_repository.dart';
+import '../services/states.dart';
 import 'branch_selection.dart';
 import 'cart.dart';
+import 'header.dart';
 import 'order_confirmation.dart';
+import 'payment_methods.dart';
 
 class CustomerCheckout extends StatefulWidget {
+  final List<CartItem>? cartItems;
+  final String? deliveryAddress;
   final BranchSnapshot? branchSnapshot;
   final DeliveryAddressSnapshot? deliveryAddressSnapshot;
   final RoadDeliveryFeeService? deliveryFeeService;
@@ -21,6 +26,8 @@ class CustomerCheckout extends StatefulWidget {
 
   const CustomerCheckout({
     super.key,
+    this.cartItems,
+    this.deliveryAddress,
     this.branchSnapshot,
     this.deliveryAddressSnapshot,
     this.deliveryFeeService,
@@ -35,10 +42,18 @@ class CustomerCheckout extends StatefulWidget {
 
 class _CustomerCheckoutState extends State<CustomerCheckout> {
   late List<CartItem> _cartItems;
+  bool _isSelfPickup = false;
   late String _selectedAddress;
   late List<String> _addresses;
   late String _selectedPaymentMethod;
-  late List<String> _availablePaymentMethods;
+  final List<String> _availablePaymentMethods = const [
+    'Cash on Delivery',
+    'Credit / Debit Card',
+    'Online Banking',
+  ];
+  List<Map<String, dynamic>> _savedCards = [];
+  Map<String, dynamic>? _selectedSavedCard;
+  bool _savedCardsLoading = false;
   Map<String, dynamic>? _appliedVoucher;
   late double _deliveryFee;
   late List<Map<String, dynamic>> _availableVouchers;
@@ -67,16 +82,30 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
   @override
   void initState() {
     super.initState();
-    _cartItems = [];
-    _selectedAddress = widget.deliveryAddressSnapshot?.formattedAddress ?? '';
-    _addresses = [];
-    _selectedPaymentMethod = '';
-    _availablePaymentMethods = [];
+    _cartItems = widget.cartItems != null
+        ? List<CartItem>.from(widget.cartItems!)
+        : [];
+    _isSelfPickup = false;
+    final initialAddress = (widget.deliveryAddress != null &&
+            widget.deliveryAddress!.trim().isNotEmpty)
+        ? widget.deliveryAddress!.trim()
+        : (widget.deliveryAddressSnapshot?.formattedAddress ??
+            (CustomerHeader.cachedAddress.isNotEmpty
+                ? CustomerHeader.cachedAddress
+                : ''));
+    _selectedAddress = initialAddress;
+    _addresses = _selectedAddress.isNotEmpty ? [_selectedAddress] : [];
+    _selectedPaymentMethod = 'Cash on Delivery';
     _appliedVoucher = null;
     _deliveryFee = 0.0;
     _availableVouchers = [];
 
     //TODO: Retrieve checkout items, available addresses, payment methods, and vouchers dynamically from backend
+    if (_cartItems.isEmpty) {
+      _loadCartItems();
+    }
+    _loadAddresses();
+    _loadPaymentMethods();
     if (widget.enableBranchSelection) {
       _loadBranches();
     }
@@ -87,9 +116,135 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     }
   }
 
+  void _setFulfillmentType(bool isSelfPickup) {
+    if (_isSelfPickup == isSelfPickup) return;
+    setState(() {
+      _isSelfPickup = isSelfPickup;
+      if (!_isSelfPickup && _selectedAddress.isEmpty) {
+        _selectedAddress = CustomerHeader.cachedAddress;
+      }
+    });
+  }
+
+  Future<void> _loadAddresses() async {
+    final List<String> addressList = [];
+    if (_selectedAddress.isNotEmpty) {
+      addressList.add(_selectedAddress);
+    }
+    final headerAddresses = CustomerHeader.cachedSavedAddressStrings;
+    for (final addr in headerAddresses) {
+      if (!addressList.contains(addr)) {
+        addressList.add(addr);
+      }
+    }
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final profileRes = await Supabase.instance.client
+            .from('profiles')
+            .select('address')
+            .eq('id', user.id)
+            .maybeSingle();
+        final pAddr = profileRes?['address']?.toString().trim();
+        if (pAddr != null && pAddr.isNotEmpty && !addressList.contains(pAddr)) {
+          addressList.add(pAddr);
+        }
+        final savedRes = await Supabase.instance.client
+            .from('user_addresses')
+            .select('full_address')
+            .eq('user_id', user.id);
+        for (final row in savedRes) {
+          final sAddr = row['full_address']?.toString().trim();
+          if (sAddr != null && sAddr.isNotEmpty && !addressList.contains(sAddr)) {
+            addressList.add(sAddr);
+          }
+        }
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _addresses = addressList;
+        if (_selectedAddress.isEmpty && addressList.isNotEmpty) {
+          _selectedAddress = addressList.first;
+        }
+      });
+    }
+  }
+
+  Future<void> _loadPaymentMethods() async {
+    setState(() {
+      _savedCardsLoading = true;
+    });
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final response = await Supabase.instance.client
+            .from('payment_methods')
+            .select()
+            .eq('user_id', user.id)
+            .order('is_default', ascending: false)
+            .order('created_at', ascending: false);
+        if (mounted) {
+          final cards = List<Map<String, dynamic>>.from(response);
+          Map<String, dynamic>? defaultCard;
+          if (cards.isNotEmpty) {
+            defaultCard = cards.firstWhere(
+              (c) => c['is_default'] == true,
+              orElse: () => cards.first,
+            );
+          }
+          setState(() {
+            _savedCards = cards;
+            _savedCardsLoading = false;
+            if (_selectedSavedCard == null ||
+                !cards.any((c) => c['id'] == _selectedSavedCard?['id'])) {
+              _selectedSavedCard = defaultCard;
+            }
+          });
+          return;
+        }
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _savedCardsLoading = false;
+      });
+    }
+  }
+
+  Future<void> _openAddCardModal(BuildContext context) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (modalContext) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(modalContext).viewInsets.bottom,
+        ),
+        child: AddCardForm(
+          onSave: () async {
+            await _loadPaymentMethods();
+            if (mounted) {
+              setState(() {
+                _selectedPaymentMethod = 'Credit / Debit Card';
+              });
+            }
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   void didUpdateWidget(covariant CustomerCheckout oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.cartItems != null && widget.cartItems != oldWidget.cartItems) {
+      _cartItems = List<CartItem>.from(widget.cartItems!);
+    }
     if (oldWidget.branchSnapshot != widget.branchSnapshot ||
         oldWidget.deliveryAddressSnapshot != widget.deliveryAddressSnapshot ||
         oldWidget.deliveryFeeService != widget.deliveryFeeService ||
@@ -113,6 +268,15 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         _deliveryFeeError = null;
         _deliveryFee = 0.0;
       }
+    }
+  }
+
+  Future<void> _loadCartItems() async {
+    final items = await CartStorage.loadCart();
+    if (mounted && items.isNotEmpty) {
+      setState(() {
+        _cartItems = items;
+      });
     }
   }
 
@@ -161,6 +325,23 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
             break;
           }
         }
+      }
+      if (selected == null && branches.isNotEmpty) {
+        final addressState = extractStateFromAddress(_selectedAddress);
+        final candidateState = addressState.isNotEmpty
+            ? addressState
+            : CustomerHeader.cachedState;
+        if (candidateState.isNotEmpty) {
+          for (final branch in branches) {
+            if (isSameState(branch.stateCode, candidateState) ||
+                branch.address.toLowerCase().contains(candidateState.toLowerCase()) ||
+                branch.name.toLowerCase().contains(candidateState.toLowerCase())) {
+              selected = branch;
+              break;
+            }
+          }
+        }
+        selected ??= branches.first;
       }
       setState(() {
         _branches = branches;
@@ -358,6 +539,19 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
                   onTap: () {
                     setState(() {
                       _selectedAddress = address;
+                      if (!_isSelfPickup && _branches.isNotEmpty) {
+                        final addressState = extractStateFromAddress(address);
+                        if (addressState.isNotEmpty) {
+                          for (final branch in _branches) {
+                            if (isSameState(branch.stateCode, addressState) ||
+                                branch.address.toLowerCase().contains(addressState.toLowerCase()) ||
+                                branch.name.toLowerCase().contains(addressState.toLowerCase())) {
+                              _selectedBranch = branch;
+                              break;
+                            }
+                          }
+                        }
+                      }
                     });
                     Navigator.pop(context);
                   },
@@ -462,7 +656,9 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
       ),
       body: CheckoutLayout(
         cartItems: _cartItems,
-        branchSelectionEnabled: widget.enableBranchSelection,
+        isSelfPickup: _isSelfPickup,
+        onFulfillmentChanged: _setFulfillmentType,
+        branchSelectionEnabled: _isSelfPickup,
         selectedBranch: _selectedBranch,
         fallbackBranchSnapshot: widget.branchSnapshot,
         branches: _branches,
@@ -474,11 +670,18 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         onAddressTap: () => _showAddressSelectionDialog(context),
         selectedPaymentMethod: _selectedPaymentMethod,
         availablePaymentMethods: _availablePaymentMethods,
-        onPaymentMethodChanged: (method) {
+        selectedSavedCard: _selectedSavedCard,
+        savedCards: _savedCards,
+        savedCardsLoading: _savedCardsLoading,
+        onPaymentMethodChanged: (method, card) {
           setState(() {
             _selectedPaymentMethod = method;
+            if (card != null) {
+              _selectedSavedCard = card;
+            }
           });
         },
+        onAddNewCard: () => _openAddCardModal(context),
         appliedVoucher: _appliedVoucher,
         deliveryFee: _deliveryFee,
         deliveryFeeQuote: _deliveryFeeQuote,
@@ -496,6 +699,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
           setState(() {
             _cartItems.clear();
           });
+          CartStorage.clearCart();
         },
       ),
     );
@@ -504,6 +708,8 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
 
 class CheckoutLayout extends StatelessWidget {
   final List<CartItem> cartItems;
+  final bool isSelfPickup;
+  final ValueChanged<bool> onFulfillmentChanged;
   final bool branchSelectionEnabled;
   final BranchRecord? selectedBranch;
   final BranchSnapshot? fallbackBranchSnapshot;
@@ -516,7 +722,11 @@ class CheckoutLayout extends StatelessWidget {
   final VoidCallback onAddressTap;
   final String selectedPaymentMethod;
   final List<String> availablePaymentMethods;
-  final Function(String) onPaymentMethodChanged;
+  final Map<String, dynamic>? selectedSavedCard;
+  final List<Map<String, dynamic>> savedCards;
+  final bool savedCardsLoading;
+  final Function(String, Map<String, dynamic>?) onPaymentMethodChanged;
+  final VoidCallback onAddNewCard;
   final Map<String, dynamic>? appliedVoucher;
   final double deliveryFee;
   final DeliveryFeeQuote? deliveryFeeQuote;
@@ -531,6 +741,8 @@ class CheckoutLayout extends StatelessWidget {
   const CheckoutLayout({
     super.key,
     required this.cartItems,
+    this.isSelfPickup = false,
+    this.onFulfillmentChanged = _noopValueChanged,
     this.branchSelectionEnabled = false,
     this.selectedBranch,
     this.fallbackBranchSnapshot,
@@ -543,7 +755,11 @@ class CheckoutLayout extends StatelessWidget {
     required this.onAddressTap,
     required this.selectedPaymentMethod,
     required this.availablePaymentMethods,
+    this.selectedSavedCard,
+    this.savedCards = const [],
+    this.savedCardsLoading = false,
     required this.onPaymentMethodChanged,
+    this.onAddNewCard = _noop,
     required this.appliedVoucher,
     required this.deliveryFee,
     this.deliveryFeeQuote,
@@ -567,25 +783,37 @@ class CheckoutLayout extends StatelessWidget {
       subtotal += (item.price + customTotal) * item.quantity;
     }
 
+    final effectiveDeliveryFee = isSelfPickup ? 0.0 : deliveryFee;
+
     double discount = 0.0;
     if (appliedVoucher != null) {
       if (appliedVoucher!['type'] == 'free_delivery') {
-        discount = deliveryFee;
+        discount = effectiveDeliveryFee;
       } else if (appliedVoucher!['type'] == 'percentage') {
         discount = subtotal * (appliedVoucher!['discountValue'] as double) / 100;
       }
     }
 
-    double total = subtotal + deliveryFee - discount;
+    double total = subtotal + effectiveDeliveryFee - discount;
     if (total < 0) total = 0;
 
-    final branchReady =
-        !branchSelectionEnabled ||
-        selectedBranch != null ||
-        fallbackBranchSnapshot != null;
-    final feeReady =
-        (!deliveryFeeRequired && !deliveryFeeLoading) ||
-        (deliveryFeeQuote != null && deliveryFeeError == null);
+    final addressReady = isSelfPickup || selectedAddress.trim().isNotEmpty;
+    final effectiveBranchReady = isSelfPickup
+        ? (selectedBranch != null || fallbackBranchSnapshot != null)
+        : true;
+    final effectiveFeeReady = isSelfPickup
+        ? true
+        : ((!deliveryFeeRequired && !deliveryFeeLoading) ||
+            (deliveryFeeQuote != null && deliveryFeeError == null));
+
+    final placeOrderEnabled = cartItems.isNotEmpty &&
+        addressReady &&
+        effectiveBranchReady &&
+        effectiveFeeReady;
+
+    final buttonText = selectedPaymentMethod == 'Cash on Delivery'
+        ? 'Place Order'
+        : 'Proceed to Payment';
 
     return Column(
       children: [
@@ -595,21 +823,27 @@ class CheckoutLayout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (branchSelectionEnabled) ...[
-                  BranchSelection(
-                    selectedBranch: selectedBranch,
-                    fallbackSnapshot: fallbackBranchSnapshot,
-                    branches: branches,
-                    isLoading: branchLoading,
-                    error: branchError,
-                    onTap: onBranchTap,
-                    onRetry: onRetryBranches,
+                FulfillmentOptionSwitch(
+                  isSelfPickup: isSelfPickup,
+                  onOptionChanged: onFulfillmentChanged,
+                ),
+                const SizedBox(height: 20.0),
+                if (!isSelfPickup) ...[
+                  AddressSelection(
+                    address: selectedAddress,
+                    onTap: onAddressTap,
                   ),
                   const SizedBox(height: 20.0),
                 ],
-                AddressSelection(
-                  address: selectedAddress,
-                  onTap: onAddressTap,
+                BranchSelection(
+                  selectedBranch: selectedBranch,
+                  fallbackSnapshot: fallbackBranchSnapshot,
+                  branches: branches,
+                  isLoading: branchLoading,
+                  error: branchError,
+                  onTap: onBranchTap,
+                  onRetry: onRetryBranches,
+                  isEnabled: isSelfPickup,
                 ),
                 const SizedBox(height: 20.0),
                 CheckoutOrderItems(cartItems: cartItems),
@@ -624,20 +858,25 @@ class CheckoutLayout extends StatelessWidget {
                 CheckoutPayment(
                   selectedPaymentMethod: selectedPaymentMethod,
                   availablePaymentMethods: availablePaymentMethods,
+                  selectedSavedCard: selectedSavedCard,
+                  savedCards: savedCards,
+                  savedCardsLoading: savedCardsLoading,
                   onPaymentMethodChanged: onPaymentMethodChanged,
+                  onAddNewCard: onAddNewCard,
                 ),
                 const SizedBox(height: 20.0),
-                if (deliveryFeeRequired)
+                if (!isSelfPickup && deliveryFeeRequired) ...[
                   DeliveryFeeStatus(
                     quote: deliveryFeeQuote,
                     isLoading: deliveryFeeLoading,
                     error: deliveryFeeError,
                     onRetry: onRetryDeliveryFee ?? () {},
                   ),
-                if (deliveryFeeRequired) const SizedBox(height: 20.0),
+                  const SizedBox(height: 20.0),
+                ],
                 CheckoutSummary(
                   subtotal: subtotal,
-                  deliveryFee: deliveryFee,
+                  deliveryFee: effectiveDeliveryFee,
                   discount: discount,
                   total: total,
                 ),
@@ -649,7 +888,8 @@ class CheckoutLayout extends StatelessWidget {
         CheckoutBottomBar(
           total: total,
           onPlaceOrder: onPlaceOrder,
-          placeOrderEnabled: cartItems.isNotEmpty && branchReady && feeReady,
+          placeOrderEnabled: placeOrderEnabled,
+          buttonText: buttonText,
         ),
       ],
     );
@@ -657,6 +897,103 @@ class CheckoutLayout extends StatelessWidget {
 }
 
 void _noop() {}
+void _noopValueChanged(bool _) {}
+
+class FulfillmentOptionSwitch extends StatelessWidget {
+  final bool isSelfPickup;
+  final ValueChanged<bool> onOptionChanged;
+
+  const FulfillmentOptionSwitch({
+    super.key,
+    required this.isSelfPickup,
+    required this.onOptionChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(16.0),
+      ),
+      padding: const EdgeInsets.all(4.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildTab(
+              context: context,
+              title: 'Delivery',
+              icon: Icons.delivery_dining_outlined,
+              isSelected: !isSelfPickup,
+              onTap: () => onOptionChanged(false),
+            ),
+          ),
+          Expanded(
+            child: _buildTab(
+              context: context,
+              title: 'Self Pickup',
+              icon: Icons.storefront_outlined,
+              isSelected: isSelfPickup,
+              onTap: () => onOptionChanged(true),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTab({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(12.0),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 6.0,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 20.0,
+              color: isSelected
+                  ? const Color(0xFFFFA07A)
+                  : const Color(0xFF757575),
+            ),
+            const SizedBox(width: 8.0),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 15.0,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected
+                    ? const Color(0xFF1E1E1E)
+                    : const Color(0xFF757575),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class AddressSelection extends StatelessWidget {
   final String address;
@@ -1103,27 +1440,111 @@ class VoucherSelectionBottomSheet extends StatelessWidget {
 class CheckoutPayment extends StatelessWidget {
   final String selectedPaymentMethod;
   final List<String> availablePaymentMethods;
-  final Function(String) onPaymentMethodChanged;
+  final Map<String, dynamic>? selectedSavedCard;
+  final List<Map<String, dynamic>> savedCards;
+  final bool savedCardsLoading;
+  final Function(String paymentMethod, Map<String, dynamic>? savedCard)
+      onPaymentMethodChanged;
+  final VoidCallback onAddNewCard;
 
   const CheckoutPayment({
     super.key,
     required this.selectedPaymentMethod,
     required this.availablePaymentMethods,
+    this.selectedSavedCard,
+    this.savedCards = const [],
+    this.savedCardsLoading = false,
     required this.onPaymentMethodChanged,
+    this.onAddNewCard = _noop,
   });
 
   @override
   Widget build(BuildContext context) {
+    IconData icon;
+    Color iconColor = const Color.fromARGB(255, 255, 160, 122);
+    String title = selectedPaymentMethod.isNotEmpty
+        ? selectedPaymentMethod
+        : 'Payment Method';
+    String subtitle;
+
+    if (selectedPaymentMethod == 'Cash on Delivery') {
+      icon = Icons.payments_outlined;
+      subtitle = 'Pay with cash upon arrival';
+    } else if (selectedPaymentMethod == 'Credit / Debit Card') {
+      if (selectedSavedCard != null &&
+          selectedSavedCard!['card_brand'] == 'Visa') {
+        icon = Icons.payment;
+      } else {
+        icon = Icons.credit_card;
+      }
+      if (selectedSavedCard != null) {
+        final masked =
+            selectedSavedCard!['card_number_masked']?.toString() ?? '';
+        final last4 = masked.length >= 4
+            ? masked.substring(masked.length - 4)
+            : '••••';
+        final brand = selectedSavedCard!['card_brand'] ?? 'Card';
+        final exp = selectedSavedCard!['expiry_date'] ?? '';
+        subtitle = '$brand •••• $last4 (Exp: $exp)';
+      } else if (savedCards.isNotEmpty) {
+        subtitle = 'Select a card';
+      } else {
+        subtitle = 'No saved cards (Tap to add)';
+      }
+    } else if (selectedPaymentMethod == 'Online Banking') {
+      icon = Icons.account_balance_outlined;
+      subtitle = 'FPX / Internet Banking (Stripe Sandbox)';
+    } else {
+      icon = Icons.credit_card;
+      subtitle = 'Select payment method';
+    }
+
+    final isSandbox = selectedPaymentMethod == 'Credit / Debit Card' ||
+        selectedPaymentMethod == 'Online Banking';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Payment Method',
-          style: TextStyle(
-            fontSize: 16.0,
-            fontWeight: FontWeight.bold,
-            color: Color.fromARGB(221, 0, 0, 0),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Payment Method',
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.bold,
+                color: Color.fromARGB(221, 0, 0, 0),
+              ),
+            ),
+            if (isSandbox)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF635BFF).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6.0),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.shield_outlined,
+                      size: 12.0,
+                      color: Color(0xFF635BFF),
+                    ),
+                    SizedBox(width: 4.0),
+                    Text(
+                      'Stripe Sandbox',
+                      style: TextStyle(
+                        fontSize: 11.0,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF635BFF),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 12.0),
         InkWell(
@@ -1135,32 +1556,60 @@ class CheckoutPayment extends StatelessWidget {
               builder: (context) => PaymentSelectionBottomSheet(
                 availablePaymentMethods: availablePaymentMethods,
                 selectedPaymentMethod: selectedPaymentMethod,
-                onPaymentMethodChanged: (method) {
-                  onPaymentMethodChanged(method);
-                  Navigator.pop(context);
-                },
+                selectedSavedCard: selectedSavedCard,
+                savedCards: savedCards,
+                savedCardsLoading: savedCardsLoading,
+                onPaymentMethodSelected: onPaymentMethodChanged,
+                onAddNewCard: onAddNewCard,
               ),
             );
           },
           borderRadius: BorderRadius.circular(16.0),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16.0),
-              border: Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
+              border:
+                  Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.credit_card,
-                  color: Color.fromARGB(255, 255, 160, 122),
+                Container(
+                  padding: const EdgeInsets.all(10.0),
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 255, 160, 122)
+                        .withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: iconColor,
+                    size: 22,
+                  ),
                 ),
-                const SizedBox(width: 12.0),
+                const SizedBox(width: 14.0),
                 Expanded(
-                  child: Text(
-                    selectedPaymentMethod,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15.0,
+                        ),
+                      ),
+                      const SizedBox(height: 3.0),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 13.0,
+                          color: Color.fromARGB(255, 117, 117, 117),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Icon(
@@ -1176,17 +1625,601 @@ class CheckoutPayment extends StatelessWidget {
   }
 }
 
-class PaymentSelectionBottomSheet extends StatelessWidget {
+class PaymentSelectionBottomSheet extends StatefulWidget {
   final List<String> availablePaymentMethods;
   final String selectedPaymentMethod;
-  final Function(String) onPaymentMethodChanged;
+  final Map<String, dynamic>? selectedSavedCard;
+  final List<Map<String, dynamic>> savedCards;
+  final bool savedCardsLoading;
+  final Function(String paymentMethod, Map<String, dynamic>? savedCard)
+      onPaymentMethodSelected;
+  final VoidCallback onAddNewCard;
 
   const PaymentSelectionBottomSheet({
     super.key,
     required this.availablePaymentMethods,
     required this.selectedPaymentMethod,
-    required this.onPaymentMethodChanged,
+    this.selectedSavedCard,
+    this.savedCards = const [],
+    this.savedCardsLoading = false,
+    required this.onPaymentMethodSelected,
+    required this.onAddNewCard,
   });
+
+  @override
+  State<PaymentSelectionBottomSheet> createState() =>
+      _PaymentSelectionBottomSheetState();
+}
+
+class _PaymentSelectionBottomSheetState
+    extends State<PaymentSelectionBottomSheet> {
+  late String _selectedMethod;
+  Map<String, dynamic>? _selectedCard;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMethod = widget.selectedPaymentMethod;
+    _selectedCard = widget.selectedSavedCard;
+  }
+
+  void _selectMethod(String method) {
+    setState(() {
+      _selectedMethod = method;
+      if (method == 'Credit / Debit Card' &&
+          _selectedCard == null &&
+          widget.savedCards.isNotEmpty) {
+        _selectedCard = widget.savedCards.firstWhere(
+          (c) => c['is_default'] == true,
+          orElse: () => widget.savedCards.first,
+        );
+      }
+    });
+    widget.onPaymentMethodSelected(method, _selectedCard);
+  }
+
+  void _selectCard(Map<String, dynamic> card) {
+    setState(() {
+      _selectedMethod = 'Credit / Debit Card';
+      _selectedCard = card;
+    });
+    widget.onPaymentMethodSelected('Credit / Debit Card', card);
+  }
+
+  Widget _buildCoDOption() {
+    final isSelected = _selectedMethod == 'Cash on Delivery';
+    return InkWell(
+      onTap: () {
+        _selectMethod('Cash on Delivery');
+        Navigator.pop(context);
+      },
+      borderRadius: BorderRadius.circular(16.0),
+      child: Container(
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.1)
+              : Colors.white,
+          border: Border.all(
+            color: isSelected
+                ? const Color.fromARGB(255, 255, 160, 122)
+                : const Color.fromARGB(255, 238, 238, 238),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10.0),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Colors.white
+                    : const Color.fromARGB(255, 245, 245, 245),
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: Icon(
+                Icons.payments_outlined,
+                color: isSelected
+                    ? const Color.fromARGB(255, 255, 160, 122)
+                    : const Color.fromARGB(255, 120, 120, 120),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 14.0),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Cash on Delivery',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15.0,
+                    ),
+                  ),
+                  SizedBox(height: 3.0),
+                  Text(
+                    'Pay with cash upon arrival. Directly placed without payment steps.',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: Color.fromARGB(255, 117, 117, 117),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8.0),
+            Icon(
+              isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+              color: isSelected
+                  ? const Color.fromARGB(255, 255, 160, 122)
+                  : const Color.fromARGB(255, 200, 200, 200),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardOption() {
+    final isSelected = _selectedMethod == 'Credit / Debit Card';
+    return Container(
+      decoration: BoxDecoration(
+        color: isSelected
+            ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.06)
+            : Colors.white,
+        border: Border.all(
+          color: isSelected
+              ? const Color.fromARGB(255, 255, 160, 122)
+              : const Color.fromARGB(255, 238, 238, 238),
+          width: isSelected ? 2 : 1,
+        ),
+        borderRadius: BorderRadius.circular(16.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => _selectMethod('Credit / Debit Card'),
+            borderRadius: BorderRadius.circular(16.0),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10.0),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Colors.white
+                          : const Color.fromARGB(255, 245, 245, 245),
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Icon(
+                      Icons.credit_card,
+                      color: isSelected
+                          ? const Color.fromARGB(255, 255, 160, 122)
+                          : const Color.fromARGB(255, 120, 120, 120),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14.0),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              'Credit / Debit Card',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15.0,
+                              ),
+                            ),
+                            const SizedBox(width: 8.0),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6.0,
+                                vertical: 2.0,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF635BFF)
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(4.0),
+                              ),
+                              child: const Text(
+                                'Stripe Sandbox',
+                                style: TextStyle(
+                                  fontSize: 10.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF635BFF),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3.0),
+                        const Text(
+                          'Visa, Mastercard via Stripe developer sandbox',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: Color.fromARGB(255, 117, 117, 117),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8.0),
+                  Icon(
+                    isSelected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: isSelected
+                        ? const Color.fromARGB(255, 255, 160, 122)
+                        : const Color.fromARGB(255, 200, 200, 200),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isSelected) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Divider(
+                height: 1,
+                color: Color.fromARGB(255, 230, 230, 230),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Saved Cards',
+                        style: TextStyle(
+                          fontSize: 13.0,
+                          fontWeight: FontWeight.bold,
+                          color: Color.fromARGB(255, 117, 117, 117),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          widget.onAddNewCard();
+                        },
+                        icon: const Icon(
+                          Icons.add,
+                          size: 16,
+                          color: Color.fromARGB(255, 255, 160, 122),
+                        ),
+                        label: const Text(
+                          'Add New Card',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            color: Color.fromARGB(255, 255, 160, 122),
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10.0),
+                  if (widget.savedCardsLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color.fromARGB(255, 255, 160, 122),
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (widget.savedCards.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.0),
+                        border: Border.all(
+                          color: const Color.fromARGB(255, 238, 238, 238),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.credit_card_off_outlined,
+                                size: 20,
+                                color: Color.fromARGB(255, 158, 158, 158),
+                              ),
+                              SizedBox(width: 8.0),
+                              Expanded(
+                                child: Text(
+                                  'No saved cards found for your account.',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: Color.fromARGB(255, 117, 117, 117),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10.0),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                widget.onAddNewCard();
+                              },
+                              icon: const Icon(
+                                Icons.add,
+                                size: 16,
+                                color: Color.fromARGB(255, 255, 160, 122),
+                              ),
+                              label: const Text(
+                                'Add a Card',
+                                style: TextStyle(
+                                  color: Color.fromARGB(255, 255, 160, 122),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                  color: Color.fromARGB(255, 255, 160, 122),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    ...widget.savedCards.map((card) {
+                      final isCardSelected = _selectedCard?['id'] == card['id'];
+                      final isDefault = card['is_default'] == true;
+                      final brand = card['card_brand'] ?? 'Card';
+                      final maskedNumber =
+                          card['card_number_masked'] ?? '•••• 0000';
+                      final expiry = card['expiry_date'] ?? '00/00';
+                      final holder = card['cardholder_name'] ?? '';
+
+                      return InkWell(
+                        onTap: () {
+                          _selectCard(card);
+                          Navigator.pop(context);
+                        },
+                        borderRadius: BorderRadius.circular(12.0),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8.0),
+                          padding: const EdgeInsets.all(12.0),
+                          decoration: BoxDecoration(
+                            color: isCardSelected
+                                ? Colors.white
+                                : const Color.fromARGB(255, 250, 250, 250),
+                            borderRadius: BorderRadius.circular(12.0),
+                            border: Border.all(
+                              color: isCardSelected
+                                  ? const Color.fromARGB(255, 255, 160, 122)
+                                  : const Color.fromARGB(255, 230, 230, 230),
+                              width: isCardSelected ? 1.5 : 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                brand == 'Visa'
+                                    ? Icons.payment
+                                    : Icons.credit_card,
+                                color: isCardSelected
+                                    ? const Color.fromARGB(255, 255, 160, 122)
+                                    : const Color.fromARGB(255, 140, 140, 140),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10.0),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '$brand $maskedNumber',
+                                          style: TextStyle(
+                                            fontWeight: isCardSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.w600,
+                                            fontSize: 13.5,
+                                          ),
+                                        ),
+                                        if (isDefault) ...[
+                                          const SizedBox(width: 6.0),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6.0,
+                                              vertical: 1.5,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color.fromARGB(
+                                                40,
+                                                255,
+                                                160,
+                                                122,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4.0),
+                                            ),
+                                            child: const Text(
+                                              'Default',
+                                              style: TextStyle(
+                                                color: Color.fromARGB(
+                                                  255,
+                                                  255,
+                                                  160,
+                                                  122,
+                                                ),
+                                                fontSize: 10.0,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2.0),
+                                    Text(
+                                      '$holder · Exp: $expiry',
+                                      style: const TextStyle(
+                                        fontSize: 11.5,
+                                        color:
+                                            Color.fromARGB(255, 140, 140, 140),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                isCardSelected
+                                    ? Icons.check_circle
+                                    : Icons.radio_button_unchecked,
+                                color: isCardSelected
+                                    ? const Color.fromARGB(255, 255, 160, 122)
+                                    : const Color.fromARGB(255, 200, 200, 200),
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOnlineBankingOption() {
+    final isSelected = _selectedMethod == 'Online Banking';
+    return InkWell(
+      onTap: () {
+        _selectMethod('Online Banking');
+        Navigator.pop(context);
+      },
+      borderRadius: BorderRadius.circular(16.0),
+      child: Container(
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.1)
+              : Colors.white,
+          border: Border.all(
+            color: isSelected
+                ? const Color.fromARGB(255, 255, 160, 122)
+                : const Color.fromARGB(255, 238, 238, 238),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10.0),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Colors.white
+                    : const Color.fromARGB(255, 245, 245, 245),
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: Icon(
+                Icons.account_balance_outlined,
+                color: isSelected
+                    ? const Color.fromARGB(255, 255, 160, 122)
+                    : const Color.fromARGB(255, 120, 120, 120),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 14.0),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Online Banking',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15.0,
+                        ),
+                      ),
+                      const SizedBox(width: 8.0),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6.0,
+                          vertical: 2.0,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF635BFF)
+                              .withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4.0),
+                        ),
+                        child: const Text(
+                          'Stripe Sandbox',
+                          style: TextStyle(
+                            fontSize: 10.0,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF635BFF),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3.0),
+                  const Text(
+                    'FPX / Internet Banking (Maybank, CIMB, Public Bank, etc.)',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: Color.fromARGB(255, 117, 117, 117),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8.0),
+            Icon(
+              isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+              color: isSelected
+                  ? const Color.fromARGB(255, 255, 160, 122)
+                  : const Color.fromARGB(255, 200, 200, 200),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1197,85 +2230,47 @@ class PaymentSelectionBottomSheet extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
       ),
       child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 45,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 224, 224, 224),
-                  borderRadius: BorderRadius.circular(25.0),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 45,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 224, 224, 224),
+                    borderRadius: BorderRadius.circular(25.0),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16.0),
-            const Text(
-              'Payment Method',
-              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20.0),
-            ...availablePaymentMethods.map((method) {
-              bool isSelected = method == selectedPaymentMethod;
-              return InkWell(
-                onTap: () => onPaymentMethodChanged(method),
-                borderRadius: BorderRadius.circular(16.0),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 12.0),
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color.fromARGB(
-                            255,
-                            255,
-                            160,
-                            122,
-                          ).withValues(alpha: 0.1)
-                        : Colors.white,
-                    border: Border.all(
-                      color: isSelected
-                          ? const Color.fromARGB(255, 255, 160, 122)
-                          : const Color.fromARGB(255, 238, 238, 238),
-                      width: isSelected ? 2 : 1,
-                    ),
-                    borderRadius: BorderRadius.circular(16.0),
+              const SizedBox(height: 16.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Choose Payment Method',
+                    style:
+                        TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        method == 'Credit Card'
-                            ? Icons.credit_card
-                            : method == 'Cash on Delivery'
-                            ? Icons.money
-                            : method == 'E-Wallet'
-                            ? Icons.account_balance_wallet
-                            : Icons.account_balance,
-                        color: const Color.fromARGB(255, 255, 160, 122),
-                        size: 24,
-                      ),
-                      const SizedBox(width: 16.0),
-                      Expanded(
-                        child: Text(
-                          method,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16.0,
-                          ),
-                        ),
-                      ),
-                      if (isSelected)
-                        const Icon(
-                          Icons.check_circle,
-                          color: Color.fromARGB(255, 255, 160, 122),
-                        ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.black54),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                ),
-              );
-            }),
-          ],
+                ],
+              ),
+              const SizedBox(height: 20.0),
+              _buildCoDOption(),
+              const SizedBox(height: 14.0),
+              _buildCardOption(),
+              const SizedBox(height: 14.0),
+              _buildOnlineBankingOption(),
+              const SizedBox(height: 8.0),
+            ],
+          ),
         ),
       ),
     );
@@ -1479,12 +2474,14 @@ class CheckoutBottomBar extends StatelessWidget {
   final double total;
   final VoidCallback onPlaceOrder;
   final bool placeOrderEnabled;
+  final String buttonText;
 
   const CheckoutBottomBar({
     super.key,
     required this.total,
     required this.onPlaceOrder,
     this.placeOrderEnabled = true,
+    this.buttonText = 'Proceed to Payment',
   });
 
   @override
@@ -1527,9 +2524,9 @@ class CheckoutBottomBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(16.0),
             ),
           ),
-          child: const Text(
-            'Place Order',
-            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+          child: Text(
+            buttonText,
+            style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
           ),
         ),
       ),

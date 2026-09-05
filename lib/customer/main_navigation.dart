@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:mad_assignment/customer/payment_methods.dart';
 import 'package:mad_assignment/customer/saved_addresses.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/auth_service.dart';
 
 import '../shared/account.dart';
 import '../shared/profile.dart';
 import '../main.dart';
+import '../admin/main_navigation.dart';
+import '../rider/main_navigation.dart';
 
 import '../shared/auth.dart';
 import 'header.dart';
@@ -28,6 +32,50 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
   bool _isLoggedIn = false;
   String _selectedMenuCategory = '';
   AppUser? currentUser;
+  bool _isCheckingAuth = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAutoLogin();
+  }
+
+  Future<void> _checkAutoLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rememberMe = prefs.getBool('remember_me') ?? false;
+
+    if (rememberMe) {
+      final savedEmail = prefs.getString('saved_email') ?? '';
+      final savedPassword = prefs.getString('saved_password') ?? '';
+
+      if (savedEmail.isNotEmpty && savedPassword.isNotEmpty) {
+        AppUser? user = await loginUser(savedEmail, savedPassword);
+
+        if (user != null && mounted) {
+          if (user.role == 'admin') {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AdminMainNavigation(user: user)));
+            return; //
+          } else if (user.role == 'rider') {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => RiderMainNavigation(user: user)));
+            return; //
+          } else {
+            setState(() {
+              _isLoggedIn = true;
+              currentUser = user;
+              _isCheckingAuth = false;
+            });
+            return; //
+          }
+        }
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _isCheckingAuth = false;
+      });
+    }
+  }
 
   List<Widget> get _screens => [
     CustomerHome(
@@ -149,6 +197,9 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
         );
       },
       onLogout: () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('remember_me', false);
+
         await supabase.auth.signOut();
         setState(() {
           _isLoggedIn = false;
@@ -205,6 +256,17 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingAuth) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color.fromARGB(255, 255, 160, 122),
+            strokeWidth: 3.0,
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color.fromARGB(248, 255, 255, 255),
       body: _screens[_currentIndex],

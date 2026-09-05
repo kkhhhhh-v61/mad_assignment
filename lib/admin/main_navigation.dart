@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../main.dart';
 import '../customer/main_navigation.dart';
@@ -133,6 +134,9 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
       },
 
       onLogout: () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('remember_me', false);
+
         await supabase.auth.signOut();
 
         if (context.mounted) {

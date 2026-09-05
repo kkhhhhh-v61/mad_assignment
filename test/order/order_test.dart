@@ -202,12 +202,21 @@ void main() {
     );
   });
 
-  test('delivery distance policy rejects addresses beyond 10 kilometres', () {
+  test('delivery distance policy allows the 12 kilometre road boundary', () {
+    expect(
+      () => DeliveryDistancePolicy.ensureRoadDistanceWithinLimit(
+        roadDistanceKm: 12.0,
+      ),
+      returnsNormally,
+    );
+  });
+
+  test('delivery distance policy rejects addresses beyond 12 kilometres', () {
     final farAddress = const DeliveryAddressSnapshot(
       label: 'Far away',
       formattedAddress: 'Far away from the branch',
       stateCode: 'WPKL',
-      latitude: 3.239,
+      latitude: 3.25,
       longitude: 101.6869,
     );
 
@@ -259,7 +268,7 @@ void main() {
     );
   });
 
-  test('routed submissions reject road routes beyond 10 kilometres', () {
+  test('routed submissions reject road routes beyond 12 kilometres', () {
     expect(
       () => OrderSubmission(
         orderNumber: 'ORD-1005',
@@ -271,7 +280,7 @@ void main() {
         discountSen: 200,
         deliveryFeeSen: 300,
         totalSen: 2600,
-        roadDistanceKm: 10.01,
+        roadDistanceKm: 12.01,
         items: [item],
       ),
       throwsA(isA<DeliveryDistanceLimitException>()),

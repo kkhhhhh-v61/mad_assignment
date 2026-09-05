@@ -81,6 +81,18 @@ void main() {
     expect(quote.returnRequired, isFalse);
   });
 
+  test('road routes at the 12 kilometre limit are accepted', () async {
+    final service = RoadDeliveryFeeService(
+      routeProvider: FakeRouteProvider(distanceKm: 12.0),
+      fuelPriceRepository: FakeFuelPriceRepository(fuelPrice),
+    );
+
+    final quote = await service.quote(branch: branch, destination: destination);
+
+    expect(quote.oneWayRoadDistanceKm, 12.0);
+    expect(quote.deliveryFeeSen, 429);
+  });
+
   test('no route blocks the quote before reading the fuel price', () async {
     final routes = FakeRouteProvider(
       failure: const DeliveryRouteUnavailableException('No road route found.'),
@@ -131,10 +143,10 @@ void main() {
     expect(quote.returnRequired, isTrue);
   });
 
-  test('road routes over 10 kilometres are rejected', () async {
+  test('road routes over 12 kilometres are rejected', () async {
     final prices = FakeFuelPriceRepository(fuelPrice);
     final service = RoadDeliveryFeeService(
-      routeProvider: FakeRouteProvider(distanceKm: 10.01),
+      routeProvider: FakeRouteProvider(distanceKm: 12.01),
       fuelPriceRepository: prices,
     );
 

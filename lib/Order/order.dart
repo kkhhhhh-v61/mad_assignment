@@ -297,7 +297,7 @@ class OrderItemSnapshot {
 class DeliveryDistancePolicy {
   const DeliveryDistancePolicy._();
 
-  static const maximumDistanceKm = 10.0;
+  static const maximumDistanceKm = 12.0;
 
   static double? estimateKm({
     required BranchSnapshot branch,

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models.dart';
 import '../services/states.dart';
+import 'address_coordinate_cache.dart';
 
 class SavedAddressesScreen extends StatefulWidget {
   const SavedAddressesScreen({super.key});
@@ -305,6 +306,10 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
   bool _isLoadingStates = true;
   bool _isSaving = false;
 
+  double? _selectedOsmLatitude;
+  double? _selectedOsmLongitude;
+  Future<void>? _coordinateRestore;
+
   List<dynamic> _osmSuggestions = [];
   bool _isSearchingOsm = false;
   Timer? _debounce;
@@ -319,7 +324,17 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     }
     if (widget.initialAddress != null && widget.initialAddress!.isNotEmpty) {
       _parseAddress(widget.initialAddress!);
+      _coordinateRestore = _restoreCachedCoordinates(widget.initialAddress!);
     }
+  }
+
+  Future<void> _restoreCachedCoordinates(String address) async {
+    final cached = (await AddressCoordinateCache.loadAll())[address.trim()];
+    if (!mounted || cached == null) return;
+    setState(() {
+      _selectedOsmLatitude = cached.latitude;
+      _selectedOsmLongitude = cached.longitude;
+    });
   }
 
   void _parseAddress(String fullAddress) {
@@ -360,6 +375,8 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
   }
 
   void _searchOsmAddress(String query) {
+    _selectedOsmLatitude = null;
+    _selectedOsmLongitude = null;
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 600), () async {
       if (query.trim().length < 3) {
@@ -389,6 +406,8 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
   void _onSelectOsmSuggestion(Map<String, dynamic> item) {
     final addressDetails = item['address'] ?? {};
     final displayName = item['display_name']?.toString() ?? '';
+    final latitude = double.tryParse(item['lat']?.toString() ?? '');
+    final longitude = double.tryParse(item['lon']?.toString() ?? '');
 
     String postcode = addressDetails['postcode'] ?? '';
     String stateFromOsm = addressDetails['state'] ?? '';
@@ -407,6 +426,8 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
       _streetAddressController.text = fullStreetAddress;
       _postcodeController.text = postcode;
       _osmSuggestions = [];
+      _selectedOsmLatitude = latitude;
+      _selectedOsmLongitude = longitude;
     });
 
     if (stateFromOsm.isNotEmpty) {
@@ -463,6 +484,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     setState(() => _isSaving = true);
 
     try {
+      await _coordinateRestore;
       final userId = _supabase.auth.currentUser!.id;
 
       String unit = _unitController.text.trim();
@@ -484,6 +506,19 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
           'label': _labelController.text.trim(),
           'full_address': fullAddress,
         }).eq('id', widget.addressId!);
+      }
+
+      final latitude = _selectedOsmLatitude;
+      final longitude = _selectedOsmLongitude;
+      if (latitude != null && longitude != null) {
+        await AddressCoordinateCache.save(
+          address: fullAddress,
+          latitude: latitude,
+          longitude: longitude,
+        );
+      } else if (widget.initialAddress != null &&
+          widget.initialAddress!.trim() != fullAddress.trim()) {
+        await AddressCoordinateCache.remove(widget.initialAddress!);
       }
 
       if (mounted) {

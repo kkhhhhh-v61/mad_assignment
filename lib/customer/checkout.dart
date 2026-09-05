@@ -16,6 +16,7 @@ import '../rider/data_gov_my_fuel_price_repository.dart';
 import '../services/states.dart';
 import 'branch_selection.dart';
 import 'cart.dart';
+import 'address_coordinate_cache.dart';
 import 'header.dart';
 import 'order_confirmation.dart';
 import 'payment_methods.dart';
@@ -204,29 +205,50 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
   }
 
   Future<void> _loadAddresses() async {
-    final AddressOption detected =
-        CustomerHeader.cachedDetectedLocation ??
-        (CustomerHeader.cachedAddress.isNotEmpty
-            ? AddressOption(
-                label: 'Current Location',
-                fullAddress: CustomerHeader.cachedAddress,
-                state: CustomerHeader.cachedState.isNotEmpty
-                    ? CustomerHeader.cachedState
-                    : extractStateFromAddress(CustomerHeader.cachedAddress),
-                isDetected: true,
-              )
-            : const AddressOption(
-                label: 'Current Location',
-                fullAddress: 'George Town, Penang',
-                state: 'Pulau Pinang',
-                isDetected: true,
-              ));
+    final cachedCoordinates = await AddressCoordinateCache.loadAll();
+
+    AddressOption withCachedCoordinates(AddressOption option) {
+      if (option.latitude != null && option.longitude != null) {
+        return option;
+      }
+      final coordinates = cachedCoordinates[option.fullAddress.trim()];
+      if (coordinates == null) return option;
+      return AddressOption(
+        label: option.label,
+        fullAddress: option.fullAddress,
+        state: option.state,
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        isDetected: option.isDetected,
+        isDefault: option.isDefault,
+      );
+    }
+
+    final AddressOption detected = withCachedCoordinates(
+      CustomerHeader.cachedDetectedLocation ??
+          (CustomerHeader.cachedAddress.isNotEmpty
+              ? AddressOption(
+                  label: 'Current Location',
+                  fullAddress: CustomerHeader.cachedAddress,
+                  state: CustomerHeader.cachedState.isNotEmpty
+                      ? CustomerHeader.cachedState
+                      : extractStateFromAddress(CustomerHeader.cachedAddress),
+                  isDetected: true,
+                )
+              : const AddressOption(
+                  label: 'Current Location',
+                  fullAddress: 'George Town, Penang',
+                  state: 'Pulau Pinang',
+                  isDetected: true,
+                )),
+    );
 
     final List<AddressOption> options = [];
 
     final headerSaved = CustomerHeader.cachedSavedAddresses;
     if (headerSaved != null) {
-      for (final opt in headerSaved) {
+      for (final rawOption in headerSaved) {
+        final opt = withCachedCoordinates(rawOption);
         if (!options.any((o) => o.fullAddress == opt.fullAddress)) {
           options.add(opt);
         }
@@ -253,6 +275,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
                 isDefault: true,
               ),
             );
+            options[0] = withCachedCoordinates(options[0]);
           }
         }
 
@@ -270,21 +293,25 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
             );
             if (existingIndex >= 0) {
               if (sLabel != null && sLabel.isNotEmpty) {
-                options[existingIndex] = AddressOption(
-                  label: sLabel,
-                  fullAddress: sAddr,
-                  state: extractStateFromAddress(sAddr),
-                  isDefault: options[existingIndex].isDefault,
+                options[existingIndex] = withCachedCoordinates(
+                  AddressOption(
+                    label: sLabel,
+                    fullAddress: sAddr,
+                    state: extractStateFromAddress(sAddr),
+                    isDefault: options[existingIndex].isDefault,
+                  ),
                 );
               }
             } else {
               options.add(
-                AddressOption(
-                  label: (sLabel != null && sLabel.isNotEmpty)
-                      ? sLabel
-                      : 'Saved Address',
-                  fullAddress: sAddr,
-                  state: extractStateFromAddress(sAddr),
+                withCachedCoordinates(
+                  AddressOption(
+                    label: (sLabel != null && sLabel.isNotEmpty)
+                        ? sLabel
+                        : 'Saved Address',
+                    fullAddress: sAddr,
+                    state: extractStateFromAddress(sAddr),
+                  ),
                 ),
               );
             }
@@ -301,10 +328,12 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
       if (selectedOption == null && detected.fullAddress == _selectedAddress) {
         selectedOption = detected;
       }
-      selectedOption ??= AddressOption(
-        label: 'Delivery Address',
-        fullAddress: _selectedAddress,
-        state: extractStateFromAddress(_selectedAddress),
+      selectedOption ??= withCachedCoordinates(
+        AddressOption(
+          label: 'Delivery Address',
+          fullAddress: _selectedAddress,
+          state: extractStateFromAddress(_selectedAddress),
+        ),
       );
     } else if (options.isNotEmpty) {
       selectedOption = options.first;
@@ -381,6 +410,11 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         isDefault: option.isDefault,
       );
       _geocodedAddresses[query] = resolved;
+      await AddressCoordinateCache.save(
+        address: option.fullAddress,
+        latitude: resolvedLatitude,
+        longitude: resolvedLongitude,
+      );
       return resolved;
     } catch (_) {
       return null;

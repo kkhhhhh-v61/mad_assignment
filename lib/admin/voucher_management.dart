@@ -65,12 +65,9 @@ class _AdminVoucherManagementState extends State<AdminVoucherManagement> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20.0))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: VoucherForm(
-          existingVoucher: voucher,
-          onSave: _fetchVouchers,
-        ),
+      builder: (context) => VoucherForm(
+        existingVoucher: voucher,
+        onSave: _fetchVouchers,
       ),
     );
   }
@@ -416,128 +413,127 @@ class _VoucherFormState extends State<VoucherForm> {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 使用 Padding 将键盘高度整体垫在最底部，去掉多余的 SingleChildScrollView 导致的冲突
     return Padding(
       padding: EdgeInsets.only(
-          left: 24.0,
-          right: 24.0,
-          top: 24.0,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24.0
+        left: 24.0,
+        right: 24.0,
+        top: 24.0,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(widget.existingVoucher == null ? 'Create Voucher' : 'Edit Voucher', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.black54),
-                  onPressed: () => Navigator.pop(context),
-                )
-              ],
-            ),
-            const SizedBox(height: 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(widget.existingVoucher == null ? 'Create Voucher' : 'Edit Voucher', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.black54),
+                onPressed: () => Navigator.pop(context),
+              )
+            ],
+          ),
+          const SizedBox(height: 12),
 
-            if (_errorMessage != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.red.shade200),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
+          if (_errorMessage != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade200),
               ),
-
-            _buildFormInput(
-                controller: _codeController,
-                label: 'Voucher Code *',
-                hint: 'e.g., NEWYEAR20',
-                icon: Icons.local_offer_outlined
-            ),
-            const SizedBox(height: 16),
-
-            Row(
-              children: [
-                Expanded(
-                    child: _buildFormInput(
-                        controller: _discountController,
-                        label: 'Discount (RM) *',
-                        hint: '10.00',
-                        icon: Icons.payments_outlined,
-                        isNumber: true
-                    )
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                    child: _buildFormInput(
-                        controller: _minSpendController,
-                        label: 'Min Spend (RM)',
-                        hint: '25.00',
-                        icon: Icons.shopping_cart_outlined,
-                        isNumber: true
-                    )
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            const Text('Expiry Date *', style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, color: Colors.black87)),
-            const SizedBox(height: 6.0),
-            InkWell(
-              onTap: _pickDate,
-              borderRadius: BorderRadius.circular(15.0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-                decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 245, 245, 245),
-                    borderRadius: BorderRadius.circular(15.0)
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today, color: Colors.black54, size: 20),
-                    const SizedBox(width: 12),
-                    Text(
-                        _selectedDate == null ? 'Select Date' : DateFormat('yyyy-MM-dd').format(_selectedDate!),
-                        style: TextStyle(
-                            fontSize: 15,
-                            color: _selectedDate == null ? const Color.fromARGB(255, 158, 158, 158) : Colors.black87
-                        )
-                    ),
-                  ],
-                ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w600)),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 32),
 
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 255, 160, 122),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-                  elevation: 0,
-                ),
-                child: _isSaving
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Save Voucher', style: TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold)),
+          _buildFormInput(
+              controller: _codeController,
+              label: 'Voucher Code *',
+              hint: 'e.g., NEWYEAR20',
+              icon: Icons.local_offer_outlined
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                  child: _buildFormInput(
+                      controller: _discountController,
+                      label: 'Discount (RM) *',
+                      hint: '10.00',
+                      icon: Icons.payments_outlined,
+                      isNumber: true
+                  )
               ),
-            )
-          ],
-        ),
+              const SizedBox(width: 16),
+              Expanded(
+                  child: _buildFormInput(
+                      controller: _minSpendController,
+                      label: 'Min Spend (RM)',
+                      hint: '25.00',
+                      icon: Icons.shopping_cart_outlined,
+                      isNumber: true
+                  )
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          const Text('Expiry Date *', style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, color: Colors.black87)),
+          const SizedBox(height: 6.0),
+          InkWell(
+            onTap: _pickDate,
+            borderRadius: BorderRadius.circular(15.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+              decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 245, 245, 245),
+                  borderRadius: BorderRadius.circular(15.0)
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today, color: Colors.black54, size: 20),
+                  const SizedBox(width: 12),
+                  Text(
+                      _selectedDate == null ? 'Select Date' : DateFormat('yyyy-MM-dd').format(_selectedDate!),
+                      style: TextStyle(
+                          fontSize: 15,
+                          color: _selectedDate == null ? const Color.fromARGB(255, 158, 158, 158) : Colors.black87
+                      )
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _isSaving ? null : _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 255, 160, 122),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+                elevation: 0,
+              ),
+              child: _isSaving
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text('Save Voucher', style: TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold)),
+            ),
+          )
+        ],
       ),
     );
   }

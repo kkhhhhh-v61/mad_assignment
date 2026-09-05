@@ -13,7 +13,7 @@ class CustomerHome extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const CustomerHeader(),
+        const CustomerHeader(showBrandTitle: true),
         Expanded(
           child: SingleChildScrollView(
             child: Column(

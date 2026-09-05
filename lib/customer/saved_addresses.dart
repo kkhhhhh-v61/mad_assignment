@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models.dart';
+import '../services/states.dart';
 
 class SavedAddressesScreen extends StatefulWidget {
   const SavedAddressesScreen({super.key});
@@ -410,7 +411,8 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
 
     if (stateFromOsm.isNotEmpty) {
       for (var s in _statesList) {
-        if (stateFromOsm.toLowerCase().contains(s.name.toLowerCase()) ||
+        if (isSameState(stateFromOsm, s.name) ||
+            stateFromOsm.toLowerCase().contains(s.name.toLowerCase()) ||
             s.name.toLowerCase().contains(stateFromOsm.toLowerCase())) {
           setState(() {
             _selectedStateName = s.name;

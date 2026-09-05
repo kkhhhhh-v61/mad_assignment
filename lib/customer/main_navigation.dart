@@ -17,17 +17,50 @@ import '../models.dart';
 
 
 class CustomerMainNavigation extends StatefulWidget {
-  const CustomerMainNavigation({super.key});
+  final int initialIndex;
+
+  const CustomerMainNavigation({super.key, this.initialIndex = 0});
 
   @override
   State<CustomerMainNavigation> createState() => _CustomerMainNavigationState();
 }
 
 class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   bool _isLoggedIn = false;
   String _selectedMenuCategory = '';
   AppUser? currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _checkCurrentUser();
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomerMainNavigation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialIndex != widget.initialIndex) {
+      _currentIndex = widget.initialIndex;
+    }
+  }
+
+  Future<void> _checkCurrentUser() async {
+    final session = supabase.auth.currentSession;
+    final user = supabase.auth.currentUser;
+    if (session != null && !session.isExpired && user != null) {
+      try {
+        final profile = await supabase.from('profiles').select().eq('id', user.id).maybeSingle();
+        if (profile != null && mounted) {
+          setState(() {
+            _isLoggedIn = true;
+            currentUser = AppUser.fromJson(Map<String, dynamic>.from(profile), user.email ?? '');
+          });
+        }
+      } catch (_) {}
+    }
+  }
 
   List<Widget> get _screens => [
     CustomerHome(
@@ -48,13 +81,18 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
     _isLoggedIn
         ? _buildAccountScreen()
         : SharedAuthScreen(
-      onAuthSuccess: (user) {
-        setState(() {
-          _isLoggedIn = true;
-          currentUser = user;
-        });
-      },
-    ),
+            header: const CustomerHeader(
+              showTitle: true,
+              pageTitle: 'My Account',
+              showSearch: false,
+            ),
+            onAuthSuccess: (user) {
+              setState(() {
+                _isLoggedIn = true;
+                currentUser = user;
+              });
+            },
+          ),
   ];
 
   Widget _buildAccountScreen() {
@@ -154,7 +192,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
           _isLoggedIn = false;
           currentUser = null;
         });
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(

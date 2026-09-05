@@ -17,8 +17,9 @@ import '../models.dart';
 
 class SharedAuthScreen extends StatefulWidget {
   final Function(AppUser)? onAuthSuccess;
+  final Widget? header;
 
-  const SharedAuthScreen({super.key, this.onAuthSuccess});
+  const SharedAuthScreen({super.key, this.onAuthSuccess, this.header});
 
   @override
   State<SharedAuthScreen> createState() => _SharedAuthScreenState();
@@ -437,23 +438,26 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SafeArea(
-          bottom: false,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20.0),
-            color: Colors.white,
-            alignment: Alignment.center,
-            child: const Text(
-              'Account',
-              style: TextStyle(
-                fontSize: 18.0,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+        if (widget.header != null)
+          widget.header!
+        else
+          SafeArea(
+            bottom: false,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
+              color: Colors.white,
+              alignment: Alignment.center,
+              child: const Text(
+                'Account',
+                style: TextStyle(
+                  fontSize: 18.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
             ),
           ),
-        ),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),

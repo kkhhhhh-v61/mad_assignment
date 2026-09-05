@@ -1,10 +1,16 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../Order/branch_repository.dart';
 import '../Order/delivery_fee.dart';
 import '../Order/order.dart';
+import '../Order/order_repository.dart';
 import '../global.dart';
 import '../rider/data_gov_my_fuel_price_repository.dart';
 import '../services/states.dart';
@@ -15,6 +21,52 @@ import 'order_confirmation.dart';
 import 'payment_methods.dart';
 import 'saved_addresses.dart';
 
+/// Returns the closest active branch to the supplied coordinates.
+///
+/// This is deliberately a pure helper so the nearest-first rule can be
+/// verified without a Supabase session or a widget test.
+BranchRecord? nearestActiveBranchForCoordinates({
+  required double? latitude,
+  required double? longitude,
+  required Iterable<BranchRecord> branches,
+}) {
+  if (latitude == null ||
+      longitude == null ||
+      !latitude.isFinite ||
+      !longitude.isFinite ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180) {
+    return null;
+  }
+
+  BranchRecord? nearest;
+  var nearestDistance = double.infinity;
+  for (final branch in branches) {
+    if (!branch.isActive ||
+        !branch.latitude.isFinite ||
+        !branch.longitude.isFinite ||
+        branch.latitude < -90 ||
+        branch.latitude > 90 ||
+        branch.longitude < -180 ||
+        branch.longitude > 180) {
+      continue;
+    }
+    final distance = haversineDistanceKm(
+      startLatitude: latitude,
+      startLongitude: longitude,
+      endLatitude: branch.latitude,
+      endLongitude: branch.longitude,
+    );
+    if (distance < nearestDistance) {
+      nearest = branch;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
+}
+
 class CustomerCheckout extends StatefulWidget {
   final List<CartItem>? cartItems;
   final String? deliveryAddress;
@@ -22,6 +74,7 @@ class CustomerCheckout extends StatefulWidget {
   final DeliveryAddressSnapshot? deliveryAddressSnapshot;
   final RoadDeliveryFeeService? deliveryFeeService;
   final BranchRepository? branchRepository;
+  final OrderRepository? orderRepository;
   final bool enableBranchSelection;
   final bool returnRequired;
 
@@ -33,6 +86,7 @@ class CustomerCheckout extends StatefulWidget {
     this.deliveryAddressSnapshot,
     this.deliveryFeeService,
     this.branchRepository,
+    this.orderRepository,
     this.enableBranchSelection = true,
     this.returnRequired = false,
   });
@@ -67,20 +121,23 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
   OsrmDeliveryRoadRouteProvider? _ownedRouteProvider;
   DataGovMyFuelPriceRepository? _ownedFuelPriceRepository;
   BranchRepository? _ownedBranchRepository;
+  OrderRepository? _ownedOrderRepository;
   List<BranchRecord> _branches = [];
   BranchRecord? _selectedBranch;
   bool _branchesLoading = false;
   String? _branchesError;
   int _deliveryFeeRequestGeneration = 0;
+  int _addressResolutionGeneration = 0;
+  final Map<String, AddressOption> _geocodedAddresses = {};
+  DeliveryAddressSnapshot? _resolvedDeliveryAddressSnapshot;
+  bool _isSubmitting = false;
 
   BranchSnapshot? get _effectiveBranchSnapshot =>
       _selectedBranch?.snapshot ?? widget.branchSnapshot;
 
-  bool get _routedFeeEnabled =>
-      (widget.deliveryAddressSnapshot != null &&
-          (widget.branchSnapshot != null ||
-              (widget.enableBranchSelection && _selectedBranch != null))) ||
-      widget.deliveryFeeService != null;
+  /// Delivery must have a successful road quote before it can be submitted.
+  /// Pickup does not need a route or delivery fee.
+  bool get _routedFeeEnabled => !_isSelfPickup;
 
   @override
   void initState() {
@@ -89,13 +146,14 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         ? List<CartItem>.from(widget.cartItems!)
         : [];
     _isSelfPickup = false;
-    final initialAddress = (widget.deliveryAddress != null &&
+    final initialAddress =
+        (widget.deliveryAddress != null &&
             widget.deliveryAddress!.trim().isNotEmpty)
         ? widget.deliveryAddress!.trim()
         : (widget.deliveryAddressSnapshot?.formattedAddress ??
-            (CustomerHeader.cachedAddress.isNotEmpty
-                ? CustomerHeader.cachedAddress
-                : ''));
+              (CustomerHeader.cachedAddress.isNotEmpty
+                  ? CustomerHeader.cachedAddress
+                  : ''));
     _selectedAddress = initialAddress;
     if (CustomerHeader.cachedSelectedOption != null &&
         CustomerHeader.cachedSelectedOption!.fullAddress == _selectedAddress) {
@@ -105,6 +163,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     _appliedVoucher = null;
     _deliveryFee = 0.0;
     _availableVouchers = [];
+    _resolvedDeliveryAddressSnapshot = widget.deliveryAddressSnapshot;
 
     //TODO: Retrieve checkout items, available addresses, payment methods, and vouchers dynamically from backend
     if (_cartItems.isEmpty) {
@@ -124,16 +183,29 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
 
   void _setFulfillmentType(bool isSelfPickup) {
     if (_isSelfPickup == isSelfPickup) return;
+    _addressResolutionGeneration++;
+    _deliveryFeeRequestGeneration++;
     setState(() {
       _isSelfPickup = isSelfPickup;
+      _deliveryFeeQuote = null;
+      _deliveryFeeError = null;
+      _deliveryFeeLoading = false;
+      _deliveryFee = 0.0;
+      if (isSelfPickup) {
+        _resolvedDeliveryAddressSnapshot = null;
+      }
       if (!_isSelfPickup && _selectedAddress.isEmpty) {
         _selectedAddress = CustomerHeader.cachedAddress;
       }
     });
+    if (!isSelfPickup) {
+      unawaited(_resolveDeliveryContext());
+    }
   }
 
   Future<void> _loadAddresses() async {
-    final AddressOption detected = CustomerHeader.cachedDetectedLocation ??
+    final AddressOption detected =
+        CustomerHeader.cachedDetectedLocation ??
         (CustomerHeader.cachedAddress.isNotEmpty
             ? AddressOption(
                 label: 'Current Location',
@@ -193,8 +265,9 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
           final sAddr = row['full_address']?.toString().trim();
           final sLabel = row['label']?.toString().trim();
           if (sAddr != null && sAddr.isNotEmpty) {
-            final existingIndex =
-                options.indexWhere((o) => o.fullAddress == sAddr);
+            final existingIndex = options.indexWhere(
+              (o) => o.fullAddress == sAddr,
+            );
             if (existingIndex >= 0) {
               if (sLabel != null && sLabel.isNotEmpty) {
                 options[existingIndex] = AddressOption(
@@ -225,8 +298,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
       selectedOption = options
           .where((o) => o.fullAddress == _selectedAddress)
           .firstOrNull;
-      if (selectedOption == null &&
-          detected.fullAddress == _selectedAddress) {
+      if (selectedOption == null && detected.fullAddress == _selectedAddress) {
         selectedOption = detected;
       }
       selectedOption ??= AddressOption(
@@ -248,6 +320,148 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         _addressOptions = options;
         _selectedAddressOption = selectedOption;
       });
+      if (!_isSelfPickup) {
+        unawaited(_resolveDeliveryContext());
+      }
+    }
+  }
+
+  Future<AddressOption?> _geocodeAddressOption(AddressOption option) async {
+    final latitude = option.latitude;
+    final longitude = option.longitude;
+    if (latitude != null &&
+        longitude != null &&
+        latitude.isFinite &&
+        longitude.isFinite) {
+      return option;
+    }
+
+    final query = option.fullAddress.trim();
+    if (query.isEmpty) return null;
+    final cached = _geocodedAddresses[query];
+    if (cached != null) return cached;
+
+    try {
+      final response = await http
+          .get(
+            Uri.https(
+              'nominatim.openstreetmap.org',
+              '/search',
+              <String, String>{
+                'q': '$query, Malaysia',
+                'format': 'jsonv2',
+                'limit': '1',
+                'countrycodes': 'my',
+              },
+            ),
+            headers: const {'User-Agent': 'DoorDishApp/1.0'},
+          )
+          .timeout(const Duration(seconds: 4));
+      if (response.statusCode != 200) return null;
+      final decoded = jsonDecode(response.body);
+      if (decoded is! List || decoded.isEmpty || decoded.first is! Map) {
+        return null;
+      }
+      final result = Map<String, dynamic>.from(decoded.first as Map);
+      final resolvedLatitude = double.tryParse('${result['lat']}');
+      final resolvedLongitude = double.tryParse('${result['lon']}');
+      if (resolvedLatitude == null ||
+          resolvedLongitude == null ||
+          !resolvedLatitude.isFinite ||
+          !resolvedLongitude.isFinite) {
+        return null;
+      }
+      final resolved = AddressOption(
+        label: option.label,
+        fullAddress: option.fullAddress,
+        state: option.state,
+        latitude: resolvedLatitude,
+        longitude: resolvedLongitude,
+        isDetected: option.isDetected,
+        isDefault: option.isDefault,
+      );
+      _geocodedAddresses[query] = resolved;
+      return resolved;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  BranchRecord? _fallbackBranchForAddress(String state) {
+    if (_branches.isEmpty) return null;
+    if (state.trim().isNotEmpty) {
+      for (final branch in _branches) {
+        if (isSameState(branch.stateCode, state) ||
+            branch.address.toLowerCase().contains(state.toLowerCase()) ||
+            branch.name.toLowerCase().contains(state.toLowerCase())) {
+          return branch;
+        }
+      }
+    }
+    return _branches.first;
+  }
+
+  Future<void> _resolveDeliveryContext() async {
+    if (_isSelfPickup) return;
+    if (_branches.isEmpty && widget.branchSnapshot == null) {
+      // Branch loading will call this again when it completes. Keeping the
+      // context unresolved prevents a delivery order from being submitted
+      // with a zero fee or an arbitrary branch.
+      return;
+    }
+
+    final generation = ++_addressResolutionGeneration;
+    var option = _selectedAddressOption;
+    if (option == null && _selectedAddress.trim().isNotEmpty) {
+      option = AddressOption(
+        label: 'Delivery Address',
+        fullAddress: _selectedAddress.trim(),
+        state: extractStateFromAddress(_selectedAddress),
+      );
+    }
+    if (option == null) return;
+
+    final resolvedOption = await _geocodeAddressOption(option);
+    if (!mounted ||
+        _isSelfPickup ||
+        generation != _addressResolutionGeneration) {
+      return;
+    }
+    option = resolvedOption ?? option;
+
+    final nearest = nearestActiveBranchForCoordinates(
+      latitude: option.latitude,
+      longitude: option.longitude,
+      branches: _branches,
+    );
+    final branch =
+        nearest ?? _fallbackBranchForAddress(option.state) ?? _selectedBranch;
+    final branchSnapshot = branch?.snapshot ?? widget.branchSnapshot;
+    final stateCode = branchSnapshot?.stateCode.trim().isNotEmpty == true
+        ? branchSnapshot!.stateCode
+        : (option.state.isNotEmpty
+              ? option.state
+              : extractStateFromAddress(option.fullAddress));
+    final destination = DeliveryAddressSnapshot(
+      label: option.label,
+      formattedAddress: option.fullAddress,
+      stateCode: stateCode,
+      latitude: option.latitude,
+      longitude: option.longitude,
+    );
+
+    setState(() {
+      _selectedAddressOption = option;
+      _selectedAddress = option!.fullAddress;
+      if (branch != null) _selectedBranch = branch;
+      _resolvedDeliveryAddressSnapshot = destination;
+      _deliveryFeeQuote = null;
+      _deliveryFeeError = null;
+      _deliveryFee = 0.0;
+    });
+
+    if (branchSnapshot != null) {
+      unawaited(_loadRoutedDeliveryFee());
     }
   }
 
@@ -328,6 +542,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         oldWidget.deliveryAddressSnapshot != widget.deliveryAddressSnapshot ||
         oldWidget.deliveryFeeService != widget.deliveryFeeService ||
         oldWidget.branchRepository != widget.branchRepository ||
+        oldWidget.orderRepository != widget.orderRepository ||
         oldWidget.enableBranchSelection != widget.enableBranchSelection ||
         oldWidget.returnRequired != widget.returnRequired) {
       if (oldWidget.branchSnapshot?.branchId !=
@@ -337,15 +552,17 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
       if (widget.enableBranchSelection) {
         _loadBranches();
       }
-      if (_routedFeeEnabled) {
-        _selectedAddress =
-            widget.deliveryAddressSnapshot?.formattedAddress ?? '';
-        _loadRoutedDeliveryFee();
-      } else {
+      if (widget.deliveryAddressSnapshot != null) {
+        _resolvedDeliveryAddressSnapshot = widget.deliveryAddressSnapshot;
+        _selectedAddress = widget.deliveryAddressSnapshot!.formattedAddress;
+      }
+      if (_isSelfPickup) {
         _deliveryFeeQuote = null;
         _deliveryFeeLoading = false;
         _deliveryFeeError = null;
         _deliveryFee = 0.0;
+      } else {
+        unawaited(_resolveDeliveryContext());
       }
     }
   }
@@ -413,8 +630,12 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         if (candidateState.isNotEmpty) {
           for (final branch in branches) {
             if (isSameState(branch.stateCode, candidateState) ||
-                branch.address.toLowerCase().contains(candidateState.toLowerCase()) ||
-                branch.name.toLowerCase().contains(candidateState.toLowerCase())) {
+                branch.address.toLowerCase().contains(
+                  candidateState.toLowerCase(),
+                ) ||
+                branch.name.toLowerCase().contains(
+                  candidateState.toLowerCase(),
+                )) {
               selected = branch;
               break;
             }
@@ -428,9 +649,8 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         _branchesLoading = false;
         _branchesError = null;
       });
-      if (widget.deliveryAddressSnapshot != null &&
-          _effectiveBranchSnapshot != null) {
-        _loadRoutedDeliveryFee();
+      if (!_isSelfPickup) {
+        unawaited(_resolveDeliveryContext());
       }
     } catch (error) {
       if (!mounted) return;
@@ -460,13 +680,9 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     if (!mounted || selected == null) return;
     setState(() {
       _selectedBranch = selected;
-      _deliveryFeeQuote = null;
-      _deliveryFeeError = null;
-      _deliveryFee = 0.0;
     });
-    if (widget.deliveryAddressSnapshot != null) {
-      _loadRoutedDeliveryFee();
-    }
+    // Branch selection is intentionally available only for pickup. Delivery
+    // always re-evaluates the nearest active branch from the address.
   }
 
   Future<RoadDeliveryFeeService?> _resolveDeliveryFeeService() async {
@@ -496,6 +712,7 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
   }
 
   Future<void> _loadRoutedDeliveryFee() async {
+    if (_isSelfPickup) return;
     final generation = ++_deliveryFeeRequestGeneration;
     setState(() {
       _deliveryFeeLoading = true;
@@ -505,7 +722,8 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     });
 
     final branch = _effectiveBranchSnapshot;
-    final destination = widget.deliveryAddressSnapshot;
+    final destination =
+        _resolvedDeliveryAddressSnapshot ?? widget.deliveryAddressSnapshot;
     if (branch == null || destination == null) {
       if (!mounted || generation != _deliveryFeeRequestGeneration) return;
       setState(() {
@@ -559,8 +777,177 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     }
   }
 
+  OrderRepository? _resolveOrderRepository() {
+    final supplied = widget.orderRepository;
+    if (supplied != null) return supplied;
+    final existing = _ownedOrderRepository;
+    if (existing != null) return existing;
+    try {
+      final repository = SupabaseOrderRepository(Supabase.instance.client);
+      _ownedOrderRepository = repository;
+      return repository;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<OrderItemSnapshot> _buildOrderItems() {
+    if (_cartItems.isEmpty) {
+      throw const InvalidOrderException('Your cart is empty.');
+    }
+    return _cartItems
+        .map((item) {
+          final foodId = item.id?.trim();
+          if (foodId == null || foodId.isEmpty) {
+            throw const InvalidOrderException(
+              'A cart item is missing its menu ID. Please remove it and add it again from the menu.',
+            );
+          }
+          final unitPriceSen = ((item.price + item.customizationTotal) * 100)
+              .round();
+          return OrderItemSnapshot(
+            foodId: foodId,
+            name: item.name,
+            quantity: item.quantity,
+            unitPriceSen: unitPriceSen,
+            selectedOptions: {
+              'customizations': item.customizations
+                  .map((customization) => customization.toJson())
+                  .toList(growable: false),
+            },
+            lineTotalSen: unitPriceSen * item.quantity,
+            isStateSpecial: false,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  int _discountSen({required int subtotalSen, required int deliveryFeeSen}) {
+    final voucher = _appliedVoucher;
+    if (voucher == null) return 0;
+    final type = voucher['type']?.toString();
+    var discount = 0;
+    if (type == 'free_delivery') {
+      discount = deliveryFeeSen;
+    } else if (type == 'percentage') {
+      final percentage = (voucher['discountValue'] as num?)?.toDouble() ?? 0;
+      if (percentage.isFinite && percentage > 0) {
+        discount = (subtotalSen * percentage / 100).round();
+      }
+    }
+    final maximum = subtotalSen + deliveryFeeSen;
+    return discount.clamp(0, maximum);
+  }
+
+  OrderSubmission _buildOrderSubmission() {
+    final branch = _effectiveBranchSnapshot;
+    if (branch == null) {
+      throw const InvalidOrderException(
+        'A restaurant branch is still being assigned. Please try again.',
+      );
+    }
+
+    final items = _buildOrderItems();
+    final subtotalSen = items.fold<int>(
+      0,
+      (sum, item) => sum + item.lineTotalSen,
+    );
+    final isDelivery = !_isSelfPickup;
+    final quote = isDelivery ? _deliveryFeeQuote : null;
+    final destination = isDelivery
+        ? (_resolvedDeliveryAddressSnapshot ?? widget.deliveryAddressSnapshot)
+        : null;
+    if (isDelivery) {
+      if (destination == null ||
+          destination.latitude == null ||
+          destination.longitude == null) {
+        throw const InvalidOrderException(
+          'A map-ready delivery address is required before placing the order.',
+        );
+      }
+      if (quote == null || _deliveryFeeError != null) {
+        throw const InvalidOrderException(
+          'The delivery route and fee must be calculated before placing the order.',
+        );
+      }
+    }
+
+    final deliveryFeeSen = quote?.deliveryFeeSen ?? 0;
+    final discountSen = _discountSen(
+      subtotalSen: subtotalSen,
+      deliveryFeeSen: deliveryFeeSen,
+    );
+    final totalSen = subtotalSen + deliveryFeeSen - discountSen;
+
+    return OrderSubmission(
+      orderNumber: 'ORD-${DateTime.now().toUtc().millisecondsSinceEpoch}',
+      paymentIdempotencyKey: 'checkout-${const Uuid().v4()}',
+      paymentType: 'COD',
+      paymentStatus: 'Pending',
+      paymentMethodId: null,
+      fulfilmentType: isDelivery
+          ? FulfilmentType.delivery
+          : FulfilmentType.pickup,
+      branchSnapshot: branch,
+      deliveryAddressSnapshot: destination,
+      subtotalSen: subtotalSen,
+      discountSen: discountSen,
+      deliveryFeeSen: deliveryFeeSen,
+      totalSen: totalSen,
+      roadDistanceKm: quote?.oneWayRoadDistanceKm,
+      items: items,
+    );
+  }
+
+  Future<void> _submitOrder() async {
+    if (_isSubmitting) return;
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final repository = _resolveOrderRepository();
+      if (repository == null) {
+        throw const OrderRepositoryException(
+          'Supabase is not ready. The order could not be submitted.',
+        );
+      }
+      final submission = _buildOrderSubmission();
+      final order = await repository.createOrder(submission);
+      await CartStorage.clearCart();
+      if (!mounted) return;
+      setState(() {
+        _cartItems.clear();
+        _isSubmitting = false;
+      });
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CustomerOrderConfirmation(
+            totalPaid: order.totalSen / 100.0,
+            paymentMethod: _selectedPaymentMethod,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is OrderRepositoryException
+          ? error.message
+          : error is OrderDataException
+          ? error.message
+          : error.toString();
+      setState(() {
+        _isSubmitting = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      );
+    }
+  }
+
   @override
   void dispose() {
+    _addressResolutionGeneration++;
     _deliveryFeeRequestGeneration++;
     _ownedRouteProvider?.dispose();
     _ownedFuelPriceRepository?.dispose();
@@ -588,8 +975,10 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
       builder: (sheetContext) {
         return SafeArea(
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 16.0,
+            ),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -633,18 +1022,20 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
                       sheetContext: sheetContext,
                     ),
                   if (_addressOptions.isNotEmpty) const Divider(height: 24.0),
-                  ..._addressOptions.map((addr) => _buildAddressOptionTile(
-                        addr,
-                        icon: addr.isDefault
-                            ? Icons.home_outlined
-                            : (addr.label.toLowerCase() == 'home'
+                  ..._addressOptions.map(
+                    (addr) => _buildAddressOptionTile(
+                      addr,
+                      icon: addr.isDefault
+                          ? Icons.home_outlined
+                          : (addr.label.toLowerCase() == 'home'
                                 ? Icons.home_outlined
                                 : (addr.label.toLowerCase() == 'work' ||
-                                        addr.label.toLowerCase() == 'office'
-                                    ? Icons.work_outline
-                                    : Icons.location_on_outlined)),
-                        sheetContext: sheetContext,
-                      )),
+                                          addr.label.toLowerCase() == 'office'
+                                      ? Icons.work_outline
+                                      : Icons.location_on_outlined)),
+                      sheetContext: sheetContext,
+                    ),
+                  ),
                   const SizedBox(height: 12.0),
                   InkWell(
                     onTap: () => _openManageAddresses(sheetContext),
@@ -690,32 +1081,19 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
     final isSelected = _selectedAddress == option.fullAddress;
     return InkWell(
       onTap: () {
+        _addressResolutionGeneration++;
+        _deliveryFeeRequestGeneration++;
         setState(() {
           _selectedAddressOption = option;
           _selectedAddress = option.fullAddress;
-          if (!_isSelfPickup && _branches.isNotEmpty) {
-            final addressState = option.state.isNotEmpty
-                ? option.state
-                : extractStateFromAddress(option.fullAddress);
-            if (addressState.isNotEmpty) {
-              for (final branch in _branches) {
-                if (isSameState(branch.stateCode, addressState) ||
-                    branch.address
-                        .toLowerCase()
-                        .contains(addressState.toLowerCase()) ||
-                    branch.name
-                        .toLowerCase()
-                        .contains(addressState.toLowerCase())) {
-                  _selectedBranch = branch;
-                  break;
-                }
-              }
-            }
-          }
+          _resolvedDeliveryAddressSnapshot = null;
+          _deliveryFeeQuote = null;
+          _deliveryFeeError = null;
+          _deliveryFee = 0.0;
         });
         Navigator.pop(sheetContext);
-        if (!_isSelfPickup && widget.deliveryAddressSnapshot != null) {
-          _loadRoutedDeliveryFee();
+        if (!_isSelfPickup) {
+          unawaited(_resolveDeliveryContext());
         }
       },
       borderRadius: BorderRadius.circular(12),
@@ -874,17 +1252,14 @@ class _CustomerCheckoutState extends State<CustomerCheckout> {
         deliveryFeeError: _deliveryFeeError,
         onRetryDeliveryFee: _loadRoutedDeliveryFee,
         availableVouchers: _availableVouchers,
+        placeOrderLoading: _isSubmitting,
+        navigateToConfirmation: false,
         onVoucherApplied: (voucher) {
           setState(() {
             _appliedVoucher = voucher;
           });
         },
-        onPlaceOrder: () {
-          setState(() {
-            _cartItems.clear();
-          });
-          CartStorage.clearCart();
-        },
+        onPlaceOrder: _submitOrder,
       ),
     );
   }
@@ -921,7 +1296,9 @@ class CheckoutLayout extends StatelessWidget {
   final VoidCallback? onRetryDeliveryFee;
   final List<Map<String, dynamic>> availableVouchers;
   final Function(Map<String, dynamic>?) onVoucherApplied;
-  final VoidCallback onPlaceOrder;
+  final FutureOr<void> Function() onPlaceOrder;
+  final bool placeOrderLoading;
+  final bool navigateToConfirmation;
 
   const CheckoutLayout({
     super.key,
@@ -956,6 +1333,8 @@ class CheckoutLayout extends StatelessWidget {
     required this.availableVouchers,
     required this.onVoucherApplied,
     required this.onPlaceOrder,
+    this.placeOrderLoading = false,
+    this.navigateToConfirmation = true,
   });
 
   @override
@@ -976,7 +1355,8 @@ class CheckoutLayout extends StatelessWidget {
       if (appliedVoucher!['type'] == 'free_delivery') {
         discount = effectiveDeliveryFee;
       } else if (appliedVoucher!['type'] == 'percentage') {
-        discount = subtotal * (appliedVoucher!['discountValue'] as double) / 100;
+        discount =
+            subtotal * (appliedVoucher!['discountValue'] as double) / 100;
       }
     }
 
@@ -984,18 +1364,20 @@ class CheckoutLayout extends StatelessWidget {
     if (total < 0) total = 0;
 
     final addressReady = isSelfPickup || selectedAddress.trim().isNotEmpty;
-    final effectiveBranchReady = isSelfPickup
-        ? (selectedBranch != null || fallbackBranchSnapshot != null)
-        : true;
+    final effectiveBranchReady =
+        selectedBranch != null || fallbackBranchSnapshot != null;
     final effectiveFeeReady = isSelfPickup
         ? true
-        : ((!deliveryFeeRequired && !deliveryFeeLoading) ||
-            (deliveryFeeQuote != null && deliveryFeeError == null));
+        : (deliveryFeeQuote != null &&
+              deliveryFeeError == null &&
+              !deliveryFeeLoading);
 
-    final placeOrderEnabled = cartItems.isNotEmpty &&
+    final placeOrderEnabled =
+        cartItems.isNotEmpty &&
         addressReady &&
         effectiveBranchReady &&
-        effectiveFeeReady;
+        effectiveFeeReady &&
+        !placeOrderLoading;
 
     final buttonText = selectedPaymentMethod == 'Cash on Delivery'
         ? 'Place Order'
@@ -1076,6 +1458,8 @@ class CheckoutLayout extends StatelessWidget {
           total: total,
           onPlaceOrder: onPlaceOrder,
           placeOrderEnabled: placeOrderEnabled,
+          placeOrderLoading: placeOrderLoading,
+          navigateToConfirmation: navigateToConfirmation,
           buttonText: buttonText,
           selectedPaymentMethod: selectedPaymentMethod,
         ),
@@ -1220,8 +1604,9 @@ class AddressSelection extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16.0),
-              border:
-                  Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
+              border: Border.all(
+                color: const Color.fromARGB(255, 238, 238, 238),
+              ),
             ),
             child: Row(
               children: [
@@ -1235,11 +1620,11 @@ class AddressSelection extends StatelessWidget {
                     isCurrentLocation
                         ? Icons.my_location
                         : (addressLabel?.toLowerCase() == 'home'
-                            ? Icons.home_outlined
-                            : (addressLabel?.toLowerCase() == 'work' ||
-                                    addressLabel?.toLowerCase() == 'office'
-                                ? Icons.work_outline
-                                : Icons.location_on)),
+                              ? Icons.home_outlined
+                              : (addressLabel?.toLowerCase() == 'work' ||
+                                        addressLabel?.toLowerCase() == 'office'
+                                    ? Icons.work_outline
+                                    : Icons.location_on)),
                     color: const Color.fromARGB(255, 255, 160, 122),
                   ),
                 ),
@@ -1263,8 +1648,9 @@ class AddressSelection extends StatelessWidget {
                         address,
                         style: TextStyle(
                           fontSize: hasLabel ? 12.5 : 14.0,
-                          fontWeight:
-                              hasLabel ? FontWeight.normal : FontWeight.w500,
+                          fontWeight: hasLabel
+                              ? FontWeight.normal
+                              : FontWeight.w500,
                           color: hasLabel
                               ? const Color(0xFF757575)
                               : const Color(0xDD000000),
@@ -1436,11 +1822,16 @@ class CheckoutVoucher extends StatelessWidget {
           },
           borderRadius: BorderRadius.circular(16.0),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 12.0,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16.0),
-              border: Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
+              border: Border.all(
+                color: const Color.fromARGB(255, 238, 238, 238),
+              ),
             ),
             child: Row(
               children: [
@@ -1609,7 +2000,12 @@ class VoucherSelectionBottomSheet extends StatelessWidget {
                                   'Min. spend RM ${voucher['minSpend'].toStringAsFixed(2)}',
                                   style: TextStyle(
                                     color: isUsable
-                                        ? const Color.fromARGB(255, 117, 117, 117)
+                                        ? const Color.fromARGB(
+                                            255,
+                                            117,
+                                            117,
+                                            117,
+                                          )
                                         : Colors.redAccent,
                                     fontSize: 13.0,
                                     fontWeight: isUsable
@@ -1624,7 +2020,12 @@ class VoucherSelectionBottomSheet extends StatelessWidget {
                                       const Icon(
                                         Icons.access_time,
                                         size: 14,
-                                        color: Color.fromARGB(255, 158, 158, 158),
+                                        color: Color.fromARGB(
+                                          255,
+                                          158,
+                                          158,
+                                          158,
+                                        ),
                                       ),
                                       const SizedBox(width: 4.0),
                                       Text(
@@ -1665,7 +2066,7 @@ class CheckoutPayment extends StatelessWidget {
   final List<Map<String, dynamic>> savedCards;
   final bool savedCardsLoading;
   final Function(String paymentMethod, Map<String, dynamic>? savedCard)
-      onPaymentMethodChanged;
+  onPaymentMethodChanged;
   final VoidCallback onAddNewCard;
 
   const CheckoutPayment({
@@ -1751,28 +2152,31 @@ class CheckoutPayment extends StatelessWidget {
           },
           borderRadius: BorderRadius.circular(16.0),
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 14.0,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16.0),
-              border:
-                  Border.all(color: const Color.fromARGB(255, 238, 238, 238)),
+              border: Border.all(
+                color: const Color.fromARGB(255, 238, 238, 238),
+              ),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(10.0),
                   decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 255, 160, 122)
-                        .withValues(alpha: 0.12),
+                    color: const Color.fromARGB(
+                      255,
+                      255,
+                      160,
+                      122,
+                    ).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12.0),
                   ),
-                  child: Icon(
-                    icon,
-                    color: iconColor,
-                    size: 22,
-                  ),
+                  child: Icon(icon, color: iconColor, size: 22),
                 ),
                 const SizedBox(width: 14.0),
                 Expanded(
@@ -1817,7 +2221,7 @@ class PaymentSelectionBottomSheet extends StatefulWidget {
   final List<Map<String, dynamic>> savedCards;
   final bool savedCardsLoading;
   final Function(String paymentMethod, Map<String, dynamic>? savedCard)
-      onPaymentMethodSelected;
+  onPaymentMethodSelected;
   final VoidCallback onAddNewCard;
 
   const PaymentSelectionBottomSheet({
@@ -2248,8 +2652,12 @@ class _PaymentSelectionBottomSheetState
                                       '$holder · Exp: $expiry',
                                       style: const TextStyle(
                                         fontSize: 11.5,
-                                        color:
-                                            Color.fromARGB(255, 140, 140, 140),
+                                        color: Color.fromARGB(
+                                          255,
+                                          140,
+                                          140,
+                                          140,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -2381,8 +2789,7 @@ class _PaymentSelectionBottomSheetState
               children: [
                 const Text(
                   'Choose Payment Method',
-                  style:
-                      TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.black54),
@@ -2430,10 +2837,7 @@ class _PaymentSelectionBottomSheetState
                 ),
                 child: const Text(
                   'Confirm',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -2612,7 +3016,10 @@ class CheckoutSummary extends StatelessWidget {
           ],
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16.0),
-            child: Divider(height: 1, color: Color.fromARGB(255, 214, 214, 214)),
+            child: Divider(
+              height: 1,
+              color: Color.fromARGB(255, 214, 214, 214),
+            ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2639,8 +3046,10 @@ class CheckoutSummary extends StatelessWidget {
 
 class CheckoutBottomBar extends StatelessWidget {
   final double total;
-  final VoidCallback onPlaceOrder;
+  final FutureOr<void> Function() onPlaceOrder;
   final bool placeOrderEnabled;
+  final bool placeOrderLoading;
+  final bool navigateToConfirmation;
   final String buttonText;
   final String selectedPaymentMethod;
 
@@ -2649,6 +3058,8 @@ class CheckoutBottomBar extends StatelessWidget {
     required this.total,
     required this.onPlaceOrder,
     this.placeOrderEnabled = true,
+    this.placeOrderLoading = false,
+    this.navigateToConfirmation = true,
     this.buttonText = 'Proceed to Payment',
     this.selectedPaymentMethod = 'Cash on Delivery',
   });
@@ -2672,11 +3083,11 @@ class CheckoutBottomBar extends StatelessWidget {
       child: SafeArea(
         child: ElevatedButton(
           onPressed: placeOrderEnabled
-              ? () {
+              ? () async {
                   if (selectedPaymentMethod == 'Cash on Delivery') {
-                    //TODO: Submit order details to backend API and handle response
-                    onPlaceOrder();
-                    Navigator.push(
+                    await onPlaceOrder();
+                    if (!context.mounted || !navigateToConfirmation) return;
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => CustomerOrderConfirmation(
@@ -2706,10 +3117,22 @@ class CheckoutBottomBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(16.0),
             ),
           ),
-          child: Text(
-            buttonText,
-            style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-          ),
+          child: placeOrderLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  buttonText,
+                  style: const TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
       ),
     );

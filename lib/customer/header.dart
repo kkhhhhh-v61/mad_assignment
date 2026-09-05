@@ -14,6 +14,8 @@ class AddressOption {
   final String label;
   final String fullAddress;
   final String state;
+  final double? latitude;
+  final double? longitude;
   final bool isDetected;
   final bool isDefault;
 
@@ -21,6 +23,8 @@ class AddressOption {
     required this.label,
     required this.fullAddress,
     required this.state,
+    this.latitude,
+    this.longitude,
     this.isDetected = false,
     this.isDefault = false,
   });
@@ -136,7 +140,10 @@ class _CustomerHeaderState extends State<CustomerHeader> {
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          widget.onLocationChanged?.call(_selectedOption.fullAddress, _selectedOption.state);
+          widget.onLocationChanged?.call(
+            _selectedOption.fullAddress,
+            _selectedOption.state,
+          );
           widget.onLocationLoadingChanged?.call(false);
         }
       });
@@ -153,7 +160,8 @@ class _CustomerHeaderState extends State<CustomerHeader> {
         if (perm == LocationPermission.denied) {
           perm = await Geolocator.requestPermission();
         }
-        if (perm != LocationPermission.denied && perm != LocationPermission.deniedForever) {
+        if (perm != LocationPermission.denied &&
+            perm != LocationPermission.deniedForever) {
           final pos = await Geolocator.getCurrentPosition(
             locationSettings: const LocationSettings(
               accuracy: LocationAccuracy.medium,
@@ -163,17 +171,26 @@ class _CustomerHeaderState extends State<CustomerHeader> {
           final url = Uri.parse(
             'https://nominatim.openstreetmap.org/reverse?lat=${pos.latitude}&lon=${pos.longitude}&format=json&addressdetails=1',
           );
-          final res = await http.get(url, headers: {'User-Agent': 'DoorDishApp/1.0'}).timeout(const Duration(seconds: 4));
+          final res = await http
+              .get(url, headers: {'User-Agent': 'DoorDishApp/1.0'})
+              .timeout(const Duration(seconds: 4));
           if (res.statusCode == 200) {
             final data = json.decode(res.body);
             final addr = data['address'] as Map<String, dynamic>?;
-            final road = addr?['road'] ?? addr?['suburb'] ?? addr?['neighbourhood'] ?? addr?['city'] ?? 'Current Location';
+            final road =
+                addr?['road'] ??
+                addr?['suburb'] ??
+                addr?['neighbourhood'] ??
+                addr?['city'] ??
+                'Current Location';
             final state = addr?['state']?.toString() ?? 'Penang';
             final resolvedState = extractStateFromAddress(state);
             return AddressOption(
               label: 'Current Location',
               fullAddress: '$road, $resolvedState',
               state: resolvedState,
+              latitude: pos.latitude,
+              longitude: pos.longitude,
               isDetected: true,
             );
           }
@@ -243,8 +260,16 @@ class _CustomerHeaderState extends State<CustomerHeader> {
     final List<AddressOption> saved = [];
 
     final detectFuture = _detectLocation();
-    final profileFuture = supabase.from('profiles').select('address, role').eq('id', userId).maybeSingle();
-    final addressesFuture = supabase.from('user_addresses').select().eq('user_id', userId).order('created_at', ascending: false);
+    final profileFuture = supabase
+        .from('profiles')
+        .select('address, role')
+        .eq('id', userId)
+        .maybeSingle();
+    final addressesFuture = supabase
+        .from('user_addresses')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
 
     final detected = await detectFuture;
     _detectedLocation = detected;
@@ -265,19 +290,19 @@ class _CustomerHeaderState extends State<CustomerHeader> {
       final fullAddr = row['full_address']?.toString() ?? '';
       final lbl = row['label']?.toString() ?? 'Saved Address';
       if (fullAddr.isNotEmpty) {
-        saved.add(AddressOption(
-          label: lbl,
-          fullAddress: fullAddr,
-          state: extractStateFromAddress(fullAddr),
-        ));
+        saved.add(
+          AddressOption(
+            label: lbl,
+            fullAddress: fullAddr,
+            state: extractStateFromAddress(fullAddr),
+          ),
+        );
       }
     }
 
-    final initial = defaultOption ?? (saved.isNotEmpty ? saved.first : detected);
-    final allSaved = [
-      ?defaultOption,
-      ...saved,
-    ];
+    final initial =
+        defaultOption ?? (saved.isNotEmpty ? saved.first : detected);
+    final allSaved = [?defaultOption, ...saved];
 
     _cachedSelectedOption = initial;
     _cachedDetectedLocation = detected;
@@ -354,11 +379,18 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                 const SizedBox(height: 16),
                 const Text(
                   'Select Delivery Location',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xDD000000)),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xDD000000),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 if (_detectedLocation != null)
-                  _buildAddressTile(_detectedLocation!, icon: Icons.my_location),
+                  _buildAddressTile(
+                    _detectedLocation!,
+                    icon: Icons.my_location,
+                  ),
                 if (!_isAuthenticated) ...[
                   const SizedBox(height: 12),
                   Container(
@@ -371,17 +403,28 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                     ),
                     child: Column(
                       children: [
-                        const Icon(Icons.lock_outline, color: Color(0xFFFFA07A), size: 28),
+                        const Icon(
+                          Icons.lock_outline,
+                          color: Color(0xFFFFA07A),
+                          size: 28,
+                        ),
                         const SizedBox(height: 8),
                         const Text(
                           'Log in to see your saved addresses',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xDD000000)),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Color(0xDD000000),
+                          ),
                         ),
                         const SizedBox(height: 4),
                         const Text(
                           'Save your favorite delivery addresses for faster ordering.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, color: Color(0xFF757575)),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF757575),
+                          ),
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
@@ -395,9 +438,14 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                               backgroundColor: const Color(0xFFFFA07A),
                               foregroundColor: Colors.white,
                               elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
                             ),
-                            child: const Text('Log In Now', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Log In Now',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                       ],
@@ -405,10 +453,14 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                   ),
                 ] else ...[
                   if (_savedAddresses.isNotEmpty) const Divider(height: 24),
-                  ..._savedAddresses.map((addr) => _buildAddressTile(
-                        addr,
-                        icon: addr.isDefault ? Icons.home_outlined : Icons.location_on_outlined,
-                      )),
+                  ..._savedAddresses.map(
+                    (addr) => _buildAddressTile(
+                      addr,
+                      icon: addr.isDefault
+                          ? Icons.home_outlined
+                          : Icons.location_on_outlined,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   InkWell(
                     onTap: _openManageAddresses,
@@ -418,11 +470,19 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.add_location_alt_outlined, size: 18, color: Color(0xFFFFA07A)),
+                          Icon(
+                            Icons.add_location_alt_outlined,
+                            size: 18,
+                            color: Color(0xFFFFA07A),
+                          ),
                           SizedBox(width: 8),
                           Text(
                             'Manage Saved Addresses',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFFFA07A)),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFFFA07A),
+                            ),
                           ),
                         ],
                       ),
@@ -466,37 +526,37 @@ class _CustomerHeaderState extends State<CustomerHeader> {
               Expanded(
                 child: widget.showBrandTitle
                     ? Row(
-                      children: [
-                        const Text(
-                          'Door',
-                          style: TextStyle(
-                            fontSize: 24.0,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                            color: Colors.black,
-                          ),
-                        ),
-                        const Text(
-                          'Dish',
-                          style: TextStyle(
-                            fontSize: 24.0,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                            color: Color(0xFFFFA07A),
-                          ),
-                        ),
-                      ],
-                    )
-                    : (widget.showTitle
-                        ? Text(
-                            widget.pageTitle,
-                            style: const TextStyle(
-                              fontSize: 22.0,
-                              fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(221, 0, 0, 0),
+                        children: [
+                          const Text(
+                            'Door',
+                            style: TextStyle(
+                              fontSize: 24.0,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                              color: Colors.black,
                             ),
-                          )
-                        : _buildLocationSelector()),
+                          ),
+                          const Text(
+                            'Dish',
+                            style: TextStyle(
+                              fontSize: 24.0,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                              color: Color(0xFFFFA07A),
+                            ),
+                          ),
+                        ],
+                      )
+                    : (widget.showTitle
+                          ? Text(
+                              widget.pageTitle,
+                              style: const TextStyle(
+                                fontSize: 22.0,
+                                fontWeight: FontWeight.bold,
+                                color: Color.fromARGB(221, 0, 0, 0),
+                              ),
+                            )
+                          : _buildLocationSelector()),
               ),
               if (widget.showActions) const HeaderActionButtons(),
             ],
@@ -516,7 +576,8 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                       : const SizedBox.shrink(),
                 ),
                 if (widget.showFilter) const SizedBox(width: 12.0),
-                if (widget.showFilter) HeaderFilterButton(onFilterTap: widget.onFilterTap),
+                if (widget.showFilter)
+                  HeaderFilterButton(onFilterTap: widget.onFilterTap),
               ],
             ),
           ],
@@ -545,7 +606,9 @@ class _CustomerHeaderState extends State<CustomerHeader> {
             children: [
               Flexible(
                 child: Text(
-                  _isLoadingLocation ? 'Detecting location...' : _selectedOption.fullAddress,
+                  _isLoadingLocation
+                      ? 'Detecting location...'
+                      : _selectedOption.fullAddress,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15.0,
@@ -590,11 +653,21 @@ class _CustomerHeaderState extends State<CustomerHeader> {
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFFFF5F0) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? const Color(0xFFFFC8B4) : const Color(0xFFEEEEEE)),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFFFFC8B4)
+                : const Color(0xFFEEEEEE),
+          ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? const Color(0xFFFFA07A) : const Color(0xFF9E9E9E), size: 22),
+            Icon(
+              icon,
+              color: isSelected
+                  ? const Color(0xFFFFA07A)
+                  : const Color(0xFF9E9E9E),
+              size: 22,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -605,13 +678,18 @@ class _CustomerHeaderState extends State<CustomerHeader> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? const Color(0xFFFFA07A) : const Color(0xDD000000),
+                      color: isSelected
+                          ? const Color(0xFFFFA07A)
+                          : const Color(0xDD000000),
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     option.fullAddress,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF757575)),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF757575),
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -619,7 +697,11 @@ class _CustomerHeaderState extends State<CustomerHeader> {
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle, color: Color(0xFFFFA07A), size: 20),
+              const Icon(
+                Icons.check_circle,
+                color: Color(0xFFFFA07A),
+                size: 20,
+              ),
           ],
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 import '../global.dart';
 
 class CustomerNotifications extends StatefulWidget {
@@ -10,16 +11,66 @@ class CustomerNotifications extends StatefulWidget {
 }
 
 class _CustomerNotificationsState extends State<CustomerNotifications> {
+  final _supabase = Supabase.instance.client;
   String _selectedCategory = 'All';
   final List<String> _categories = const ['All', 'Orders', 'Promos', 'System'];
 
-  late List<Map<String, dynamic>> _notifications;
+  List<Map<String, dynamic>> _notifications = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _notifications = [];
-    //TODO: Retrieve user's notifications dynamically from backend
+    _fetchAndMarkNotifications();
+  }
+
+  Future<void> _fetchAndMarkNotifications() async {
+    setState(() => _isLoading = true);
+    try {
+      final userId = _supabase.auth.currentUser!.id;
+
+      final response = await _supabase
+          .from('notifications')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+
+      final List<Map<String, dynamic>> loaded = [];
+      List<String> unreadIds = [];
+
+      for (var row in response) {
+        loaded.add({
+          'id': row['id'],
+          'title': row['title'],
+          'description': row['description'],
+          'type': row['type'],
+          'isRead': row['is_read'],
+          'time': DateFormat('dd MMM, hh:mm a').format(DateTime.parse(row['created_at']).toLocal()),
+        });
+
+        if (row['is_read'] == false) {
+          unreadIds.add(row['id']);
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _notifications = loaded;
+          _isLoading = false;
+        });
+      }
+
+      if (unreadIds.isNotEmpty) {
+        await _supabase
+            .from('notifications')
+            .update({'is_read': true})
+            .inFilter('id', unreadIds);
+      }
+
+    } catch (e) {
+      print('Error fetching notifications: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _forceUpdate() {
@@ -35,55 +86,25 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: Color.fromARGB(221, 0, 0, 0),
-            size: 20,
-          ),
+          icon: const Icon(Icons.arrow_back_ios, color: Color.fromARGB(221, 0, 0, 0), size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Notifications',
-          style: TextStyle(
-            color: Color.fromARGB(221, 0, 0, 0),
-            fontWeight: FontWeight.bold,
-            fontSize: 18.0,
-          ),
+          style: TextStyle(color: Color.fromARGB(221, 0, 0, 0), fontWeight: FontWeight.bold, fontSize: 18.0),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.done_all,
-              color: Color.fromARGB(255, 255, 160, 122),
-            ),
-            tooltip: 'Mark all as read',
-            onPressed: () {
-              //TODO: Mark all notifications as read via backend API
-              setState(() {
-                for (var notif in _notifications) {
-                  notif['isRead'] = true;
-                }
-              });
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(
-            color: const Color.fromARGB(255, 238, 238, 238),
-            height: 1.0,
-          ),
+          child: Container(color: const Color.fromARGB(255, 238, 238, 238), height: 1.0),
         ),
       ),
-      body: Column(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 255, 160, 122)))
+          : Column(
         children: [
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20.0,
-              vertical: 12.0,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
             child: SizedBox(
               height: 40,
               child: ListView.builder(
@@ -99,12 +120,8 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
                       label: Text(
                         category,
                         style: TextStyle(
-                          color: isSelected
-                              ? Colors.white
-                              : const Color.fromARGB(221, 0, 0, 0),
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.w500,
+                          color: isSelected ? Colors.white : const Color.fromARGB(221, 0, 0, 0),
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                           fontSize: 14.0,
                         ),
                       ),
@@ -118,11 +135,7 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
                       backgroundColor: const Color.fromARGB(255, 245, 245, 245),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(25.0),
-                        side: BorderSide(
-                          color: isSelected
-                              ? const Color.fromARGB(255, 255, 160, 122)
-                              : const Color.fromARGB(255, 224, 224, 224),
-                        ),
+                        side: BorderSide(color: isSelected ? const Color.fromARGB(255, 255, 160, 122) : const Color.fromARGB(255, 224, 224, 224)),
                       ),
                     ),
                   );
@@ -136,9 +149,7 @@ class _CustomerNotificationsState extends State<CustomerNotifications> {
               builder: (context) {
                 final displayedNotifs = _selectedCategory == 'All'
                     ? _notifications
-                    : _notifications
-                          .where((notif) => notif['type'] == _selectedCategory)
-                          .toList();
+                    : _notifications.where((notif) => notif['type'] == _selectedCategory).toList();
                 return NotificationsList(
                   notifications: displayedNotifs,
                   onUpdate: _forceUpdate,
@@ -226,7 +237,6 @@ class NotificationCard extends StatelessWidget {
     return InkWell(
       onTap: () {
         if (!isRead) {
-          //TODO: Mark single notification as read via backend API
           notif['isRead'] = true;
           onUpdate();
         }
@@ -235,37 +245,17 @@ class NotificationCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
-          color: isRead
-              ? Colors.white
-              : const Color.fromARGB(255, 255, 160, 122).withValues(alpha: 0.05),
+          color: isRead ? Colors.white : const Color.fromARGB(255, 255, 160, 122).withOpacity(0.05),
           borderRadius: BorderRadius.circular(16.0),
-          boxShadow: const [
-            BoxShadow(
-              color: Color.fromARGB(8, 0, 0, 0),
-              blurRadius: 8,
-              offset: Offset(0, 3),
-            ),
-          ],
-          border: isRead
-              ? null
-              : Border.all(
-                  color: const Color.fromARGB(
-                    255,
-                    255,
-                    160,
-                    122,
-                  ).withValues(alpha: 0.3),
-                ),
+          boxShadow: const [BoxShadow(color: Color.fromARGB(8, 0, 0, 0), blurRadius: 8, offset: Offset(0, 3))],
+          border: isRead ? null : Border.all(color: const Color.fromARGB(255, 255, 160, 122).withOpacity(0.3)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               padding: const EdgeInsets.all(12.0),
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: iconColor.withOpacity(0.1), shape: BoxShape.circle),
               child: Icon(icon, color: iconColor, size: 24.0),
             ),
             const SizedBox(width: 16.0),
@@ -280,9 +270,7 @@ class NotificationCard extends StatelessWidget {
                         child: Text(
                           title,
                           style: TextStyle(
-                            fontWeight: isRead
-                                ? FontWeight.w600
-                                : FontWeight.bold,
+                            fontWeight: isRead ? FontWeight.w600 : FontWeight.bold,
                             fontSize: 16.0,
                             color: const Color.fromARGB(221, 0, 0, 0),
                           ),
@@ -292,10 +280,7 @@ class NotificationCard extends StatelessWidget {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color.fromARGB(255, 255, 160, 122),
-                            shape: BoxShape.circle,
-                          ),
+                          decoration: const BoxDecoration(color: Color.fromARGB(255, 255, 160, 122), shape: BoxShape.circle),
                         ),
                     ],
                   ),
@@ -304,19 +289,13 @@ class NotificationCard extends StatelessWidget {
                     description,
                     style: TextStyle(
                       fontSize: 14.0,
-                      color: isRead
-                          ? const Color.fromARGB(255, 117, 117, 117)
-                          : const Color.fromARGB(255, 66, 66, 66),
+                      color: isRead ? const Color.fromARGB(255, 117, 117, 117) : const Color.fromARGB(255, 66, 66, 66),
                     ),
                   ),
                   const SizedBox(height: 12.0),
                   Text(
                     time,
-                    style: const TextStyle(
-                      fontSize: 12.0,
-                      color: Color.fromARGB(255, 158, 158, 158),
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: const TextStyle(fontSize: 12.0, color: Color.fromARGB(255, 158, 158, 158), fontWeight: FontWeight.w500),
                   ),
                 ],
               ),

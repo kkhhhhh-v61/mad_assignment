@@ -26,6 +26,14 @@ class CustomerMainNavigation extends StatefulWidget {
 
   const CustomerMainNavigation({super.key, this.initialIndex = 0});
 
+  static _CustomerMainNavigationState? _currentState;
+
+  static bool get hasCurrentState => _currentState != null;
+
+  static void switchToTab(int index) {
+    _currentState?.setTab(index);
+  }
+
   @override
   State<CustomerMainNavigation> createState() => _CustomerMainNavigationState();
 }
@@ -40,8 +48,25 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
   @override
   void initState() {
     super.initState();
+    CustomerMainNavigation._currentState = this;
     _checkAutoLogin();
     _currentIndex = widget.initialIndex;
+  }
+
+  @override
+  void dispose() {
+    if (CustomerMainNavigation._currentState == this) {
+      CustomerMainNavigation._currentState = null;
+    }
+    super.dispose();
+  }
+
+  void setTab(int index) {
+    if (mounted) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
   }
 
   Future<void> _checkAutoLogin() async {

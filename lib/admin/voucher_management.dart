@@ -516,7 +516,7 @@ class _VoucherFormState extends State<VoucherForm> {
       if (widget.existingVoucher == null) {
         await _supabase.from('vouchers').insert(payload);
 
-        final notifTitle = _isForAll ? 'New Voucher Available! 🎉' : 'Exclusive Reward for You! 🌟';
+        final notifTitle = _isForAll ? 'New Voucher Available!' : 'Exclusive Reward for You!';
         final notifDesc = 'Use code $code to enjoy ${_isFreeDelivery ? "Free Delivery" : "RM ${discount.toStringAsFixed(2)} off"}!';
 
         if (_isForAll) {
@@ -544,13 +544,36 @@ class _VoucherFormState extends State<VoucherForm> {
       }
 
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.existingVoucher == null
+                  ? 'Voucher created successfully!'
+                  : 'Voucher updated successfully!',
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            backgroundColor: const Color.fromARGB(255, 76, 175, 80),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
         Navigator.pop(context);
         widget.onSave();
+      }
+
+    } on PostgrestException catch (e) {
+      print('Supabase DB Error: ${e.message}');
+      if (mounted) {
+        if (e.code == '23505') {
+          _showError('This voucher code already exists! Please use a different code.');
+        } else {
+          _showError('DB Error: ${e.message}');
+        }
       }
     } catch (e) {
       print('Save error: $e');
       if (mounted) {
-        _showError('This voucher code already exists or database error occurred.');
+        _showError('Unexpected error: $e');
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

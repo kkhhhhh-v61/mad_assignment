@@ -13,7 +13,6 @@ import 'food_management.dart';
 import 'rider_management.dart';
 import 'customer_management.dart';
 import 'branch_management.dart';
-import 'order_assignment.dart';
 
 import '../models.dart';
 
@@ -173,11 +172,6 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
 
       accountOptions: [
         SharedOptionTile(
-          icon: Icons.store_outlined,
-          title: 'Delivery Fees Setting',
-          onTap: () {},
-        ),
-        SharedOptionTile(
           icon: Icons.people_outline,
           title: 'Manage Customers',
           onTap: () {
@@ -197,18 +191,6 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
               context,
               MaterialPageRoute(
                 builder: (context) => const AdminVoucherManagement(),
-              ),
-            );
-          },
-        ),
-        SharedOptionTile(
-          icon: Icons.bar_chart,
-          title: 'Assign Rider',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const AdminOrderAssignment(),
               ),
             );
           },

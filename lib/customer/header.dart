@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main.dart';
 import '../services/states.dart';
@@ -717,11 +718,12 @@ class HeaderActionButtons extends StatefulWidget {
 
 class _HeaderActionButtonsState extends State<HeaderActionButtons> {
   bool _hasUnreadNotifications = false;
-
+  RealtimeChannel? _notificationChannel;
   @override
   void initState() {
     super.initState();
     _checkUnreadNotifications();
+    _setupRealtimeSubscription();
   }
 
   Future<void> _checkUnreadNotifications() async {
@@ -743,6 +745,38 @@ class _HeaderActionButtonsState extends State<HeaderActionButtons> {
     } catch (e) {
       print('Error fetching notification count: $e');
     }
+  }
+
+  void _setupRealtimeSubscription() {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    _notificationChannel = supabase
+        .channel('public:notifications')
+        .onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'notifications',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'user_id',
+        value: user.id,
+      ),
+      callback: (payload) {
+        if (mounted) {
+          setState(() {
+            _hasUnreadNotifications = true;
+          });
+        }
+      },
+    )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    _notificationChannel?.unsubscribe();
+    super.dispose();
   }
 
   @override

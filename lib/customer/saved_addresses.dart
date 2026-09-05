@@ -131,6 +131,23 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
 
     if (result == true) {
       _fetchAddresses();
+
+      if (mounted) {
+        // 判断是新增还是编辑 (如果有 addressId 就是 Edit)
+        final isEdit = addressId != null;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isEdit ? 'Address updated successfully!' : 'New address added successfully!',
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            backgroundColor: const Color.fromARGB(255, 76, 175, 80),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 

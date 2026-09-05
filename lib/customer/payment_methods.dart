@@ -159,7 +159,13 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            Text(card['card_number_masked'] ?? '**** **** **** 0000', style: const TextStyle(fontSize: 18, letterSpacing: 2.0)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                card['card_number_masked'] ?? '**** **** **** 0000',
+                style: const TextStyle(fontSize: 18, letterSpacing: 2.0),
+              ),
+            ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -373,9 +379,11 @@ class _AddCardFormState extends State<AddCardForm> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(
-        left: 24.0, right: 24.0, top: 24.0,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
+      padding: const EdgeInsets.only(
+        left: 24.0,
+        right: 24.0,
+        top: 24.0,
+        bottom: 24.0,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../main.dart';
 
+import '../customer/address_coordinate_cache.dart';
+
 import '../admin/main_navigation.dart';
 import '../rider/main_navigation.dart';
 
@@ -41,6 +43,9 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _postcodeController = TextEditingController();
 
+  double? _selectedOsmLatitude;
+  double? _selectedOsmLongitude;
+
   String? _selectedStateName;
   List<States> _statesList = [];
   bool _isLoadingStates = true;
@@ -50,6 +55,9 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
   Timer? _debounce;
 
   void _searchOsmAddress(String query) {
+    // A changed search must not reuse coordinates from an earlier result.
+    _selectedOsmLatitude = null;
+    _selectedOsmLongitude = null;
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 600), () async {
       if (query.trim().length < 3) {
@@ -80,6 +88,8 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
   void _onSelectOsmSuggestion(Map<String, dynamic> item) {
     final addressDetails = item['address'] ?? {};
     final displayName = item['display_name']?.toString() ?? '';
+    final latitude = double.tryParse(item['lat']?.toString() ?? '');
+    final longitude = double.tryParse(item['lon']?.toString() ?? '');
 
     String postcode = addressDetails['postcode'] ?? '';
     String stateFromOsm = addressDetails['state'] ?? '';
@@ -98,6 +108,8 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
       _addressController.text = fullStreetAddress;
       _postcodeController.text = postcode;
       _osmSuggestions = [];
+      _selectedOsmLatitude = latitude;
+      _selectedOsmLongitude = longitude;
     });
 
     if (stateFromOsm.isNotEmpty) {
@@ -393,6 +405,17 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
       );
 
       if (errorMessage == null) {
+        // The hosted address columns currently store text only. Keep the
+        // coordinates returned by OSM locally so Checkout can use the exact
+        // address selected during registration without geocoding it again.
+        if (_selectedOsmLatitude != null && _selectedOsmLongitude != null) {
+          await AddressCoordinateCache.save(
+            address: fullAddress,
+            latitude: _selectedOsmLatitude!,
+            longitude: _selectedOsmLongitude!,
+          );
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Account created successfully! Please log in.', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -407,6 +430,8 @@ class _SharedAuthScreenState extends State<SharedAuthScreen> {
           _unitController.clear();
           _addressController.clear();
           _postcodeController.clear();
+          _selectedOsmLatitude = null;
+          _selectedOsmLongitude = null;
           _selectedStateName = null;
           _passwordController.clear();
           _confirmPasswordController.clear();

@@ -146,7 +146,7 @@ class _FoodItemDetailState extends State<FoodItemDetail> {
     final instructions = _specialInstructionsController.text.trim();
     if (instructions.isNotEmpty) {
       customizations.add(CartItemCustomization(
-        name: 'Note: $instructions',
+        name: instructions,
         price: 0.0,
       ));
     }

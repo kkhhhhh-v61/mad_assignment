@@ -12,6 +12,8 @@ class BranchSelection extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onRetry;
 
+  final bool isEnabled;
+
   const BranchSelection({
     super.key,
     required this.selectedBranch,
@@ -21,23 +23,47 @@ class BranchSelection extends StatelessWidget {
     required this.error,
     required this.onTap,
     required this.onRetry,
+    this.isEnabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final snapshot = selectedBranch?.snapshot ?? fallbackSnapshot;
-    final canSelect = !isLoading && branches.isNotEmpty;
+    final canSelect = isEnabled && !isLoading && branches.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Restaurant Branch',
-          style: TextStyle(
-            fontSize: 16.0,
-            fontWeight: FontWeight.bold,
-            color: Color.fromARGB(221, 0, 0, 0),
-          ),
+        Row(
+          children: [
+            const Text(
+              'Restaurant Branch',
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.bold,
+                color: Color.fromARGB(221, 0, 0, 0),
+              ),
+            ),
+            if (!isEnabled) ...[
+              const SizedBox(width: 8.0),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(6.0),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: const Text(
+                  'Assigned for order',
+                  style: TextStyle(
+                    fontSize: 11.0,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF757575),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 12.0),
         InkWell(
@@ -46,10 +72,12 @@ class BranchSelection extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isEnabled ? Colors.white : const Color(0xFFF9FAFB),
               borderRadius: BorderRadius.circular(16.0),
               border: Border.all(
-                color: const Color.fromARGB(255, 238, 238, 238),
+                color: isEnabled
+                    ? const Color.fromARGB(255, 238, 238, 238)
+                    : const Color(0xFFE5E7EB),
               ),
             ),
             child: Row(
@@ -58,12 +86,16 @@ class BranchSelection extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10.0),
                   decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 245, 245, 245),
+                    color: isEnabled
+                        ? const Color.fromARGB(255, 245, 245, 245)
+                        : const Color(0xFFEEEEEE),
                     borderRadius: BorderRadius.circular(12.0),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.storefront_outlined,
-                    color: Color.fromARGB(255, 255, 160, 122),
+                    color: isEnabled
+                        ? const Color.fromARGB(255, 255, 160, 122)
+                        : const Color(0xFF9E9E9E),
                   ),
                 ),
                 const SizedBox(width: 16.0),
@@ -75,6 +107,7 @@ class BranchSelection extends StatelessWidget {
                     error: error,
                     hasBranches: branches.isNotEmpty,
                     onRetry: onRetry,
+                    isEnabled: isEnabled,
                   ),
                 ),
                 if (canSelect)
@@ -101,6 +134,7 @@ class _BranchSummary extends StatelessWidget {
   final String? error;
   final bool hasBranches;
   final VoidCallback onRetry;
+  final bool isEnabled;
 
   const _BranchSummary({
     required this.snapshot,
@@ -109,6 +143,7 @@ class _BranchSummary extends StatelessWidget {
     required this.error,
     required this.hasBranches,
     required this.onRetry,
+    this.isEnabled = true,
   });
 
   @override
@@ -151,7 +186,9 @@ class _BranchSummary extends StatelessWidget {
 
     if (snapshot == null) {
       return Text(
-        hasBranches ? 'Select a branch' : 'No branches are configured yet',
+        hasBranches
+            ? (isEnabled ? 'Select a branch' : 'Branch assigned for order')
+            : 'No branches are configured yet',
         style: const TextStyle(
           color: Color.fromARGB(255, 117, 117, 117),
           fontWeight: FontWeight.w500,
@@ -164,7 +201,11 @@ class _BranchSummary extends StatelessWidget {
       children: [
         Text(
           snapshot!.name,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14.0,
+            color: isEnabled ? Colors.black87 : const Color(0xFF616161),
+          ),
         ),
         if (selectedBranch != null) ...[
           const SizedBox(height: 4.0),

@@ -97,21 +97,7 @@ class _CustomerMainNavigationState extends State<CustomerMainNavigation> {
     }
   }
 
-  Future<void> _checkCurrentUser() async {
-    final session = supabase.auth.currentSession;
-    final user = supabase.auth.currentUser;
-    if (session != null && !session.isExpired && user != null) {
-      try {
-        final profile = await supabase.from('profiles').select().eq('id', user.id).maybeSingle();
-        if (profile != null && mounted) {
-          setState(() {
-            _isLoggedIn = true;
-            currentUser = AppUser.fromJson(Map<String, dynamic>.from(profile), user.email ?? '');
-          });
-        }
-      } catch (_) {}
-    }
-  }
+
 
   List<Widget> get _screens => [
     CustomerHome(

@@ -52,6 +52,13 @@ class CustomerHeader extends StatefulWidget {
   static String get cachedAddress =>
       _CustomerHeaderState._cachedSelectedOption?.fullAddress ?? '';
 
+  static List<String> get cachedSavedAddressStrings =>
+      _CustomerHeaderState._cachedSavedAddresses
+          ?.map((a) => a.fullAddress)
+          .where((s) => s.isNotEmpty)
+          .toList() ??
+      [];
+
   static void clearLocationCache() => _CustomerHeaderState.clearLocationCache();
 
   const CustomerHeader({

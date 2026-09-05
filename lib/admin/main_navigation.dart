@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mad_assignment/admin/voucher_management.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -183,6 +184,18 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
               context,
               MaterialPageRoute(
                 builder: (context) => const AdminCustomerManagement(),
+              ),
+            );
+          },
+        ),
+        SharedOptionTile(
+          icon: Icons.store_outlined,
+          title: 'Manage Vouchers',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AdminVoucherManagement(),
               ),
             );
           },

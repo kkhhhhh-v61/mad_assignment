@@ -5,8 +5,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../Order/order.dart';
 import '../Order/order_repository.dart';
+import 'cart.dart';
 import 'customer_proof_photo_repository.dart';
 import 'order_tracking.dart';
+import 'reorder_service.dart';
 
 Future<bool> cancelCustomerOrder({
   required BuildContext context,
@@ -139,6 +141,44 @@ class OrderDetails extends StatelessWidget {
   }
 
   bool get canCancel => typedOrder?.status == OrderStatus.placed;
+
+  Future<void> _handleReorder(BuildContext context) async {
+    final sourceOrder = typedOrder;
+    if (sourceOrder == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This order cannot be reordered right now.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    try {
+      await CustomerReorderService.addOrderToCart(order: sourceOrder);
+      if (!context.mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CustomerCart()),
+      );
+    } on ReorderException catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('The order could not be added to your cart.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -343,13 +383,17 @@ class OrderDetails extends StatelessWidget {
                 child: isOutlined
                     ? OutlinedButton(
                         onPressed: () async {
-                          final cancelled = await cancelCustomerOrder(
-                            context: context,
-                            order: order,
-                            repository: orderRepository,
-                          );
-                          if (cancelled && context.mounted) {
-                            Navigator.pop(context, true);
+                          if (buttonText == 'Cancel Order') {
+                            final cancelled = await cancelCustomerOrder(
+                              context: context,
+                              order: order,
+                              repository: orderRepository,
+                            );
+                            if (cancelled && context.mounted) {
+                              Navigator.pop(context, true);
+                            }
+                          } else {
+                            await _handleReorder(context);
                           }
                         },
                         style: OutlinedButton.styleFrom(

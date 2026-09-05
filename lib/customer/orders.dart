@@ -5,9 +5,11 @@ import '../Order/order.dart';
 import '../Order/order_repository.dart';
 import '../global.dart';
 import '../main.dart';
+import 'cart.dart';
 import 'header.dart';
 import 'order_details.dart';
 import 'order_tracking.dart';
+import 'reorder_service.dart';
 
 class CustomerOrders extends StatefulWidget {
   const CustomerOrders({super.key});
@@ -156,6 +158,7 @@ class _CustomerOrdersState extends State<CustomerOrders> {
                   orders: filteredOrders,
                   selectedStatus: _selectedStatus,
                   onCancel: _cancelOrder,
+                  onReorder: _reorderOrder,
                   onOrderChanged: _loadOrders,
                 ),
         ),
@@ -170,6 +173,44 @@ class _CustomerOrdersState extends State<CustomerOrders> {
     );
     if (cancelled && mounted) {
       await _loadOrders();
+    }
+  }
+
+  Future<void> _reorderOrder(Map<String, dynamic> order) async {
+    final sourceOrder = order['typedOrder'];
+    if (sourceOrder is! Order) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This order cannot be reordered right now.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    try {
+      await CustomerReorderService.addOrderToCart(order: sourceOrder);
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CustomerCart()),
+      );
+    } on ReorderException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('The order could not be added to your cart.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 }
@@ -262,6 +303,7 @@ class OrderList extends StatelessWidget {
   final List<Map<String, dynamic>> orders;
   final String selectedStatus;
   final Future<void> Function(Map<String, dynamic> order)? onCancel;
+  final Future<void> Function(Map<String, dynamic> order)? onReorder;
   final Future<void> Function()? onOrderChanged;
 
   const OrderList({
@@ -269,6 +311,7 @@ class OrderList extends StatelessWidget {
     required this.orders,
     required this.selectedStatus,
     this.onCancel,
+    this.onReorder,
     this.onOrderChanged,
   });
 
@@ -291,6 +334,7 @@ class OrderList extends StatelessWidget {
         return OrderCard(
           order: orders[index],
           onCancel: onCancel,
+          onReorder: onReorder,
           onOrderChanged: onOrderChanged,
         );
       },
@@ -301,12 +345,14 @@ class OrderList extends StatelessWidget {
 class OrderCard extends StatelessWidget {
   final Map<String, dynamic> order;
   final Future<void> Function(Map<String, dynamic> order)? onCancel;
+  final Future<void> Function(Map<String, dynamic> order)? onReorder;
   final Future<void> Function()? onOrderChanged;
 
   const OrderCard({
     super.key,
     required this.order,
     this.onCancel,
+    this.onReorder,
     this.onOrderChanged,
   });
 
@@ -534,7 +580,9 @@ class OrderCard extends StatelessWidget {
                       ? OutlinedButton(
                           onPressed: buttonText == 'Cancel Order'
                               ? () => onCancel?.call(order)
-                              : null,
+                              : onReorder == null
+                              ? null
+                              : () => onReorder!.call(order),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: buttonColor,
                             side: BorderSide(color: buttonColor),

@@ -59,6 +59,15 @@ class CustomerHeader extends StatefulWidget {
           .toList() ??
       [];
 
+  static AddressOption? get cachedDetectedLocation =>
+      _CustomerHeaderState._cachedDetectedLocation;
+
+  static AddressOption? get cachedSelectedOption =>
+      _CustomerHeaderState._cachedSelectedOption;
+
+  static List<AddressOption>? get cachedSavedAddresses =>
+      _CustomerHeaderState._cachedSavedAddresses;
+
   static void clearLocationCache() => _CustomerHeaderState.clearLocationCache();
 
   const CustomerHeader({
@@ -456,15 +465,28 @@ class _CustomerHeaderState extends State<CustomerHeader> {
             children: [
               Expanded(
                 child: widget.showBrandTitle
-                    ? const Text(
-                        'DoorDish',
-                        style: TextStyle(
-                          fontSize: 24.0,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
-                          color: Color(0xFFFFA07A),
+                    ? Row(
+                      children: [
+                        const Text(
+                          'Door',
+                          style: TextStyle(
+                            fontSize: 24.0,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                            color: Colors.black,
+                          ),
                         ),
-                      )
+                        const Text(
+                          'Dish',
+                          style: TextStyle(
+                            fontSize: 24.0,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                            color: Color(0xFFFFA07A),
+                          ),
+                        ),
+                      ],
+                    )
                     : (widget.showTitle
                         ? Text(
                             widget.pageTitle,
